@@ -137,7 +137,11 @@ $(info ARFLAGS=$(ARFLAGS))
 
 all: $(PROG).elf
 
-$(PROG).elf  : $(OBJS) Makefile
+gen_freertos_header:
+	@echo Generating FreeRTOSConfig.h header for $(PLATFORM) platform
+	@sed -e 's/PLATFORM/$(PLATFORM)/g' < FreeRTOSConfig.h.in > FreeRTOSConfig.h
+
+$(PROG).elf  : gen_freertos_header $(OBJS) Makefile
 	@echo Building FreeRTOS/RISC-V for PLATFORM=$(PLATFORM) ARCH=$(ARCH) ABI=$(ABI)
 	@echo Linking....
 	@$(GCC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)

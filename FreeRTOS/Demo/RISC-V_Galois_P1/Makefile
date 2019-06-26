@@ -7,11 +7,11 @@ ABI 		= -mabi=ilp32
 
 TARGET=$(CCPATH)riscv${RISCV_XLEN}-unknown-${RISCV_LIB}
 
-GCC		= $(TARGET)-gcc
-OBJCOPY	= $(TARGET)-objcopy
-OBJDUMP	= $(TARGET)-objdump
-AR		= $(TARGET)-ar
-RANLIB	= $(TARGET)-ranlib
+CC		= $(TARGET)-clang
+OBJCOPY	= llvm-objcopy
+OBJDUMP	= llvm-objdump
+AR		= llvm-ar
+RANLIB	= llvm-ranlib
 
 # Use main_blinky as demo source and target file name if not specified
 PROG 	?= main_blinky
@@ -53,13 +53,6 @@ INCLUDES = \
 	-I$(FREERTOS_SOURCE_DIR)/include \
 	-I../Common/include \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V
-
-ASFLAGS  += -g $(ARCH) $(ABI)  -Wa,-Ilegacy \
-	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
-	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
-
-CFLAGS = $(WARNINGS) $(INCLUDES)
-CFLAGS += -O0 -g3 $(ARCH) $(ABI) -mcmodel=medany
 
 DEMO_SRC = main.c \
 	demo/$(PROG).c
@@ -131,6 +124,16 @@ INCLUDES = \
 ASFLAGS  += -g $(ARCH) $(ABI)  -Wa,-Ilegacy \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
+
+ASFLAGS  += -target $(TARGET) \
+	-g $(ARCH) $(ABI) -Wa,-Ilegacy \
+	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
+	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
+
+CFLAGS = -target $(TARGET) \
+	$(WARNINGS) $(INCLUDES) \
+	-O0 -g3 $(ARCH) $(ABI) -mcmodel=medium
+
 
 FREERTOS_IP_SRC = \
 	$(FREERTOS_TCP_SOURCE_DIR)/FreeRTOS_IP.c \
@@ -266,8 +269,9 @@ PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ)
 
-LDFLAGS	 = -T link.ld -nostartfiles -nostdlib
-LIBS	 =  -lc -lgcc
+LDFLAGS = -target $(TARGET) -fuse-ld=lld -mno-relax
+LDFLAGS += -T link.ld -nostartfiles -nostdlib
+LIBS	 =  -lc
 
 $(info ASFLAGS=$(ASFLAGS))
 $(info LDLIBS=$(LDLIBS))
@@ -277,25 +281,25 @@ $(info ARFLAGS=$(ARFLAGS))
 
 %.o: %.c
 	@echo "    CC $<"
-	@$(GCC) -c $(CFLAGS) -o $@ $<
+	@$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
 	@echo "    CC $<"
-	@$(GCC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
+	@$(CC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
 
 all: $(PROG).elf
 
 $(PROG).elf  : $(OBJS) Makefile 
 	@echo Linking....
-	@$(GCC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
-	@$(OBJDUMP) -S $(PROG).elf > $(PROG).asm	
+	@$(CC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
+	@$(OBJDUMP) -disassemble -h -t -p -r -source $(PROG).elf > $(PROG).dump
 	@echo Completed $@
 
 clean :
 	@rm -f $(OBJS)
 	@rm -f $(PROG).elf 
 	@rm -f $(PROG).map
-	@rm -f $(PROG).asm
+	@rm -f $(PROG).dump
 
 docs :
 	@doxygen

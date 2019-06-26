@@ -25,8 +25,7 @@ FREERTOS_PLUS_SOURCE_DIR = ../../../FreeRTOS-Plus/Source
 FREERTOS_TCP_SOURCE_DIR = $(FREERTOS_PLUS_SOURCE_DIR)/FreeRTOS-Plus-TCP
 FREERTOS_PROTOCOLS_DIR = ./protocols
 
-WARNINGS= -Wall -Wextra -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-align -Wsign-compare \
-		-Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wunused
+WARNINGS= -Werror
 
 
 # Root of RISC-V tools installation
@@ -46,13 +45,6 @@ APP_SOURCE_DIR	= ../Common/Minimal
 
 PORT_SRC = $(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/port.c
 PORT_ASM = $(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/portASM.S
-
-INCLUDES = \
-	-I. \
-	-I./bsp \
-	-I$(FREERTOS_SOURCE_DIR)/include \
-	-I../Common/include \
-	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V
 
 DEMO_SRC = main.c \
 	demo/$(PROG).c
@@ -120,10 +112,6 @@ INCLUDES = \
 	-I../Common/include \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V \
 	-I./demo
-
-ASFLAGS  += -g $(ARCH) $(ABI)  -Wa,-Ilegacy \
-	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
-	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
 ASFLAGS  += -target $(TARGET) \
 	-g $(ARCH) $(ABI) -Wa,-Ilegacy \

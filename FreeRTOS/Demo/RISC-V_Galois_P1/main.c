@@ -33,6 +33,14 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <stdio.h>
+#include <cheri_init_globals.h>
+
+void
+_start_purecap(void) {
+  cheri_init_globals_3(__builtin_cheri_global_data_get(),
+      __builtin_cheri_program_counter_get(),
+      __builtin_cheri_global_data_get());
+}
 
 /* Bsp includes. */
 #include "bsp.h"

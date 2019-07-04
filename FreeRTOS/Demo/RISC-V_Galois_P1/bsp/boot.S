@@ -70,12 +70,28 @@
     1 tab == 4 spaces!
 */
 
+# The CPU starts in hybrid, and the boot initialisation has to be in hybrid.
+.option nocapmode
+
 /* Startup code */
 .globl boot
 boot:
     li t6, 0x1800
     csrw mstatus, t6
-    j _mstart
+    # W^X for PCC and DDC
+    cspecialrw      ct0, cnull, ddc
+    li              t1, (1<<1)
+    not             t1, t1
+    candperm        ct0, ct0, t1
+    cspecialrw      cnull, ct0, ddc
+
+    cspecialrw      ct0, cnull, pcc
+    li              t1, ((1<<3) | (1<<5))
+    not             t1, t1
+    candperm        ct0, ct0, t1
+    la              t2, _mstart
+    csetoffset      c1, c1, x3
+    cjr             c1
 
 _mstart:
     li	x1, 0
@@ -83,7 +99,7 @@ _mstart:
     li	x3, 0
     li	x4, 0
     li	x5, 0
-	li	x6, 0
+    li	x6, 0
     li	x7, 0
     li	x8, 0
     li	x9, 0
@@ -135,10 +151,28 @@ write_stack_pattern:
     jal	fill_block
 
 init_stack:
-    /* set stack pointer */
-    la	sp, _stack
+    # From now on, do purecap ABI but in hybrid mode.
+    la              sp, _stack_end
+    cfromptr        csp, ddc, sp # Get DDC.
+    la              t2, _stack
+    sub             t2, t2, sp # length of the stack
+    csetbounds      csp, csp, t2
+    cincoffset      csp, csp, t2
 
-	j	main
+    # Initialise the captable.
+    cspecialrw      ct0, cnull, pcc # Get PCC.
+    la              t1, _start_purecap
+    csetoffset      ct0, ct0, t1
+    li              t1, 1
+    csetflags       ct0, ct0, t1
+    cjalr           cra, ct0
+
+    cspecialrw      ct0, cnull, pcc # Get PCC.
+    la              t1, main
+    csetoffset      ct0, ct0, t1
+    li              t1, 1
+    csetflags       ct0, ct0, t1
+    cjalr           cra, ct0
 
 /* Fills memory blocks */
 fill_block:
@@ -148,3 +182,5 @@ fill_block:
     j		fill_block
 fb_end:
     ret
+
+.option capmode

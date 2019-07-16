@@ -889,7 +889,7 @@ u32 XAxiDma_SimpleTransfer(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length,
 			WordBits = XAXIDMA_MICROMODE_MIN_BUF_ALIGN;
 		}
 
-		if ((BuffAddr & WordBits)) {
+		if (((size_t)BuffAddr & WordBits)) {
 
 			if (!InstancePtr->TxBdRing.HasDRE) {
 				printf(
@@ -951,7 +951,7 @@ u32 XAxiDma_SimpleTransfer(XAxiDma *InstancePtr, UINTPTR BuffAddr, u32 Length,
 			WordBits = XAXIDMA_MICROMODE_MIN_BUF_ALIGN;
 		}
 
-		if ((BuffAddr & WordBits)) {
+		if (((size_t)BuffAddr & WordBits)) {
 
 			if (!InstancePtr->RxBdRing[RingIndex].HasDRE) {
 				printf(

@@ -69,6 +69,7 @@
 
     1 tab == 4 spaces!
 */
+.extern xISRStackTop
 
 # The CPU starts in hybrid, and the boot initialisation has to be in hybrid.
 .option nocapmode
@@ -90,8 +91,8 @@ boot:
     not             t1, t1
     candperm        ct0, ct0, t1
     la              t2, _mstart
-    csetoffset      c1, c1, x3
-    cjr             c1
+    csetoffset      ct0, ct0, t2
+    cjr             ct0
 
 _mstart:
     li	x1, 0
@@ -158,6 +159,10 @@ init_stack:
     sub             t2, t2, sp # length of the stack
     csetbounds      csp, csp, t2
     cincoffset      csp, csp, t2
+
+    # The same stack is later used by the kernel.
+    la              t0, xISRStackTop
+    sc              csp, 0(t0)
 
     # Initialise the captable.
     cspecialrw      ct0, cnull, pcc # Get PCC.

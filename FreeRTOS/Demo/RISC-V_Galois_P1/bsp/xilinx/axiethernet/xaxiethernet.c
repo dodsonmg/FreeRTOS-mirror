@@ -1732,8 +1732,8 @@ void XAxiEthernet_PhyRead(XAxiEthernet *InstancePtr, u32 PhyAddress,
 	u32 value=0U;
 	volatile s32 TimeoutLoops;
 
-	xaxi_debug_printf("XAxiEthernet_PhyRead: BaseAddress: 0x%08x, register: 0x%lx\r\n",
-		InstancePtr->Config.BaseAddress, RegisterNum);
+	printf("XAxiEthernet_PhyRead: BaseAddress: 0x%08x, register: 0x%lx\r\n",
+		(size_t)(InstancePtr->Config.BaseAddress), RegisterNum);
 
 	/*
 	 * Verify that each of the inputs are valid.

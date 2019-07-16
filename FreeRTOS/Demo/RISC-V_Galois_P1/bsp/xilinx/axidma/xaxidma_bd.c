@@ -130,11 +130,11 @@ u32 XAxiDma_BdSetBufAddr(XAxiDma_Bd* BdPtr, UINTPTR Addr)
 	HasDRE = XAxiDma_BdRead(BdPtr, XAXIDMA_BD_HAS_DRE_OFFSET);
 	WordLen = HasDRE & XAXIDMA_BD_WORDLEN_MASK;
 
-	if (Addr & (WordLen - 1)) {
+	if ((size_t)Addr & (WordLen - 1)) {
 		if ((HasDRE & XAXIDMA_BD_HAS_DRE_MASK) == 0) {
 			printf("Error set buf addr %x with %x and %x,"
-			" %x\r\n",Addr, HasDRE, (WordLen - 1),
-			Addr & (WordLen - 1));
+			" %x\r\n", (size_t)Addr, HasDRE, (WordLen - 1),
+			 (size_t)Addr & (WordLen - 1));
 
 			return XST_INVALID_PARAM;
 		}
@@ -167,10 +167,10 @@ u32 XAxiDma_BdSetBufAddr(XAxiDma_Bd* BdPtr, UINTPTR Addr)
  *****************************************************************************/
 u32 XAxiDma_BdSetBufAddrMicroMode(XAxiDma_Bd* BdPtr, UINTPTR Addr)
 {
-	if (Addr & XAXIDMA_MICROMODE_MIN_BUF_ALIGN) {
+	if ((size_t)Addr & XAXIDMA_MICROMODE_MIN_BUF_ALIGN) {
 			printf("Error set buf addr %x and %x,"
-			" %x\r\n", Addr, XAXIDMA_MICROMODE_MIN_BUF_ALIGN,
-			Addr & XAXIDMA_MICROMODE_MIN_BUF_ALIGN);
+			" %x\r\n", (size_t)Addr, XAXIDMA_MICROMODE_MIN_BUF_ALIGN,
+			(size_t)Addr & XAXIDMA_MICROMODE_MIN_BUF_ALIGN);
 
 			return XST_INVALID_PARAM;
 	}
@@ -308,7 +308,7 @@ void XAxiDma_BdSetCtrl(XAxiDma_Bd* BdPtr, u32 Data)
 void XAxiDma_DumpBd(XAxiDma_Bd* BdPtr)
 {
 
-	printf("Dump BD %x:\r\n", (UINTPTR)BdPtr);
+	printf("Dump BD %x:\r\n", (size_t)BdPtr);
 	printf("\tNext Bd Ptr: %x\r\n",
 	    (unsigned int)XAxiDma_BdRead(BdPtr, XAXIDMA_BD_NDESC_OFFSET));
 	printf("\tBuff addr: %x\r\n",

@@ -34,6 +34,7 @@
  * memory management pages of http://www.FreeRTOS.org for more information.
  */
 #include <stdlib.h>
+#include <cheric.h>
 
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
 all the API functions to use the MPU wrappers.  That should only be done when
@@ -259,6 +260,7 @@ void *pvReturn = NULL;
 	#endif
 
 	configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
+    pvReturn = cheri_csetbounds(pvReturn, xWantedSize);
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
@@ -272,6 +274,12 @@ BlockLink_t *pxLink;
 	{
 		/* The memory being freed will have an BlockLink_t structure immediately
 		before it. */
+        /* For purecap, the bounds are set in malloc, so we cannot just take the
+        capability and subtract base. We have to rederive. */
+        puc = ucHeap;
+        size_t pvAddr = cheri_getaddress(pv);
+        size_t pucBase = cheri_getbase(puc);
+        puc = cheri_setoffset(puc, pvAddr - pucBase);
 		puc -= xHeapStructSize;
 
 		/* This casting is to keep the compiler from issuing warnings. */

@@ -108,12 +108,13 @@ task stack, not the ISR stack). */
 
 	void vPortSetupTimerInterrupt( void )
 	{
+    extern void* cheri_getmscratchc();
 	uint32_t ulCurrentTimeHigh, ulCurrentTimeLow;
-	volatile uint32_t * pulTimeHigh = cheri_setoffset(cheri_getdefault(), configCLINT_BASE_ADDRESS+0xBFFC);
+	volatile uint32_t * pulTimeHigh = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0xBFFC);
   pulTimeHigh = cheri_csetbounds((void*)pulTimeHigh, sizeof(uint32_t));
-	volatile uint32_t * pulTimeLow = cheri_setoffset(cheri_getdefault(), configCLINT_BASE_ADDRESS+0xBFF8);
+	volatile uint32_t * pulTimeLow = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0xBFF8);
   pulTimeLow = cheri_csetbounds((void*)pulTimeLow, sizeof(uint32_t));
-	pullMachineTimerCompareRegister = cheri_setoffset(cheri_getdefault(), configCLINT_BASE_ADDRESS+0x4000);
+	pullMachineTimerCompareRegister = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0x4000);
   pullMachineTimerCompareRegister = cheri_csetbounds((void*)pullMachineTimerCompareRegister, sizeof(uint64_t));
 
 		do

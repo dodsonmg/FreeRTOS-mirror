@@ -85,6 +85,7 @@ boot:
     not             t1, t1
     candperm        ct0, ct0, t1
     cspecialrw      cnull, ct0, ddc
+    cspecialrw      cnull, ct0, mscratchc
 
     cspecialrw      ct0, cnull, pcc
     li              t1, ((1<<3) | (1<<5))
@@ -172,6 +173,11 @@ init_stack:
     csetflags       ct0, ct0, t1
     cjalr           cra, ct0
 
+    # From now on, the DDC is always null.
+    cmove           ct0, cnull
+    cspecialrw      cnull, ct0, ddc # Write DDC.
+
+    # Jump to main in purecap.
     cspecialrw      ct0, cnull, pcc # Get PCC.
     la              t1, main
     csetoffset      ct0, ct0, t1

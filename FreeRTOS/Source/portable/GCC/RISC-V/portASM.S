@@ -101,6 +101,7 @@ at the top of this file. */
 .global xPortStartFirstTask
 .global freertos_risc_v_trap_handler
 .global pxPortInitialiseStack
+.global cheri_getmscratchc
 .extern pxCurrentTCB
 .extern ulPortTrapHandler
 .extern vTaskSwitchContext
@@ -456,4 +457,12 @@ chip_specific_stack_frame:				/* First add any chip specific registers to the st
 	cret
 pxPortInitialiseStackEnd:
 .size pxPortInitialiseStack, pxPortInitialiseStackEnd - pxPortInitialiseStack
+
+.align 4
+.type cheri_getmscratchc, %function
+cheri_getmscratchc:
+  cspecialrw        ca0, cnull, mscratchc
+  cret
+cheri_getmscratchc_end:
+.size cheri_getmscratchc, cheri_getmscratchc_end - cheri_getmscratchc
 /*-----------------------------------------------------------*/

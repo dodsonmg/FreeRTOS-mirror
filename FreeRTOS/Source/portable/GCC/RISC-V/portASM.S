@@ -116,7 +116,6 @@ at the top of this file. */
 freertos_risc_v_trap_handler:
   cincoffset        csp, csp, -portCONTEXT_SIZE
   store_x           c1, 1 * portWORD_SIZE(csp)
-  store_x           c2, 2 * portWORD_SIZE(csp)
   store_x           c3, 3 * portWORD_SIZE(csp)
   store_x           c4, 4 * portWORD_SIZE(csp)
   store_x           c5, 5 * portWORD_SIZE(csp)
@@ -186,6 +185,8 @@ handle_asynchronous:
 			/* Update the 64-bit mtimer compare match value in two 32-bit writes. */
       clw           t2, 0(ct1) # Load the low word of ullNextTime into t2.
       clw           t3, 4(ct1) # Load the high word of ullNextTime into t3.
+      addi          t4, zero, -1
+      csw           t4, 4(ct0) # Prevent spurious interrupts.
       csw           t2, 0(ct0) # Store low word of ullNextTime into compare register.
       csw           t3, 4(ct0) # Store high word of ullNextTime into compare register.
       clgc          ct0, uxTimerIncrementsForOneTick # Load the cap to ullTimerIncrementForOneTick into t0 (could this be optimized by storing in an array next to pullNextTime?).
@@ -209,10 +210,8 @@ handle_asynchronous:
 
 		#endif /* __riscv_xlen == 64 */
 
-    clgc            csp, xISRStack # Switch to ISR stack before function call.
-    clgc            ct0, xISRStackTop
-    clw             t0, 0(ct0)
-    csetaddr        csp, csp, t0
+    clgc            ct0, xISRStackTop # Switch to ISR stack before function call.
+    clc             csp, 0(ct0)
 
     clgc            ct0, xTaskIncrementTick
     cjalr           cra, ct0
@@ -227,10 +226,8 @@ handle_asynchronous:
 
 #endif /* portasmHAS_CLINT */
 
-  clgc              csp, xISRStack # Switch to ISR stack before function call.
-  clgc              ct0, xISRStackTop
-  clw               t0, 0(ct0)
-  csetaddr          csp, csp, t0
+  clgc              ct0, xISRStackTop # Switch to ISR stack before function call.
+  clc               csp, 0(ct0)
   clgc              ct0, portasmHANDLE_INTERRUPT
   cjalr             cra, ct0 # Jump to the interrupt handler if there is no CLINT or if there is a CLINT and it has been determined that an external interrupt is pending.
   beq               zero, zero, processed_source
@@ -242,10 +239,8 @@ handle_synchronous:
 test_if_environment_call:
 	li t0, 11 							/* 11 == environment call. */
 	bne a0, t0, is_exception			/* Not an M environment call, so some other exception. */
-  clgc            csp, xISRStack # Switch to ISR stack before function call.
-  clgc            ct0, xISRStackTop
-  clw             t0, 0(ct0)
-  csetaddr        csp, csp, t0
+  clgc            ct0, xISRStackTop # Switch to ISR stack before function call.
+  clc             csp, 0(ct0)
 
   clgc            ct0, vTaskSwitchContext
   cjalr           cra, ct0
@@ -275,7 +270,6 @@ processed_source:
 	csrw mstatus, t0						/* Required for MPIE bit. */
 
   load_x            c1, 1 * portWORD_SIZE(csp)
-  load_x            c2, 2 * portWORD_SIZE(csp)
   load_x            c3, 3 * portWORD_SIZE(csp)
   load_x            c4, 4 * portWORD_SIZE(csp)
   load_x            c5, 5 * portWORD_SIZE(csp)
@@ -311,6 +305,7 @@ processed_source:
 /*-----------------------------------------------------------*/
 
 .align 8
+.type xPortStartFirstTask, %function
 xPortStartFirstTask:
 
 #if( portasmHAS_CLINT != 0 )
@@ -336,7 +331,6 @@ xPortStartFirstTask:
   load_x            ct0, 32 * portWORD_SIZE(csp) # mstatus
 	csrrw  x0, mstatus, t0					/* Interrupts enabled from here! */
 
-  load_x            c2, 2 * portWORD_SIZE(csp)
   load_x            c3, 3 * portWORD_SIZE(csp)
   load_x            c4, 4 * portWORD_SIZE(csp)
   load_x            c5, 5 * portWORD_SIZE(csp)
@@ -368,6 +362,8 @@ xPortStartFirstTask:
   load_x            c31, 31 * portWORD_SIZE(csp)
 	cincoffset        csp, csp, portCONTEXT_SIZE
 	cret
+xPortStartFirstTaskEnd:
+.size xPortStartFirstTask, xPortStartFirstTaskEnd - xPortStartFirstTask
 /*-----------------------------------------------------------*/
 
 /*
@@ -433,6 +429,7 @@ xPortStartFirstTask:
  * pxCode
  */
 .align 8
+.type pxPortInitialiseStack, %function
 pxPortInitialiseStack:
 
 	csrr t0, mstatus					/* Obtain current mstatus value. */
@@ -457,4 +454,6 @@ chip_specific_stack_frame:				/* First add any chip specific registers to the st
   cincoffset        ca0, ca0, -portWORD_SIZE
   store_x           ca1, 0(ca0) # mret value (pxCode parameter) onto the stack
 	cret
+pxPortInitialiseStackEnd:
+.size pxPortInitialiseStack, pxPortInitialiseStackEnd - pxPortInitialiseStack
 /*-----------------------------------------------------------*/

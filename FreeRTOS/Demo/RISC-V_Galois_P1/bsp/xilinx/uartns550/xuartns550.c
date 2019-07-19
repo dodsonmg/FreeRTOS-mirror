@@ -74,6 +74,7 @@
 #include "xuartns550.h"
 #include "xuartns550_i.h"
 #include "xil_io.h"
+#include <cheric.h>
 
 /************************** Constant Definitions ****************************/
 
@@ -148,7 +149,8 @@ int XUartNs550_CfgInitialize(XUartNs550 *InstancePtr,
 	/*
 	 * Setup the data that is from the configuration information
 	 */
-	InstancePtr->BaseAddress = EffectiveAddr;
+    extern void* cheri_getmscratchc();
+	InstancePtr->BaseAddress = (uintptr_t)cheri_setoffset(cheri_getmscratchc(), EffectiveAddr);
 	InstancePtr->InputClockHz = Config->InputClockHz;
 
 	/*

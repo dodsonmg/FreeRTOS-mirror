@@ -72,8 +72,8 @@
 
 OUTPUT_ARCH( "riscv" )
 
-_STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 4K;
-_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 256K;
+_STACK_SIZE : 4K;
+_HEAP_SIZE : 256K;
 
 /*****************************************************************************
  * Define memory layout
@@ -164,7 +164,14 @@ SECTIONS {
        . = ALIGN(8);
        _stack = .;
        __stack = _stack;
-       __freertos_irq_stack_top = .;
+    } > dmem
+
+    __cap_relocs : {
+       . = ALIGN(8);
+    } > dmem
+
+    .captable : {
+       . = ALIGN(8);
     } > dmem
 
    /* Heap grows upwards */

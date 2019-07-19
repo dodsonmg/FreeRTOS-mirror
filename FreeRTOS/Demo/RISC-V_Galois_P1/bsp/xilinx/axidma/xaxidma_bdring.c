@@ -101,7 +101,7 @@
  *
  *****************************************************************************/
 #define XAXIDMA_VIRT_TO_PHYS(BdPtr) \
-	((UINTPTR)(BdPtr) + (RingPtr->FirstBdPhysAddr - RingPtr->FirstBdAddr))
+	((UINTPTR)(BdPtr) + ((size_t)RingPtr->FirstBdPhysAddr - (size_t)RingPtr->FirstBdAddr))
 
 /******************************************************************************
  * Move the BdPtr argument ahead an arbitrary number of BDs wrapping around
@@ -155,7 +155,7 @@
     {                                                                 \
         UINTPTR Addr = (UINTPTR)(BdPtr);                                      \
                                                                       \
-        Addr -= ((RingPtr)->Separation * (NumBd));                    \
+        Addr -= (size_t)((RingPtr)->Separation * (NumBd));                    \
         if ((Addr < (RingPtr)->FirstBdAddr) || ((UINTPTR)(BdPtr) < Addr)) \
         {                                                             \
             Addr += (RingPtr)->Length;                                \
@@ -461,8 +461,8 @@ u32 XAxiDma_BdRingCreate(XAxiDma_BdRing *RingPtr, UINTPTR PhysAddr,
 	RingPtr->FirstBdAddr = VirtAddr;
 	RingPtr->FirstBdPhysAddr = PhysAddr;
 	RingPtr->LastBdAddr = BdVirtAddr;
-	RingPtr->Length = RingPtr->LastBdAddr - RingPtr->FirstBdAddr +
-		RingPtr->Separation;
+	RingPtr->Length = (size_t)RingPtr->LastBdAddr - (size_t)RingPtr->FirstBdAddr +
+		(size_t)RingPtr->Separation;
 	RingPtr->AllCnt = BdCount;
 	RingPtr->FreeCnt = BdCount;
 	RingPtr->FreeHead = (XAxiDma_Bd *) VirtAddr;

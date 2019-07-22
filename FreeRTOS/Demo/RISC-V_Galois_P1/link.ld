@@ -122,14 +122,6 @@ SECTIONS {
        __rodata_end = .;
 	} > dmem
 
-	.sbss : {
-	   __sbss_start = .;
-	   *(.sbss)
-	   *(.sbss.*)
-	   *(.gnu.linkonce.sb.*)
-	   __sbss_end = .;
-	} > dmem
-	
     .sdata : {
         _gp = . + 0x800;
         *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*)
@@ -144,17 +136,6 @@ SECTIONS {
 	   *(.gnu.linkonce.d.*)
 	   __data_end = .;
 	} > dmem
-
-    .bss : {
-       . = ALIGN(8);
-       __bss_start = .;
-       *(.bss)
-       *(.bss.*)
-       *(.gnu.linkonce.b.*)
-       *(COMMON)
-       . = ALIGN(8);
-       __bss_end = .;
-    } > dmem
 
     /* Generate Stack and Heap definitions */
 
@@ -182,5 +163,24 @@ SECTIONS {
        . = ALIGN(8);
     } > dmem
     
+	.sbss : {
+	   __sbss_start = .;
+	   *(.sbss)
+	   *(.sbss.*)
+	   *(.gnu.linkonce.sb.*)
+	   __sbss_end = .;
+	} > dmem
+
+    .bss : {
+       . = ALIGN(8);
+       __bss_start = .;
+       *(.bss)
+       *(.bss.*)
+       *(.gnu.linkonce.b.*)
+       *(COMMON)
+       . = ALIGN(8);
+       __bss_end = .;
+    } > dmem
+
     _end = .;
 }

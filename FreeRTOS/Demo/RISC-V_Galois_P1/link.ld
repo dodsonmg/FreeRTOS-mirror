@@ -120,14 +120,6 @@ SECTIONS {
        __rodata_end = .;
 	} > dmem
 
-	.sbss : {
-	   __sbss_start = .;
-	   *(.sbss)
-	   *(.sbss.*)
-	   *(.gnu.linkonce.sb.*)
-	   __sbss_end = .;
-	} > dmem
-	
     .sdata : {
         _gp = . + 0x800;
         *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*)
@@ -143,22 +135,17 @@ SECTIONS {
 	   __data_end = .;
 	} > dmem
 
-    .bss : {
+    /* Generate Stack and Heap definitions */
+
+    .heap : {
        . = ALIGN(8);
-       __bss_start = .;
-       *(.bss)
-       *(.bss.*)
-       *(.gnu.linkonce.b.*)
-       *(COMMON)
-       . = ALIGN(8);
-       __bss_end = .;
+       _heap = .;
+       _heap_start = .;
+       . += _HEAP_SIZE;
+       _heap_end = .;
     } > dmem
 
-   /* Generate Stack and Heap definitions
-    * Stack is used by the ISR and the main() for initialization
-    * Stack grows downwards
-    */
-   .stack : {
+    .stack : {
        _stack_end = .;
        . += _STACK_SIZE;
        . = ALIGN(8);
@@ -173,14 +160,25 @@ SECTIONS {
     .captable : {
        . = ALIGN(8);
     } > dmem
+    
+	.sbss : {
+	   __sbss_start = .;
+	   *(.sbss)
+	   *(.sbss.*)
+	   *(.gnu.linkonce.sb.*)
+	   __sbss_end = .;
+	} > dmem
 
-   /* Heap grows upwards */
-    .heap : {
+    .bss : {
        . = ALIGN(8);
-       _heap = .;
-       _heap_start = .;
-       . += _HEAP_SIZE;
-       _heap_end = .;
-    } > dmem    
+       __bss_start = .;
+       *(.bss)
+       *(.bss.*)
+       *(.gnu.linkonce.b.*)
+       *(COMMON)
+       . = ALIGN(8);
+       __bss_end = .;
+    } > dmem
+
     _end = .;
 }

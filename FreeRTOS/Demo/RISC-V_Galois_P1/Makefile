@@ -1,8 +1,8 @@
 RISCV_XLEN ?= 32
 RISCV_LIB  ?= elf
 CCPATH =
-ARCH 		= -march=rv32im
-ABI 		= -mabi=ilp32
+ARCH 		= -march=rv32imxcheri
+ABI 		= -mabi=il32pc64
 
 
 TARGET=$(CCPATH)riscv${RISCV_XLEN}-unknown-${RISCV_LIB}
@@ -46,11 +46,11 @@ PORT_SRC = $(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/port.c
 PORT_ASM = $(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/portASM.S
 
 ASFLAGS  += -target $(TARGET)
-ASFLAGS  += -g $(ARCH) $(ABI)  -Wa,-Ilegacy -I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions -DportasmHANDLE_INTERRUPT=external_interrupt_handler
+ASFLAGS  += $(ARCH) $(ABI)  -Wa,-Ilegacy -I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions -DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
 CFLAGS = -target $(TARGET)
 CFLAGS += $(WARNINGS) $(INCLUDES)
-CFLAGS += -O0 -g3 $(ARCH) $(ABI) -mcmodel=medium
+CFLAGS += -O1 $(ARCH) $(ABI) -mcmodel=medium
 
 DEMO_SRC = main.c \
 	demo/$(PROG).c

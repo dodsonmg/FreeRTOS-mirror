@@ -1,8 +1,8 @@
 RISCV_XLEN ?= 32
 RISCV_LIB  ?= elf
 CCPATH =
-ARCH 		= -march=rv32im
-ABI 		= -mabi=ilp32
+ARCH 		= -march=rv32imxcheri
+ABI 		= -mabi=il32pc64
 
 
 TARGET=$(CCPATH)riscv${RISCV_XLEN}-unknown-${RISCV_LIB}

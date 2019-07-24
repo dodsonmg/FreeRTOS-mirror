@@ -461,7 +461,9 @@ pxPortInitialiseStackEnd:
 .align 4
 .type cheri_getmscratchc, %function
 cheri_getmscratchc:
-  cspecialrw        ca0, cnull, mscratchc
+  # TODO: This function is actually using DDC due to a hardware bug in
+  # mscratchc. Revert to mscratchc and clear DDC at boot once it works.
+  cspecialrw        ca0, cnull, ddc
   cret
 cheri_getmscratchc_end:
 .size cheri_getmscratchc, cheri_getmscratchc_end - cheri_getmscratchc

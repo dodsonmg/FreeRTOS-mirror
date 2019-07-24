@@ -174,8 +174,10 @@ init_stack:
     cjalr           cra, ct0
 
     # From now on, the DDC is always null.
+    # TODO: DDC is not actually nullified here because we need to work around a
+    # bug in mscratchc. If mscratchc works, we can actually throw away DDC.
     cmove           ct0, cnull
-    cspecialrw      cnull, ct0, ddc # Write DDC.
+    #cspecialrw      cnull, ct0, ddc # Write DDC.
 
     # Jump to main in purecap.
     cspecialrw      ct0, cnull, pcc # Get PCC.

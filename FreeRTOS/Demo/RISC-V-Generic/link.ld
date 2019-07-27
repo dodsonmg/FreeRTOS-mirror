@@ -143,6 +143,14 @@ SECTIONS {
 	   __data_end = .;
 	} > dmem
 
+	.htif : {
+	   *(.htif)
+	} > dmem
+
+	.eh_frame : {
+	   *(.eh_frame)
+	} > dmem
+
     .bss : {
        . = ALIGN(8);
        __bss_start = .;

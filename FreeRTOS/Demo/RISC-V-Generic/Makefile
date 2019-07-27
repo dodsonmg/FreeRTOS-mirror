@@ -9,13 +9,35 @@ PLATFORM ?=$(call BSP_CONFIGS,$*,1)
 ARCH ?=$(call BSP_CONFIGS,$*,2)
 ABI ?=$(call BSP_CONFIGS,$*,3)
 
-TARGET=$(CCPATH)riscv${RISCV_XLEN}-unknown-${RISCV_LIB}
+TARGET =$(CCPATH)riscv${RISCV_XLEN}-unknown-${RISCV_LIB}
 
-GCC		= $(TARGET)-gcc
-OBJCOPY	= $(TARGET)-objcopy
-OBJDUMP	= $(TARGET)-objdump
-AR		= $(TARGET)-ar
-RANLIB	= $(TARGET)-ranlib
+TOOLCHAIN ?=gcc
+SYSROOT   ?=
+LIBS_PATH ?=
+CFLAGS    ?=
+LIBS      ?=
+
+ifeq ($(TOOLCHAIN),llvm)
+CC      = clang -target $(TARGET)
+GCC     = $(TARGET)-$(CC)
+OBJCOPY = llvm-objcopy
+OBJDUMP = llvm-objdump
+AR      = llvm-ar
+RANLIB  = llvm-ranlib
+CFLAGS  = -mcmodel=medium --sysroot=$(SYSROOT)
+LDFLAGS = -fuse-ld=lld  --sysroot=$(SYSROOT) $(LIBS_PATH)
+# Link with libgcc, until there is a functional compiler-rt
+LIBS	  += -lc -lgcc
+else
+CC       = $(TARGET)-gcc
+OBJCOPY  = $(TARGET)-objcopy
+OBJDUMP  = $(TARGET)-objdump
+AR       = $(TARGET)-ar
+RANLIB   = $(TARGET)-ranlib
+LIBS    += -lc -lgcc
+CFLAGS   = -mcmodel=medany
+LDFLAGS =
+endif
 
 # Use main_blinky as demo source and target file name if not specified
 PROG 	?= main_blinky
@@ -122,8 +144,7 @@ PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ)
 
-LDFLAGS	 = -T link.ld -nostartfiles -nostdlib -defsym=_STACK_SIZE=4K -march=$(ARCH) -mabi=$(ABI)
-LIBS	 =  -lc -lgcc
+LDFLAGS	+= -T link.ld -nostartfiles -nostdlib -defsym=_STACK_SIZE=4K -march=$(ARCH) -mabi=$(ABI)
 
 $(info ASFLAGS=$(ASFLAGS))
 $(info LDLIBS=$(LDLIBS))
@@ -133,11 +154,11 @@ $(info ARFLAGS=$(ARFLAGS))
 
 %.o: %.c
 	@echo "    CC $<"
-	@$(GCC) -c $(CFLAGS) -o $@ $<
+	@$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
 	@echo "    CC $<"
-	@$(GCC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
+	@$(CC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
 
 all: $(PROG).elf
 
@@ -148,7 +169,7 @@ gen_freertos_header:
 $(PROG).elf  : gen_freertos_header $(OBJS) Makefile
 	@echo Building FreeRTOS/RISC-V for PLATFORM=$(PLATFORM) ARCH=$(ARCH) ABI=$(ABI)
 	@echo Linking....
-	@$(GCC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
+	@$(CC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
 	@$(OBJDUMP) -S $(PROG).elf > $(PROG).asm
 	@echo Completed $@
 

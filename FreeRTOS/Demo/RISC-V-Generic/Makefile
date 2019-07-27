@@ -82,8 +82,8 @@ INCLUDES = \
 
 ASFLAGS  += -g -march=$(ARCH) -mabi=$(ABI)  -Wa,-Ilegacy -I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions -DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
-CFLAGS = $(WARNINGS) $(INCLUDES)
-CFLAGS += -O0 -g3 -march=$(ARCH) -mabi=$(ABI) -mcmodel=medany
+CFLAGS += $(WARNINGS) $(INCLUDES)
+CFLAGS += -O2 -march=$(ARCH) -mabi=$(ABI)
 
 DEMO_SRC = main.c \
 	demo/$(PROG).c

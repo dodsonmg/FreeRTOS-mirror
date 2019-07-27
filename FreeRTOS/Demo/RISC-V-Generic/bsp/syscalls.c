@@ -28,6 +28,8 @@ int _write(int file, char *ptr, int len) {
   return htif_console_write_polled(ptr, len);
 #elif PLATFORM_QEMU_VIRT || PLATFORM_PICCOLO
   return uart16550_txbuffer((uint8_t *) ptr, len);
+#elif PLATFORM_RVBS
+  return plat_console_write(ptr, len);
 #else
 #error "Unsupported Console for this PLATFORM"
 #endif

@@ -99,7 +99,11 @@ else
 ifeq ($(PLATFORM),qemu_virt)
 	CFLAGS += -DPLATFORM_QEMU_VIRT=1
 else
+ifeq ($(PLATFORM),rvbs)
+	CFLAGS += -DPLATFORM_RVBS=1
+else
 	$(info unknown platform: $(PLATFORM))
+endif
 endif
 endif
 endif

@@ -17,6 +17,13 @@ LIBS_PATH ?=
 CFLAGS    ?=
 LIBS      ?=
 
+EXTENSION ?=
+CHERI_CLEN ?= 2*$(RISCV_XLEN)
+# CHERI is only supported by LLVM/Clang
+ifeq ($(EXTENSION),cheri)
+TOOLCHAIN = llvm
+endif
+
 ifeq ($(TOOLCHAIN),llvm)
 CC      = clang -target $(TARGET)
 GCC     = $(TARGET)-$(CC)
@@ -129,6 +136,11 @@ endif
 endif
 endif
 endif
+endif
+
+ifeq ($(EXTENSION),cheri)
+	CFLAGS += -DCONFIG_ENABLE_CHERI=1
+	CFLAGS += -DCONFIG_CHERI_CLEN=$(CHERI_CLEN)
 endif
 
 ARFLAGS=crsv

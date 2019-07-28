@@ -34,6 +34,10 @@
 #include "task.h"
 #include "portmacro.h"
 
+#ifdef CONFIG_ENABLE_CHERI
+#include <cheric.h>
+#endif
+
 #ifndef configCLINT_BASE_ADDRESS
 	#warning configCLINT_BASE_ADDRESS must be defined in FreeRTOSConfig.h.  If the target chip includes a Core Local Interrupter (CLINT) then set configCLINT_BASE_ADDRESS to the CLINT base address.  Otherwise set configCLINT_BASE_ADDRESS to 0.
 #endif
@@ -55,11 +59,20 @@ of the stack used by main.  Using the linker script method will repurpose the
 stack that was used by main before the scheduler was started for use as the
 interrupt stack after the scheduler has started. */
 #ifdef configISR_STACK_SIZE_WORDS
+#ifdef CONFIG_ENABLE_CHERI
+  __attribute__ ((aligned(16))) StackType_t xISRStack[ configISR_STACK_SIZE_WORDS ] = { 0 };
+  const StackType_t xISRStackTop = ( StackType_t ) &( xISRStack[ ( configISR_STACK_SIZE_WORDS & ~portBYTE_ALIGNMENT_MASK ) ] );
+#else
 	static __attribute__ ((aligned(16))) StackType_t xISRStack[ configISR_STACK_SIZE_WORDS ] = { 0 };
 	const StackType_t xISRStackTop = ( StackType_t ) &( xISRStack[ ( configISR_STACK_SIZE_WORDS & ~portBYTE_ALIGNMENT_MASK ) - 1 ] );
+#endif /* CONFIG_ENABLE_CHERI */
+#else
+#ifdef CONFIG_ENABLE_CHERI
+  void * xISRStackTop; /* This is initialized in boot.S. */
 #else
 	extern const uint32_t __freertos_irq_stack_top[];
 	const StackType_t xISRStackTop = ( StackType_t ) __freertos_irq_stack_top;
+#endif
 #endif
 
 /*
@@ -75,7 +88,12 @@ void vPortSetupTimerInterrupt( void ) __attribute__(( weak ));
 uint64_t ullNextTime = 0ULL;
 const uint64_t *pullNextTime = &ullNextTime;
 const size_t uxTimerIncrementsForOneTick = ( size_t ) ( configCPU_CLOCK_HZ / configTICK_RATE_HZ ); /* Assumes increment won't go over 32-bits. */
+
+#ifdef CONFIG_ENABLE_CHERI
+volatile uint32_t (* pullMachineTimerCompareRegister)[2];
+#else
 volatile uint64_t * const pullMachineTimerCompareRegister = ( volatile uint64_t * const ) ( configCLINT_BASE_ADDRESS + 0x4000 );
+#endif /* CONFIG_ENABLE_CHERI */
 
 /* Set configCHECK_FOR_STACK_OVERFLOW to 3 to add ISR stack checking to task
 stack checking.  A problem in the ISR stack will trigger an assert, not call the
@@ -108,8 +126,19 @@ task stack, not the ISR stack). */
 	void vPortSetupTimerInterrupt( void )
 	{
 	uint32_t ulCurrentTimeHigh, ulCurrentTimeLow;
+
+#ifdef CONFIG_ENABLE_CHERI
+  extern void* cheri_getmscratchc();
+  volatile uint32_t * pulTimeHigh = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0xBFFC);
+  pulTimeHigh = cheri_csetbounds((void*)pulTimeHigh, sizeof(uint32_t));
+  volatile uint32_t * pulTimeLow = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0xBFF8);
+  pulTimeLow = cheri_csetbounds((void*)pulTimeLow, sizeof(uint32_t));
+  pullMachineTimerCompareRegister = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0x4000);
+  pullMachineTimerCompareRegister = cheri_csetbounds((void*)pullMachineTimerCompareRegister, sizeof(uint64_t));
+#else
 	volatile uint32_t * const pulTimeHigh = ( volatile uint32_t * const ) ( configCLINT_BASE_ADDRESS + 0xBFFC );
 	volatile uint32_t * const pulTimeLow = ( volatile uint32_t * const ) ( configCLINT_BASE_ADDRESS + 0xBFF8 );
+#endif /* CONFIG_ENABLE_CHERI */
 
 		do
 		{
@@ -121,7 +150,14 @@ task stack, not the ISR stack). */
 		ullNextTime <<= 32ULL;
 		ullNextTime |= ( uint64_t ) ulCurrentTimeLow;
 		ullNextTime += ( uint64_t ) uxTimerIncrementsForOneTick;
+
+#ifdef CONFIG_ENABLE_CHERI
+    (*pullMachineTimerCompareRegister)[1] = ~0;
+    (*pullMachineTimerCompareRegister)[0] = ullNextTime;
+    (*pullMachineTimerCompareRegister)[1] = (ullNextTime>>32);
+#else
 		*pullMachineTimerCompareRegister = ullNextTime;
+#endif /* CONFIG_ENABLE_CHERI */
 
 		/* Prepare the time to use after the next tick interrupt. */
 		ullNextTime += ( uint64_t ) uxTimerIncrementsForOneTick;
@@ -146,7 +182,11 @@ extern void xPortStartFirstTask( void );
 		/* Check alignment of the interrupt stack - which is the same as the
 		stack that was being used by main() prior to the scheduler being
 		started. */
+#ifdef CONFIG_ENABLE_CHERI
+   configASSERT( ( (size_t)xISRStackTop & portBYTE_ALIGNMENT_MASK ) == 0 );
+#else
 		configASSERT( ( xISRStackTop & portBYTE_ALIGNMENT_MASK ) == 0 );
+#endif /* CONFIG_ENABLE_CHERI */
 	}
 	#endif /* configASSERT_DEFINED */
 

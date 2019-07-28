@@ -22,6 +22,7 @@ CHERI_CLEN ?= 2*$(RISCV_XLEN)
 # CHERI is only supported by LLVM/Clang
 ifeq ($(EXTENSION),cheri)
 TOOLCHAIN = llvm
+CFLAGS   += -mno-relax
 endif
 
 ifeq ($(TOOLCHAIN),llvm)
@@ -34,7 +35,7 @@ RANLIB  = llvm-ranlib
 CFLAGS  = -mcmodel=medium --sysroot=$(SYSROOT)
 LDFLAGS = -fuse-ld=lld  --sysroot=$(SYSROOT) $(LIBS_PATH)
 # Link with libgcc, until there is a functional compiler-rt
-LIBS	  += -lc -lgcc
+LIBS	  += -lc
 else
 CC       = $(TARGET)-gcc
 OBJCOPY  = $(TARGET)-objcopy

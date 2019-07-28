@@ -151,6 +151,14 @@ SECTIONS {
 	   *(.eh_frame)
 	} > dmem
 
+    __cap_relocs : {
+       . = ALIGN(8);
+    } > dmem
+
+    .captable : {
+       . = ALIGN(8);
+    } > dmem
+
     .bss : {
        . = ALIGN(8);
        __bss_start = .;

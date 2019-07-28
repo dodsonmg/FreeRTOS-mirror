@@ -35,6 +35,10 @@
  */
 #include <stdlib.h>
 
+#ifdef CONFIG_ENABLE_CHERI
+#include <cheric.h>
+#endif /* CONFIG_ENABLE_CHERI */
+
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
 all the API functions to use the MPU wrappers.  That should only be done when
 task.h is included from an application file. */
@@ -256,6 +260,10 @@ void *pvReturn = NULL;
 	#endif
 
 	configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
+
+#ifdef CONFIG_ENABLE_CHERI
+  pvReturn = cheri_csetbounds(pvReturn, xWantedSize);
+#endif /* CONFIG_ENABLE_CHERI */
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
@@ -269,6 +277,14 @@ BlockLink_t *pxLink;
 	{
 		/* The memory being freed will have an BlockLink_t structure immediately
 		before it. */
+#ifdef CONFIG_ENABLE_CHERI
+		/* For purecap, the bounds are set in malloc, so we cannot just take the
+		capability and subtract base. We have to rederive. */
+		puc = ucHeap;
+		size_t pvAddr = cheri_getaddress(pv);
+		size_t pucBase = cheri_getbase(puc);
+		puc = cheri_setoffset(puc, pvAddr - pucBase);
+#endif /* CONFIG_ENABLE_CHERI */
 		puc -= xHeapStructSize;
 
 		/* This casting is to keep the compiler from issuing warnings. */
@@ -343,7 +359,11 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 		xTotalHeapSize -= uxAddress - ( size_t ) ucHeap;
 	}
 
+#ifdef CONFIG_ENABLE_CHERI
+  pucAlignedHeap = ( uint8_t * ) ucHeap + ( uxAddress - ( size_t ) ucHeap );
+#else
 	pucAlignedHeap = ( uint8_t * ) uxAddress;
+#endif /* CONFIG_ENABLE_CHERI */
 
 	/* xStart is used to hold a pointer to the first item in the list of free
 	blocks.  The void cast is used to prevent compiler warnings. */
@@ -355,7 +375,11 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 	uxAddress = ( ( size_t ) pucAlignedHeap ) + xTotalHeapSize;
 	uxAddress -= xHeapStructSize;
 	uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
+#ifdef CONFIG_ENABLE_CHERI
+  pxEnd = ( void * )( ( uint8_t * ) ucHeap + ( uxAddress - ( size_t ) ucHeap ) );
+#else
 	pxEnd = ( void * ) uxAddress;
+#endif /* CONFIG_ENABLE_CHERI */
 	pxEnd->xBlockSize = 0;
 	pxEnd->pxNextFreeBlock = NULL;
 

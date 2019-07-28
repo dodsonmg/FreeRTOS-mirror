@@ -70,12 +70,36 @@
     1 tab == 4 spaces!
 */
 
+#ifdef CONFIG_ENABLE_CHERI
+# The CPU starts in hybrid, and the boot initialisation has to be in hybrid.
+.option nocapmode
+#endif /* CONFIG_ENABLE_CHERI */
+
 /* Startup code */
 .globl boot
 boot:
     li t6, 0x1800
     csrw mstatus, t6
+
+#ifdef CONFIG_ENABLE_CHERI
+    # W^X for PCC and DDC
+    cspecialrw      ct0, cnull, ddc
+    li              t1, (1<<1)
+    not             t1, t1
+    candperm        ct0, ct0, t1
+    cspecialrw      cnull, ct0, ddc
+    cspecialrw      cnull, ct0, mscratchc
+
+    cspecialrw      ct0, cnull, pcc
+    li              t1, ((1<<3) | (1<<5))
+    not             t1, t1
+    candperm        ct0, ct0, t1
+    la              t2, _mstart
+    csetoffset      ct0, ct0, t2
+    cjr             ct0
+#else
     j _mstart
+#endif /* CONFIG_ENABLE_CHERI */
 
 _mstart:
     li	x1, 0
@@ -135,8 +159,44 @@ write_stack_pattern:
     jal	fill_block
 
 init_stack:
+#ifdef CONFIG_ENABLE_CHERI
+    # From now on, do purecap ABI but in hybrid mode.
+    la              sp, _stack_end
+    cfromptr        csp, ddc, sp # Get DDC.
+    la              t2, _stack
+    sub             t2, t2, sp # length of the stack
+    csetbounds      csp, csp, t2
+    cincoffset      csp, csp, t2
+
+    # The same stack is later used by the kernel.
+    la              t0, xISRStackTop
+    sc              csp, 0(t0)
+
+    # Initialise the captable.
+    cspecialrw      ct0, cnull, pcc # Get PCC.
+    la              t1, _start_purecap
+    csetoffset      ct0, ct0, t1
+    li              t1, 1
+    csetflags       ct0, ct0, t1
+    cjalr           cra, ct0
+
+    # From now on, the DDC is always null.
+    # TODO: DDC is not actually nullified here because we need to work around a
+    # bug in mscratchc. If mscratchc works, we can actually throw away DDC.
+    cmove           ct0, cnull
+    #cspecialrw      cnull, ct0, ddc # Write DDC.
+
+    # Jump to main in purecap.
+    cspecialrw      ct0, cnull, pcc # Get PCC.
+    la              t1, main
+    csetoffset      ct0, ct0, t1
+    li              t1, 1
+    csetflags       ct0, ct0, t1
+    cjalr           cra, ct0
+#else
     /* set stack pointer */
     la	sp, _stack
+#endif /* CONFIG_ENABLE_CHERI */
 
 	j	main
 
@@ -148,3 +208,7 @@ fill_block:
     j		fill_block
 fb_end:
     ret
+
+#ifdef CONFIG_ENABLE_CHERI
+.option capmode
+#endif /* CONFIG_ENABLE_CHERI */

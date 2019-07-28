@@ -36,6 +36,17 @@
 /* Bsp includes. */
 #include "bsp.h"
 
+#ifdef CONFIG_ENABLE_CHERI
+#include <cheri_init_globals.h>
+
+void
+_start_purecap(void) {
+  cheri_init_globals_3(__builtin_cheri_global_data_get(),
+      __builtin_cheri_program_counter_get(),
+      __builtin_cheri_global_data_get());
+}
+#endif /* CONFIG_ENABLE_CHERI */
+
 /******************************************************************************
  */
 #if mainDEMO_TYPE == 1

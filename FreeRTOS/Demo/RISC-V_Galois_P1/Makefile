@@ -111,7 +111,8 @@ INCLUDES = \
 	-I$(FREERTOS_SOURCE_DIR)/include \
 	-I../Common/include \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V \
-	-I./demo
+	-I./demo \
+	-I$(NEWLIB_DIR)/newlib/libc/include
 
 ASFLAGS  += -target $(TARGET) \
 	-g $(ARCH) $(ABI) -Wa,-Ilegacy \
@@ -258,7 +259,7 @@ CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ)
 
 LDFLAGS = -target $(TARGET) -fuse-ld=lld -mno-relax
-LDFLAGS += -T link.ld -nostartfiles -nostdlib
+LDFLAGS += -T link.ld -nostartfiles -nostdlib -L$(NEWLIB_DIR)/newlib/libc/build
 LIBS	 =  -lc
 
 $(info ASFLAGS=$(ASFLAGS))

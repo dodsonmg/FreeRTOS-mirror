@@ -115,13 +115,13 @@ INCLUDES = \
 	-I$(NEWLIB_DIR)/newlib/libc/include
 
 ASFLAGS  += -target $(TARGET) \
-	-g $(ARCH) $(ABI) -Wa,-Ilegacy \
+	$(ARCH) $(ABI) -Wa,-Ilegacy \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
 CFLAGS = -target $(TARGET) \
 	$(WARNINGS) $(INCLUDES) \
-	-O0 -g3 $(ARCH) $(ABI) -mcmodel=medium
+	-O0 $(ARCH) $(ABI) -mcmodel=medium
 
 
 FREERTOS_IP_SRC = \

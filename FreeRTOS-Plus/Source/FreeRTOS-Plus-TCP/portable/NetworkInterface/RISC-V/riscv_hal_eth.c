@@ -401,7 +401,7 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 			printf("Rx set buffer addr %x on BD %x failed %d\r\n",
 			//(unsigned int)&RxFrameBuf[Index],
 			(unsigned int)(RxFrameBufRef +(Index*sizeof(EthernetFrame))),
-			(UINTPTR)BdCurPtr, Status);
+			(unsigned int)BdCurPtr, Status);
 
 			return XST_FAILURE;
 		}
@@ -411,7 +411,7 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 					RxRingPtr->MaxTransferLen);
 		if (Status != XST_SUCCESS) {
 			printf("Rx set length %d on BD %x failed %d\r\n",
-				sizeof(EthernetFrame), (UINTPTR)BdCurPtr, Status);
+				sizeof(EthernetFrame), (unsigned int)BdCurPtr, Status);
 			    //sizeof(RxFrameBuf[Index]), (UINTPTR)BdCurPtr, Status);
 
 			return XST_FAILURE;

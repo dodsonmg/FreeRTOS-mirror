@@ -121,7 +121,7 @@ static void prvSimpleZeroCopyUDPClientTask(void *pvParameters)
 
 		do
 		{
-			FreeRTOS_debug_printf(("prvSimpleZeroCopyUDPClientTask: waiting for a buffer, ulCount = %lu\r\n", ulCount));
+			FreeRTOS_debug_printf(("prvSimpleZeroCopyUDPClientTask: waiting for a buffer, ulCount = %lu\r\n", (unsigned long)ulCount));
 			/* This task is going to send using the zero copy interface.  The
 			data being sent is therefore written directly into a buffer that is
 			passed into, rather than copied into, the FreeRTOS_sendto()
@@ -142,7 +142,7 @@ static void prvSimpleZeroCopyUDPClientTask(void *pvParameters)
 			end.  Note that the string is being written directly into the buffer
 			obtained from the IP stack above. */
 			memset((void *)pucUDPPayloadBuffer, 0x00, xStringLength);
-			sprintf((char *)pucUDPPayloadBuffer, "%s%lu\r\n", pcStringToSend, ulCount);
+			sprintf((char *)pucUDPPayloadBuffer, "%s%lu\r\n", pcStringToSend, (unsigned long)ulCount);
 
 			/* Pass the buffer into the send function.  ulFlags has the
 			FREERTOS_ZERO_COPY bit set so the IP stack will take control of the
@@ -231,7 +231,7 @@ static void prvSimpleZeroCopyServerTask(void *pvParameters)
 		/* Print the received characters. */
 		if (lBytes > 0)
 		{
-			FreeRTOS_printf(("prvSimpleZeroCopyServerTask: received %lu bytes\r\n", lBytes));
+			FreeRTOS_printf(("prvSimpleZeroCopyServerTask: received %ld bytes\r\n", (long)lBytes));
 			/* It is expected to receive one more byte than the string length as
 			the NULL terminator is also transmitted. */
 			//configASSERT( lBytes == ( ( BaseType_t ) strlen( ( const char * ) pucUDPPayloadBuffer ) + 1 ) );
@@ -241,7 +241,7 @@ static void prvSimpleZeroCopyServerTask(void *pvParameters)
 									 FREERTOS_ZERO_COPY,							/* ulFlags with the FREERTOS_ZERO_COPY bit set. */
 									 &xClient,										/* Where the data is being sent. */
 									 sizeof(xClientLength));
-			FreeRTOS_printf(("prvSimpleZeroCopyServerTask: FreeRTOS_sendto returned %lu\r\n", lBytes));
+			FreeRTOS_printf(("prvSimpleZeroCopyServerTask: FreeRTOS_sendto returned %ld\r\n", (long)lBytes));
 		}
 
 		if (lBytes >= 0)

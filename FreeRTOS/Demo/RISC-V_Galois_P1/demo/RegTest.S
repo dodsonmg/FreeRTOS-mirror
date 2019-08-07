@@ -128,10 +128,10 @@ reg1_loop:
 	bne x31, x30, reg1_error_loop
 
 	/* Everything passed, increment the loop counter. */
-	lw x31, ulRegTest1LoopCounterConst
-	lw x30, 0(x31)
+	clgc c31, ulRegTest1LoopCounter
+	clw x30, 0(c31)
 	addi x30, x30, 1
-	sw x30, 0(x31)
+	csw x30, 0(c31)
 
 	/* Restore clobbered register reading for next loop. */
 	li x30, 0x1e
@@ -240,10 +240,10 @@ Reg2_loop:
 	bne x5, x31, reg2_error_loop
 
 	/* Everything passed, increment the loop counter. */
-	lw x5, ulRegTest2LoopCounterConst
-	lw x6, 0(x5)
+	clgc c5, ulRegTest2LoopCounter
+	clw x6, 0(c5)
 	addi x6, x6, 1
-	sw x6, 0(x5)
+	csw x6, 0(c5)
 
 	/* Restore clobbered register reading for next loop. */
 	li x6, 0x61

@@ -128,10 +128,17 @@ reg1_loop:
 	bne x31, x30, reg1_error_loop
 
 	/* Everything passed, increment the loop counter. */
+#ifdef __CHERI_PURE_CAPABILITY__
 	clgc c31, ulRegTest1LoopCounter
 	clw x30, 0(c31)
 	addi x30, x30, 1
 	csw x30, 0(c31)
+#else
+	lw x31, ulRegTest1LoopCounterConst
+	lw x30, 0(x31)
+	addi x30, x30, 1
+	sw x30, 0(x31)
+#endif
 
 	/* Restore clobbered register reading for next loop. */
 	li x30, 0x1e
@@ -148,7 +155,9 @@ reg1_error_loop:
 	ebreak
 	jal reg1_error_loop
 
+#ifndef __CHERI_PURE_CAPABILITY__
 ulRegTest1LoopCounterConst: .word ulRegTest1LoopCounter
+#endif
 
 /*-----------------------------------------------------------*/
 
@@ -240,10 +249,17 @@ Reg2_loop:
 	bne x5, x31, reg2_error_loop
 
 	/* Everything passed, increment the loop counter. */
+#ifdef __CHERI_PURE_CAPABILITY__
 	clgc c5, ulRegTest2LoopCounter
 	clw x6, 0(c5)
 	addi x6, x6, 1
 	csw x6, 0(c5)
+#else
+	lw x5, ulRegTest2LoopCounterConst
+	lw x6, 0(x5)
+	addi x6, x6, 1
+	sw x6, 0(x5)
+#endif
 
 	/* Restore clobbered register reading for next loop. */
 	li x6, 0x61
@@ -257,6 +273,8 @@ reg2_error_loop:
 	ebreak
 	jal reg2_error_loop
 
+#ifndef __CHERI_PURE_CAPABILITY__
 ulRegTest2LoopCounterConst: .word ulRegTest2LoopCounter
+#endif
 
 

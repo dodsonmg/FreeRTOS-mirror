@@ -66,8 +66,8 @@ static void prvSimpleZeroCopyServerTask(void *pvParameters);
 void vStartSimpleUDPClientServerTasks(uint16_t usStackSize, uint32_t ulPort, UBaseType_t uxPriority)
 {
 	/* Create the client and server tasks that do use the zero copy interface. */
-	xTaskCreate(prvSimpleZeroCopyUDPClientTask, "SimpZCpyClnt", usStackSize, (void *)(ulPort + 1), uxPriority, NULL);
-	xTaskCreate(prvSimpleZeroCopyServerTask, "SimpZCpySrv", usStackSize, (void *)(ulPort + 1), uxPriority + 1, NULL);
+	xTaskCreate(prvSimpleZeroCopyUDPClientTask, "SimpZCpyClnt", usStackSize, (void *)(uintptr_t)(ulPort + 1), uxPriority, NULL);
+	xTaskCreate(prvSimpleZeroCopyServerTask, "SimpZCpySrv", usStackSize, (void *)(uintptr_t)(ulPort + 1), uxPriority + 1, NULL);
 }
 /*-----------------------------------------------------------*/
 

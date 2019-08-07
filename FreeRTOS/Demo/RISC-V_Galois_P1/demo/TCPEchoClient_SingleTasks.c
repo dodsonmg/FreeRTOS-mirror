@@ -117,7 +117,7 @@ void vStartTCPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize, UBaseType_t 
 		xTaskCreate(prvEchoClientTask, /* The function that implements the task. */
 					"Echo0",		   /* Just a text name for the task to aid debugging. */
 					usTaskStackSize,   /* The stack size is defined in FreeRTOSIPConfig.h. */
-					(void *)x,		   /* The task parameter, not used in this case. */
+					(void *)(uintptr_t)x,		   /* The task parameter, not used in this case. */
 					uxTaskPriority,	/* The priority assigned to the task is defined in FreeRTOSConfig.h. */
 					NULL);			   /* The task handle is not used. */
 	}

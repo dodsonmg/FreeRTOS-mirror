@@ -2,6 +2,7 @@
 
 #include "xil_assert.h"
 #include <stdio.h> // for printf
+#include <cheric.h>
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_IP_Private.h"
 #include "NetworkBufferManagement.h"
@@ -245,7 +246,9 @@ void prvEMACDeferredInterruptHandlerTask( void *pvParameters ) {
 			configASSERT( pxBufferDescriptor != NULL);
 
 			// Buf address
-			xRxBuffer = (uint8_t*)XAxiDma_BdGetBufAddr(BdPtr);
+			extern void* cheri_getmscratchc();
+			size_t xRxBufferAddr = XAxiDma_BdGetBufAddr(BdPtr);
+			xRxBuffer = cheri_setoffset(cheri_getmscratchc(), xRxBufferAddr);
 
 			/* pxBufferDescriptor->pucEthernetBuffer now points to an Ethernet
                 buffer large enough to hold the received data.  Copy the

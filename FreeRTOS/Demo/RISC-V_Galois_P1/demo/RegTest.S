@@ -155,6 +155,8 @@ reg1_error_loop:
 	ebreak
 	jal reg1_error_loop
 
+	.size vRegTest1Implementation, . - vRegTest1Implementation
+
 #ifndef __CHERI_PURE_CAPABILITY__
 ulRegTest1LoopCounterConst: .word ulRegTest1LoopCounter
 #endif
@@ -272,6 +274,8 @@ reg2_error_loop:
 	counter being incremented so the check task knows an error was found. */
 	ebreak
 	jal reg2_error_loop
+
+	.size vRegTest2Implementation, . - vRegTest2Implementation
 
 #ifndef __CHERI_PURE_CAPABILITY__
 ulRegTest2LoopCounterConst: .word ulRegTest2LoopCounter

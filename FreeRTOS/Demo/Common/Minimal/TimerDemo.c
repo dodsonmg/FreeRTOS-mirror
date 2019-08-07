@@ -253,7 +253,7 @@ TickType_t xTimer;
 		xAutoReloadTimers[ xTimer ] = xTimerCreate( "FR Timer",							/* Text name to facilitate debugging.  The kernel does not use this itself. */
 													( ( xTimer + ( TickType_t ) 1 ) * xBasePeriod ),/* The period for the timer.  The plus 1 ensures a period of zero is not specified. */
 													pdTRUE,								/* Auto-reload is set to true. */
-													( void * ) xTimer,					/* An identifier for the timer as all the auto reload timers use the same callback. */
+													( void * ) ( uintptr_t ) xTimer,					/* An identifier for the timer as all the auto reload timers use the same callback. */
 													prvAutoReloadTimerCallback );		/* The callback to be called when the timer expires. */
 
 		if( xAutoReloadTimers[ xTimer ] == NULL )
@@ -283,7 +283,7 @@ TickType_t xTimer;
 	xAutoReloadTimers[ configTIMER_QUEUE_LENGTH ] = xTimerCreate( "FR Timer",					/* Text name to facilitate debugging.  The kernel does not use this itself. */
 													( configTIMER_QUEUE_LENGTH * xBasePeriod ),	/* The period for the timer. */
 													pdTRUE,										/* Auto-reload is set to true. */
-													( void * ) xTimer,							/* An identifier for the timer as all the auto reload timers use the same callback. */
+													( void * ) ( uintptr_t ) xTimer,							/* An identifier for the timer as all the auto reload timers use the same callback. */
 													prvAutoReloadTimerCallback );				/* The callback executed when the timer expires. */
 
 	if( xAutoReloadTimers[ configTIMER_QUEUE_LENGTH ] == NULL )
@@ -1037,7 +1037,7 @@ size_t uxLastCallCount;
 	/* Increment the call count, then save it back as the timer's ID.  This is
 	only done to test the vTimerSetTimerID() API function. */
 	uxLastCallCount++;
-	vTimerSetTimerID( pxExpiredTimer, ( void * ) uxLastCallCount );
+	vTimerSetTimerID( pxExpiredTimer, ( void * ) ( uintptr_t ) uxLastCallCount );
 	uxCallCount++;
 
 	ucOneShotTimerCounter++;

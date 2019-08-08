@@ -6,6 +6,8 @@
 CompileAll:
   script:
     - export C_INCLUDE_PATH=/nix/store/kxxkzfqrv37fv3szrh2p6nga50rnpg2a-riscv32-unknown-elf-rv32imac-toolchain-8.3.0-afcc8bc/riscv32-unknown-elf/include
+    - export export NEWLIB_DIR=/opt/newlib
     - nix-shell /var/lib/gitlab-runner/shell.nix --run './compile_all.sh'
     - unset C_INCLUDE_PATH
+    - unset NEWLIB_DIR
   tags: ["freertos"]

@@ -40,6 +40,7 @@
  * The register check tasks are described in the comments at the top of
  * main_full.c.
  */
+	.type vRegTest1Implementation, @function
 vRegTest1Implementation:
 	/* Fill the core registers with known values. */
 	li x5, 0x5
@@ -163,6 +164,7 @@ ulRegTest1LoopCounterConst: .word ulRegTest1LoopCounter
 
 /*-----------------------------------------------------------*/
 
+	.type vRegTest2Implementation, @function
 vRegTest2Implementation:
 	/* Fill the core registers with known values. */
 	li x6, 0x61

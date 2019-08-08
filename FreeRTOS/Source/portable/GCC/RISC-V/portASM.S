@@ -114,6 +114,7 @@ at the top of this file. */
 /*-----------------------------------------------------------*/
 
 .align 8
+.type freertos_risc_v_trap_handler, %function
 freertos_risc_v_trap_handler:
   cincoffset        csp, csp, -portCONTEXT_SIZE
   store_x           c1, 1 * portWORD_SIZE(csp)
@@ -303,6 +304,7 @@ processed_source:
 	cincoffset        csp, csp, portCONTEXT_SIZE
 
 	mret
+.size freertos_risc_v_trap_handler, . - freertos_risc_v_trap_handler
 /*-----------------------------------------------------------*/
 
 .align 8

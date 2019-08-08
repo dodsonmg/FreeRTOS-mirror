@@ -76,6 +76,7 @@
 
 /* Startup code */
 .globl boot
+.type boot, @function
 boot:
     li t6, 0x1800
     csrw mstatus, t6
@@ -195,5 +196,6 @@ fill_block:
     j		fill_block
 fb_end:
     ret
+.size boot, . - boot
 
 .option capmode

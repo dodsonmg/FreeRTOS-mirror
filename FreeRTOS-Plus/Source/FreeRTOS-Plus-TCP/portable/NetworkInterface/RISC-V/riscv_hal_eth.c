@@ -94,10 +94,12 @@ static TaskHandle_t prvEMACDeferredInterruptHandlerTaskHandle = NULL;
  */
 typedef uint8_t EthernetFrame[NUM_PACKETS * XAE_MAX_JUMBO_FRAME_SIZE] __attribute__ ((aligned(BD_ALIGNMENT)));
 // 0x80000000
-static uint8_t * TxFrameBufRef = (uint8_t *)0x80000000;
+#define TX_FRAME_BUF_ADDR 0x80000000
+static uint8_t * TxFrameBufRef;
 //static EthernetFrame TxFrameBuf[TXBD_CNT] __attribute__ ((section(".uncached")));	/* Transmit buffers */
 // 0x80015fc0
-static uint8_t * RxFrameBufRef =(uint8_t *)0x80015fc0;
+#define RX_FRAME_BUF_ADDR 0x80015fc0
+static uint8_t * RxFrameBufRef;
 //static EthernetFrame RxFrameBuf[RXBD_CNT] __attribute__ ((section(".uncached")));	/* Receive buffers */
 
 /*
@@ -105,10 +107,19 @@ static uint8_t * RxFrameBufRef =(uint8_t *)0x80015fc0;
  */
 // 8002bf80
 //char RxBdSpace[RXBD_SPACE_BYTES] __attribute__ ((aligned(BD_ALIGNMENT))) __attribute__ ((section(".uncached")));
-char * RxBdSpaceRef = (char *) 0x8002bf80;
+#define RXBD_SPACE_ADDR 0x8002bf80
+char * RxBdSpaceRef;
 // 8002c200
 //char TxBdSpace[TXBD_SPACE_BYTES] __attribute__ ((aligned(BD_ALIGNMENT))) __attribute__ ((section(".uncached")));
-char * TxBdSpaceRef = (char *) 0x8002c200;
+#define TXBD_SPACE_ADDR 0x8002c200
+char * TxBdSpaceRef;
+
+static void* DeriveDmaCap(size_t Addr, size_t Len)
+{
+	extern void* cheri_getmscratchc();
+	void* Cap = cheri_setoffset(cheri_getmscratchc(), Addr);
+	return cheri_csetbounds(Cap, Len);
+}
 
 
 /*
@@ -317,6 +328,11 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 
 	int Status;
 
+	RxFrameBufRef = DeriveDmaCap(RX_FRAME_BUF_ADDR, sizeof(EthernetFrame)*RXBD_CNT);
+	TxFrameBufRef = DeriveDmaCap(TX_FRAME_BUF_ADDR, sizeof(EthernetFrame)*TXBD_CNT);
+	RxBdSpaceRef = DeriveDmaCap(RXBD_SPACE_ADDR, RXBD_SPACE_BYTES);
+	TxBdSpaceRef = DeriveDmaCap(TXBD_SPACE_ADDR, TXBD_SPACE_BYTES);
+
 	DmaConfig = XAxiDma_LookupConfig(AxiDmaDeviceId);
 	/*
 	 * Initialize AXIDMA engine. AXIDMA engine must be initialized before
@@ -346,8 +362,8 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 	 */
 	//Status = XAxiDma_BdRingCreate(RxRingPtr, (u32) &RxBdSpace,
 	//			     (u32) &RxBdSpace, BD_ALIGNMENT, RXBD_CNT);
-	Status = XAxiDma_BdRingCreate(RxRingPtr, (u32) RxBdSpaceRef,
-				     (u32) RxBdSpaceRef, BD_ALIGNMENT, RXBD_CNT);
+	Status = XAxiDma_BdRingCreate(RxRingPtr, (UINTPTR) RxBdSpaceRef,
+				     (UINTPTR) RxBdSpaceRef, BD_ALIGNMENT, RXBD_CNT);
 	
 	configASSERT( Status == 0);
 
@@ -368,8 +384,8 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 	 */
 	//Status = XAxiDma_BdRingCreate(TxRingPtr, (u32) &TxBdSpace,
 	//			     (u32) &TxBdSpace, BD_ALIGNMENT, TXBD_CNT);
-	Status = XAxiDma_BdRingCreate(TxRingPtr, (u32) TxBdSpaceRef,
-				     (u32) TxBdSpaceRef, BD_ALIGNMENT, TXBD_CNT);
+	Status = XAxiDma_BdRingCreate(TxRingPtr, (UINTPTR) TxBdSpaceRef,
+				     (UINTPTR) TxBdSpaceRef, BD_ALIGNMENT, TXBD_CNT);
 	configASSERT( Status == 0);
 
 	/*
@@ -399,7 +415,7 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 	BdCurPtr = BdPtr;
 	for (int Index = 0; Index < FreeBdCount; Index++) {
 		//Status = XAxiDma_BdSetBufAddr(BdCurPtr, (u32)&RxFrameBuf[Index]);
-		Status = XAxiDma_BdSetBufAddr(BdCurPtr, (u32)(RxFrameBufRef +(Index*sizeof(EthernetFrame))));
+		Status = XAxiDma_BdSetBufAddr(BdCurPtr, (UINTPTR)(RxFrameBufRef +(Index*sizeof(EthernetFrame))));
 		if (Status != XST_SUCCESS) {
 			printf("Rx set buffer addr %x on BD %x failed %d\r\n",
 			//(unsigned int)&RxFrameBuf[Index],

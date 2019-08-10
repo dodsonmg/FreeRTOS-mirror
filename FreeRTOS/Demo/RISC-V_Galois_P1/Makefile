@@ -121,7 +121,7 @@ ASFLAGS  += -target $(TARGET) \
 
 CFLAGS = -target $(TARGET) \
 	$(WARNINGS) $(INCLUDES) \
-	-O0 $(ARCH) $(ABI) -mcmodel=medium
+	-O0 $(ARCH) $(ABI) -mcmodel=medium -mno-relax
 
 
 FREERTOS_IP_SRC = \

@@ -259,8 +259,8 @@ CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ)
 
 LDFLAGS = -target $(TARGET) -fuse-ld=lld -mno-relax
-LDFLAGS += -T link.ld -nostartfiles -nostdlib -L$(NEWLIB_DIR)/newlib/libc/build
-LIBS	 =  -lc
+LDFLAGS += -T link.ld -nostartfiles -nostdlib -L$(NEWLIB_DIR)/newlib/libc/build -L.
+LIBS	 =  -lc -lcompiler_rt
 
 $(info ASFLAGS=$(ASFLAGS))
 $(info LDLIBS=$(LDLIBS))
@@ -278,7 +278,7 @@ $(info ARFLAGS=$(ARFLAGS))
 
 all: $(PROG).elf
 
-$(PROG).elf  : $(OBJS) Makefile 
+$(PROG).elf  : $(OBJS) libcompiler_rt.a Makefile 
 	@echo Linking....
 	@$(CC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
 	@$(OBJDUMP) -disassemble -h -t -p -r -source $(PROG).elf > $(PROG).dump
@@ -286,9 +286,163 @@ $(PROG).elf  : $(OBJS) Makefile
 
 clean :
 	@rm -f $(OBJS)
+	@rm -f libcompiler_rt.a
 	@rm -f $(PROG).elf 
 	@rm -f $(PROG).map
 	@rm -f $(PROG).dump
 
 docs :
 	@doxygen
+
+# Compiler-RT building
+
+COMPILER_RT_SRC = \
+	compiler-rt/lib/builtins/absvdi2.c \
+	compiler-rt/lib/builtins/absvsi2.c \
+	compiler-rt/lib/builtins/absvti2.c \
+	compiler-rt/lib/builtins/adddf3.c \
+	compiler-rt/lib/builtins/addsf3.c \
+	compiler-rt/lib/builtins/addtf3.c \
+	compiler-rt/lib/builtins/addvdi3.c \
+	compiler-rt/lib/builtins/addvsi3.c \
+	compiler-rt/lib/builtins/addvti3.c \
+	compiler-rt/lib/builtins/apple_versioning.c \
+	compiler-rt/lib/builtins/ashldi3.c \
+	compiler-rt/lib/builtins/ashlti3.c \
+	compiler-rt/lib/builtins/ashrdi3.c \
+	compiler-rt/lib/builtins/ashrti3.c \
+	compiler-rt/lib/builtins/bswapdi2.c \
+	compiler-rt/lib/builtins/bswapsi2.c \
+	compiler-rt/lib/builtins/clzdi2.c \
+	compiler-rt/lib/builtins/clzsi2.c \
+	compiler-rt/lib/builtins/clzti2.c \
+	compiler-rt/lib/builtins/cmpdi2.c \
+	compiler-rt/lib/builtins/cmpti2.c \
+	compiler-rt/lib/builtins/comparedf2.c \
+	compiler-rt/lib/builtins/comparesf2.c \
+	compiler-rt/lib/builtins/ctzdi2.c \
+	compiler-rt/lib/builtins/ctzsi2.c \
+	compiler-rt/lib/builtins/ctzti2.c \
+	compiler-rt/lib/builtins/divdc3.c \
+	compiler-rt/lib/builtins/divdf3.c \
+	compiler-rt/lib/builtins/divdi3.c \
+	compiler-rt/lib/builtins/divmoddi4.c \
+	compiler-rt/lib/builtins/divmodsi4.c \
+	compiler-rt/lib/builtins/divsc3.c \
+	compiler-rt/lib/builtins/divsf3.c \
+	compiler-rt/lib/builtins/divsi3.c \
+	compiler-rt/lib/builtins/divtc3.c \
+	compiler-rt/lib/builtins/divti3.c \
+	compiler-rt/lib/builtins/divtf3.c \
+	compiler-rt/lib/builtins/extendsfdf2.c \
+	compiler-rt/lib/builtins/extendhfsf2.c \
+	compiler-rt/lib/builtins/ffsdi2.c \
+	compiler-rt/lib/builtins/ffssi2.c \
+	compiler-rt/lib/builtins/ffsti2.c \
+	compiler-rt/lib/builtins/fixdfdi.c \
+	compiler-rt/lib/builtins/fixdfsi.c \
+	compiler-rt/lib/builtins/fixdfti.c \
+	compiler-rt/lib/builtins/fixsfdi.c \
+	compiler-rt/lib/builtins/fixsfsi.c \
+	compiler-rt/lib/builtins/fixsfti.c \
+	compiler-rt/lib/builtins/fixunsdfdi.c \
+	compiler-rt/lib/builtins/fixunsdfsi.c \
+	compiler-rt/lib/builtins/fixunsdfti.c \
+	compiler-rt/lib/builtins/fixunssfdi.c \
+	compiler-rt/lib/builtins/fixunssfsi.c \
+	compiler-rt/lib/builtins/fixunssfti.c \
+	compiler-rt/lib/builtins/floatdidf.c \
+	compiler-rt/lib/builtins/floatdisf.c \
+	compiler-rt/lib/builtins/floatsidf.c \
+	compiler-rt/lib/builtins/floatsisf.c \
+	compiler-rt/lib/builtins/floattidf.c \
+	compiler-rt/lib/builtins/floattisf.c \
+	compiler-rt/lib/builtins/floatundidf.c \
+	compiler-rt/lib/builtins/floatundisf.c \
+	compiler-rt/lib/builtins/floatunsidf.c \
+	compiler-rt/lib/builtins/floatunsisf.c \
+	compiler-rt/lib/builtins/floatuntidf.c \
+	compiler-rt/lib/builtins/floatuntisf.c \
+	compiler-rt/lib/builtins/int_util.c \
+	compiler-rt/lib/builtins/lshrdi3.c \
+	compiler-rt/lib/builtins/lshrti3.c \
+	compiler-rt/lib/builtins/moddi3.c \
+	compiler-rt/lib/builtins/modsi3.c \
+	compiler-rt/lib/builtins/modti3.c \
+	compiler-rt/lib/builtins/muldc3.c \
+	compiler-rt/lib/builtins/muldf3.c \
+	compiler-rt/lib/builtins/muldi3.c \
+	compiler-rt/lib/builtins/mulodi4.c \
+	compiler-rt/lib/builtins/mulosi4.c \
+	compiler-rt/lib/builtins/muloti4.c \
+	compiler-rt/lib/builtins/mulsc3.c \
+	compiler-rt/lib/builtins/mulsf3.c \
+	compiler-rt/lib/builtins/multi3.c \
+	compiler-rt/lib/builtins/multf3.c \
+	compiler-rt/lib/builtins/mulvdi3.c \
+	compiler-rt/lib/builtins/mulvsi3.c \
+	compiler-rt/lib/builtins/mulvti3.c \
+	compiler-rt/lib/builtins/negdf2.c \
+	compiler-rt/lib/builtins/negdi2.c \
+	compiler-rt/lib/builtins/negsf2.c \
+	compiler-rt/lib/builtins/negti2.c \
+	compiler-rt/lib/builtins/negvdi2.c \
+	compiler-rt/lib/builtins/negvsi2.c \
+	compiler-rt/lib/builtins/negvti2.c \
+	compiler-rt/lib/builtins/os_version_check.c \
+	compiler-rt/lib/builtins/paritydi2.c \
+	compiler-rt/lib/builtins/paritysi2.c \
+	compiler-rt/lib/builtins/parityti2.c \
+	compiler-rt/lib/builtins/popcountdi2.c \
+	compiler-rt/lib/builtins/popcountsi2.c \
+	compiler-rt/lib/builtins/popcountti2.c \
+	compiler-rt/lib/builtins/powidf2.c \
+	compiler-rt/lib/builtins/powisf2.c \
+	compiler-rt/lib/builtins/powitf2.c \
+	compiler-rt/lib/builtins/subdf3.c \
+	compiler-rt/lib/builtins/subsf3.c \
+	compiler-rt/lib/builtins/subvdi3.c \
+	compiler-rt/lib/builtins/subvsi3.c \
+	compiler-rt/lib/builtins/subvti3.c \
+	compiler-rt/lib/builtins/subtf3.c \
+	compiler-rt/lib/builtins/trampoline_setup.c \
+	compiler-rt/lib/builtins/truncdfhf2.c \
+	compiler-rt/lib/builtins/truncdfsf2.c \
+	compiler-rt/lib/builtins/truncsfhf2.c \
+	compiler-rt/lib/builtins/ucmpdi2.c \
+	compiler-rt/lib/builtins/ucmpti2.c \
+	compiler-rt/lib/builtins/udivdi3.c \
+	compiler-rt/lib/builtins/udivmoddi4.c \
+	compiler-rt/lib/builtins/udivmodsi4.c \
+	compiler-rt/lib/builtins/udivmodti4.c \
+	compiler-rt/lib/builtins/udivsi3.c \
+	compiler-rt/lib/builtins/udivti3.c \
+	compiler-rt/lib/builtins/umoddi3.c \
+	compiler-rt/lib/builtins/umodsi3.c \
+	compiler-rt/lib/builtins/umodti3.c \
+	compiler-rt/lib/builtins/comparetf2.c \
+	compiler-rt/lib/builtins/extenddftf2.c \
+	compiler-rt/lib/builtins/extendsftf2.c \
+	compiler-rt/lib/builtins/fixtfdi.c \
+	compiler-rt/lib/builtins/fixtfsi.c \
+	compiler-rt/lib/builtins/fixtfti.c \
+	compiler-rt/lib/builtins/fixunstfdi.c \
+	compiler-rt/lib/builtins/fixunstfsi.c \
+	compiler-rt/lib/builtins/fixunstfti.c \
+	compiler-rt/lib/builtins/floatditf.c \
+	compiler-rt/lib/builtins/floatsitf.c \
+	compiler-rt/lib/builtins/floattitf.c \
+	compiler-rt/lib/builtins/floatunditf.c \
+	compiler-rt/lib/builtins/floatunsitf.c \
+	compiler-rt/lib/builtins/floatuntitf.c \
+	compiler-rt/lib/builtins/multc3.c \
+	compiler-rt/lib/builtins/trunctfdf2.c \
+	compiler-rt/lib/builtins/trunctfsf2.c
+
+COMPILER_RT_ASM = compiler-rt/lib/builtins/riscv/mulsi3.S
+COMPILER_RT_OBJ = $(COMPILER_RT_SRC:.c=.o) $(COMPILER_RT_ASM:.S=.o)
+
+libcompiler_rt.a: $(COMPILER_RT_OBJ)
+	@echo Archiving....
+	@$(AR) $(ARFLAGS) $@ $(COMPILER_RT_OBJ)
+	@echo Completed $@

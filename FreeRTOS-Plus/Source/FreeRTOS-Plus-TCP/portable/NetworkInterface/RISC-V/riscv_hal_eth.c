@@ -116,7 +116,7 @@ char * TxBdSpaceRef;
 
 static void* DeriveDmaCap(size_t Addr, size_t Len)
 {
-	extern void* cheri_getmscratchc();
+	extern void* cheri_getmscratchc(void);
 	void* Cap = cheri_setoffset(cheri_getmscratchc(), Addr);
 	return cheri_csetbounds(Cap, Len);
 }
@@ -257,7 +257,7 @@ void prvEMACDeferredInterruptHandlerTask( void *pvParameters ) {
 			configASSERT( pxBufferDescriptor != NULL);
 
 			// Buf address
-			extern void* cheri_getmscratchc();
+			extern void* cheri_getmscratchc(void);
 			size_t xRxBufferAddr = XAxiDma_BdGetBufAddr(BdPtr);
 			xRxBuffer = cheri_setoffset(cheri_getmscratchc(), xRxBufferAddr);
 

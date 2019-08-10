@@ -108,7 +108,7 @@ task stack, not the ISR stack). */
 
 	void vPortSetupTimerInterrupt( void )
 	{
-    extern void* cheri_getmscratchc();
+    extern void* cheri_getmscratchc(void);
 	uint32_t ulCurrentTimeHigh, ulCurrentTimeLow;
 	volatile uint32_t * pulTimeHigh = cheri_setoffset(cheri_getmscratchc(), configCLINT_BASE_ADDRESS+0xBFFC);
   pulTimeHigh = cheri_csetbounds((void*)pulTimeHigh, sizeof(uint32_t));

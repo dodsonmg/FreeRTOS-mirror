@@ -23,7 +23,7 @@ void PLIC_init(
     uint32_t num_sources,
     uint32_t num_priorities)
 {
-    extern void* cheri_getmscratchc();
+    extern void* cheri_getmscratchc(void);
 
     this_plic->base_addr = (uintptr_t)cheri_setoffset(cheri_getmscratchc(), base_addr);
     this_plic->num_sources = num_sources;

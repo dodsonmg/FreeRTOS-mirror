@@ -92,7 +92,7 @@ extern u32 XStl_RegUpdate(u32 RegAddr, u32 RegVal);
 #endif
 
 #include <cheric.h>
-extern void* cheri_getmscratchc();
+extern void* cheri_getmscratchc(void);
 /*
  * TODO: the following IO functions are simply using an almighty capability
  * with the address being the offset. At least two things can be improved.

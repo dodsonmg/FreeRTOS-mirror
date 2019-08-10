@@ -88,3 +88,13 @@ int _getpid(int n)
     (void)n;
     return 1;
 }
+
+unsigned long __udivdi3 (unsigned long a, unsigned long b)
+{
+    return 0;
+}
+
+unsigned long __umoddi3 (unsigned long a, unsigned long b)
+{
+    return 0;
+}

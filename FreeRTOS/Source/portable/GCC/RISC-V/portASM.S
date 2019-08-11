@@ -327,13 +327,15 @@ xPortStartFirstTask:
   clc               ct0, 0(ct0) # Load pxCurrentTCB.
   load_x            csp, 0(ct0) # Read sp from first TCB member.
 
-  load_x            c1, 0(csp) # Note for starting the scheduler the exception return address is used as the function return address.
+  load_x            ct0, 0(csp)
+  cspecialrw        cnull, ct0, mepcc # Write mepcc.
 
 	portasmRESTORE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to restore any registers unique to the RISC-V implementation. */
 
   load_x            ct0, 32 * portWORD_SIZE(csp) # mstatus
-	csrrw  x0, mstatus, t0					/* Interrupts enabled from here! */
+	csrw mstatus, t0						/* Required for MPIE bit. */
 
+  load_x            c1, 1 * portWORD_SIZE(csp)
   load_x            c3, 3 * portWORD_SIZE(csp)
   load_x            c4, 4 * portWORD_SIZE(csp)
   load_x            c5, 5 * portWORD_SIZE(csp)
@@ -364,7 +366,7 @@ xPortStartFirstTask:
   load_x            c30, 30 * portWORD_SIZE(csp)
   load_x            c31, 31 * portWORD_SIZE(csp)
 	cincoffset        csp, csp, portCONTEXT_SIZE
-	cret
+	mret							/* Interrupts enabled from here! */
 xPortStartFirstTaskEnd:
 .size xPortStartFirstTask, xPortStartFirstTaskEnd - xPortStartFirstTask
 /*-----------------------------------------------------------*/

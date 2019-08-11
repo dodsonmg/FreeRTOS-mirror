@@ -401,6 +401,9 @@ xPortStartFirstTaskEnd:
  * where the global and thread pointers are currently assumed to be constant so
  * are not saved:
  *
+ * (unused)
+ * (unused)
+ * (unused)
  * mstatus
  * x31
  * x30
@@ -423,13 +426,16 @@ xPortStartFirstTaskEnd:
  * x13
  * x12
  * x11
- * pvParameters
+ * x10 (pvParameters)
  * x9
  * x8
  * x7
  * x6
  * x5
- * portTASK_RETURN_ADDRESS
+ * x4
+ * x3
+ * (unused x2)
+ * x1 (null return capability)
  * [chip specific registers go here]
  * pxCode
  */
@@ -437,27 +443,25 @@ xPortStartFirstTaskEnd:
 .type pxPortInitialiseStack, %function
 pxPortInitialiseStack:
 
-	csrr t0, mstatus					/* Obtain current mstatus value. */
-	addi t1, x0, 0x188					/* Generate the value 0x1880, which are the MPIE and MPP bits to set in mstatus. */
-	slli t1, t1, 4
-	or t0, t0, t1						/* Set MPIE and MPP bits in mstatus value. */
+	cincoffset        ca0, ca0, -portCONTEXT_SIZE
+	store_x           cnull, 1 * portWORD_SIZE(ca0) # return address onto the stack, could be portTASK_RETURN_ADDRESS
+	store_x           ca2, 10 * portWORD_SIZE(ca0) # Task parameters (pvParameters parameter) go into register X10/a0 on the stack.
 
-  cincoffset        ca0, ca0, -portWORD_SIZE
-  store_x           ct0, 0(ca0) # mstatus onto the stack.
-	cincoffset        ca0, ca0, -(22 * portWORD_SIZE) # space for registers x11-x31
-  store_x           ca2, 0(ca0) # Task parameters (pvParameters parameter) go into register X10/a0 on the stack.
-  cincoffset        ca0, ca0, -(9 * portWORD_SIZE) # space for registers x2-x9.
-  store_x           cnull, 0(ca0) # return address onto the stack, could be portTASK_RETURN_ADDRESS
-	addi t0, x0, portasmADDITIONAL_CONTEXT_SIZE /* The number of chip specific additional registers. */
+	csrr              t0, mstatus			/* Obtain current mstatus value. */
+	addi              t1, x0, 0x188			/* Generate the value 0x1880, which are the MPIE and MPP bits to set in mstatus. */
+	slli              t1, t1, 4
+	or                t0, t0, t1			/* Set MPIE and MPP bits in mstatus value. */
+	store_x           ct0, 32 * portWORD_SIZE(ca0) # mstatus onto the stack.
+
+	addi              t0, zero, portasmADDITIONAL_CONTEXT_SIZE	/* The number of chip specific additional registers. */
 chip_specific_stack_frame:				/* First add any chip specific registers to the stack frame being created. */
-	beq t0, x0, 1f						/* No more chip specific registers to save. */
-	addi a0, a0, -portWORD_SIZE			/* Make space for chip specific register. */
-	store_x cnull, 0(ca0)					/* Give the chip specific register an initial value of zero. */
-	addi t0, t0, -1						/* Decrement the count of chip specific registers remaining. */
+	beq               t0, zero, 1f			/* No more chip specific registers to save. */
+	store_x           cnull, 0(ca0)			/* Give the chip specific register an initial value of zero. */
+	cincoffset        ca0, ca0, -portWORD_SIZE	/* Make space for chip specific register (replaced pxCode). */
+	addi t0, t0, -1					/* Decrement the count of chip specific registers remaining. */
 	j chip_specific_stack_frame			/* Until no more chip specific registers. */
 1:
-  cincoffset        ca0, ca0, -portWORD_SIZE
-  store_x           ca1, 0(ca0) # mret value (pxCode parameter) onto the stack
+	store_x           ca1, 0(ca0) # mret value (pxCode parameter) onto the stack
 	cret
 pxPortInitialiseStackEnd:
 .size pxPortInitialiseStack, pxPortInitialiseStackEnd - pxPortInitialiseStack

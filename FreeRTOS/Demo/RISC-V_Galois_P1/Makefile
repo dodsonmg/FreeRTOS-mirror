@@ -121,7 +121,7 @@ ASFLAGS  += -target $(TARGET) \
 
 CFLAGS = -target $(TARGET) \
 	$(WARNINGS) $(INCLUDES) -DAXI_DEBUG_PRINT=1 \
-	-O0 $(ARCH) $(ABI) -mcmodel=medium -mno-relax
+	-g -O0 $(ARCH) $(ABI) -mcmodel=medium -mno-relax
 
 
 FREERTOS_IP_SRC = \

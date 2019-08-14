@@ -120,7 +120,7 @@ ASFLAGS  += -target $(TARGET) \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
 CFLAGS = -target $(TARGET) \
-	$(WARNINGS) $(INCLUDES) \
+	$(WARNINGS) $(INCLUDES) -DAXI_DEBUG_PRINT=1 \
 	-O0 $(ARCH) $(ABI) -mcmodel=medium -mno-relax
 
 

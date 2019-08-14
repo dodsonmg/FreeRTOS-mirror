@@ -127,14 +127,11 @@ uint64_t get_cycle_count(void)
  * We convert the 64-bit read into usec. The counter overflows in roughly an hour
  * and 20 minutes. Probably not a big issue though.
  * At 50HMz clock rate, 1 us = 50 ticks
- *
- * TODO: This function is hidden now because LLVM compiler-rt does not build
- * for RISC-V, hence no software division for int64.
+ */
 uint32_t port_get_current_mtime(void)
 {
 	return (uint32_t)(get_cycle_count() / (configCPU_CLOCK_HZ / 1000000));
 }
- */
 
 /**
  * Main application entry

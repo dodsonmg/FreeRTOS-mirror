@@ -444,10 +444,8 @@ pxPortInitialiseStack:
 	store_x           cnull, 1 * portWORD_SIZE(ca0) # return address onto the stack, could be portTASK_RETURN_ADDRESS
 	store_x           ca2, 10 * portWORD_SIZE(ca0) # Task parameters (pvParameters parameter) go into register X10/a0 on the stack.
 
-	csrr              t0, mstatus			/* Obtain current mstatus value. */
-	addi              t1, x0, 0x188			/* Generate the value 0x1880, which are the MPIE and MPP bits to set in mstatus. */
-	slli              t1, t1, 4
-	or                t0, t0, t1			/* Set MPIE and MPP bits in mstatus value. */
+	addi              t0, x0, 0x188			/* Generate the value 0x1880, which are the MPIE and MPP bits to set in mstatus. */
+	slli              t0, t0, 4
 	store_x           ct0, 32 * portWORD_SIZE(ca0) # mstatus onto the stack.
 
 	addi              t0, zero, portasmADDITIONAL_CONTEXT_SIZE	/* The number of chip specific additional registers. */

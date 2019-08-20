@@ -135,15 +135,7 @@ SECTIONS {
 	   __data_end = .;
 	} > dmem
 
-    /* Generate Stack and Heap definitions */
-
-    .heap : {
-       . = ALIGN(8);
-       _heap = .;
-       _heap_start = .;
-       . += _HEAP_SIZE;
-       _heap_end = .;
-    } > dmem
+    /* Generate Stack definition */
 
     .stack : {
        _stack_end = .;

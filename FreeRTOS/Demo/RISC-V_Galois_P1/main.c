@@ -198,9 +198,9 @@ int main(void)
 
 // Returns percentage utilization of the ISR stack
 #include "portmacro.h"
-extern const StackType_t xISRStackTop;
+extern const StackType_t *xISRStackTop;
 extern const uint32_t _stack_end[];
-const StackType_t xISRStackEnd = ( StackType_t ) _stack_end;
+const StackType_t *xISRStackEnd = ( StackType_t* ) _stack_end;
 
 static uint8_t prvIsrStackUtilization(void)
 {

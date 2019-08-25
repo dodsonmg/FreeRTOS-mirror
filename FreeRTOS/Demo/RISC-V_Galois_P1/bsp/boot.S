@@ -70,6 +70,8 @@
     1 tab == 4 spaces!
 */
 .extern xISRStackTop
+.extern pvAlmightyDataCap
+.extern pvAlmightyCodeCap
 
 # The CPU starts in hybrid, and the boot initialisation has to be in hybrid.
 .option nocapmode
@@ -86,7 +88,6 @@ boot:
     not             t1, t1
     candperm        ct0, ct0, t1
     cspecialrw      cnull, ct0, ddc
-    cspecialrw      cnull, ct0, mscratchc
 
     cspecialrw      ct0, cnull, pcc
     li              t1, ((1<<3) | (1<<5))
@@ -166,8 +167,16 @@ init_stack:
     la              t0, xISRStackTop
     sc              csp, 0(t0)
 
-    # Initialise the captable.
+    cspecialrw      ct0, cnull, ddc # Get DDC.
+    la              t1, pvAlmightyDataCap
+    sc              ct0, 0(t1)
+
     cspecialrw      ct0, cnull, pcc # Get PCC.
+    la              t1, pvAlmightyCodeCap
+    sc              ct0, 0(t1)
+
+    # Initialise the captable.
+    # ct0 is still PCC
     la              t1, _start_purecap
     csetoffset      ct0, ct0, t1
     li              t1, 1

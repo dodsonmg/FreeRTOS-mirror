@@ -23,9 +23,9 @@ void PLIC_init(
     uint32_t num_sources,
     uint32_t num_priorities)
 {
-    extern void* cheri_getmscratchc(void);
+    extern void *pvAlmightyDataCap;
 
-    this_plic->base_addr = (uintptr_t)cheri_setoffset(cheri_getmscratchc(), base_addr);
+    this_plic->base_addr = (uintptr_t)cheri_setoffset(pvAlmightyDataCap, base_addr);
     this_plic->num_sources = num_sources;
     this_plic->num_priorities = num_priorities;
 

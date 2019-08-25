@@ -116,8 +116,8 @@ char * TxBdSpaceRef;
 
 static void* DeriveDmaCap(size_t Addr, size_t Len)
 {
-	extern void* cheri_getmscratchc(void);
-	void* Cap = cheri_setoffset(cheri_getmscratchc(), Addr);
+	extern void *pvAlmightyDataCap;
+	void* Cap = cheri_setoffset(pvAlmightyDataCap, Addr);
 	return cheri_csetbounds(Cap, Len);
 }
 
@@ -257,9 +257,9 @@ void prvEMACDeferredInterruptHandlerTask( void *pvParameters ) {
 			configASSERT( pxBufferDescriptor != NULL);
 
 			// Buf address
-			extern void* cheri_getmscratchc(void);
+			extern void *pvAlmightyDataCap;
 			size_t xRxBufferAddr = XAxiDma_BdGetBufAddr(BdPtr);
-			xRxBuffer = cheri_setoffset(cheri_getmscratchc(), xRxBufferAddr);
+			xRxBuffer = cheri_setoffset(pvAlmightyDataCap, xRxBufferAddr);
 
 			/* pxBufferDescriptor->pucEthernetBuffer now points to an Ethernet
                 buffer large enough to hold the received data.  Copy the

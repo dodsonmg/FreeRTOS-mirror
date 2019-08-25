@@ -191,6 +191,11 @@ void vPortEndScheduler( void ) PRIVILEGED_FUNCTION;
 	void vPortStoreTaskMPUSettings( xMPU_SETTINGS *xMPUSettings, const struct xMEMORY_REGION * const xRegions, StackType_t *pxBottomOfStack, uint32_t ulStackDepth ) PRIVILEGED_FUNCTION;
 #endif
 
+#if ( portHAS_SANDBOX == 1 )
+	void vPortSandboxContextInitialise( xSANDBOX_CONTEXT *pxSandboxContext ) PRIVILEGED_FUNCTION;
+	BaseType_t xPortSandboxEnter( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs, xSANDBOX_CONTEXT *pxSandboxContext ) PRIVILEGED_FUNCTION;
+#endif
+
 #ifdef __cplusplus
 }
 #endif

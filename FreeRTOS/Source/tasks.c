@@ -254,6 +254,10 @@ typedef struct tskTaskControlBlock 			/* The old naming convention is used to pr
 {
 	volatile StackType_t	*pxTopOfStack;	/*< Points to the location of the last item placed on the tasks stack.  THIS MUST BE THE FIRST MEMBER OF THE TCB STRUCT. */
 
+	#if ( portHAS_SANDBOX == 1 )
+		xSANDBOX_CONTEXT	*pxSandboxContext;
+	#endif
+
 	#if ( portUSING_MPU_WRAPPERS == 1 )
 		xMPU_SETTINGS	xMPUSettings;		/*< The MPU settings are defined as part of the port layer.  THIS MUST BE THE SECOND MEMBER OF THE TCB STRUCT. */
 	#endif
@@ -5228,3 +5232,19 @@ when performing module tests). */
 #endif
 
 
+#if ( portHAS_SANDBOX == 1 )
+	BaseType_t xTaskRunSandboxed( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs )
+	{
+	xSANDBOX_CONTEXT *pxSandboxContext = pxCurrentTCB->pxSandboxContext;
+
+		if( pxSandboxContext == NULL )
+		{
+			pxSandboxContext = ( xSANDBOX_CONTEXT * ) pvPortMalloc( sizeof( xSANDBOX_CONTEXT ) );
+			configASSERT( pxSandboxContext != NULL );
+			vPortSandboxContextInitialise( pxSandboxContext );
+			pxCurrentTCB->pxSandboxContext = pxSandboxContext;
+		}
+
+		return xPortSandboxEnter( pxFunction, pxData, pxArgs, pxSandboxContext );
+	}
+#endif

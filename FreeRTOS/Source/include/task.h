@@ -2412,6 +2412,11 @@ TaskHandle_t pvTaskIncrementMutexHeldCount( void ) PRIVILEGED_FUNCTION;
 void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNCTION;
 
 
+#if ( portHAS_SANDBOX == 1 )
+	BaseType_t xTaskRunSandboxed( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs ) PRIVILEGED_FUNCTION;
+#endif
+
+
 #ifdef __cplusplus
 }
 #endif

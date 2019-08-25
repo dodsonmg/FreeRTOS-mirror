@@ -147,6 +147,23 @@ not necessary for to use this port.  They are defined so the common demo files
 
 #define portMEMORY_BARRIER() __asm volatile( "" ::: "memory" )
 
+#define portHAS_SANDBOX 1
+typedef struct {
+	uintcap_t pxUnsandboxedContext;
+	uintcap_t pxSandboxedTopOfStack;
+} xSANDBOX_CONTEXT;
+
+typedef struct {
+	uintcap_t ca0;
+	uintcap_t ca1;
+	uintcap_t ca2;
+	uintcap_t ca3;
+	uintcap_t ca4;
+	uintcap_t ca5;
+	uintcap_t ca6;
+	uintcap_t ca7;
+} xSANDBOX_ARGS;
+
 #ifdef __cplusplus
 }
 #endif

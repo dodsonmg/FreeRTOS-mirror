@@ -66,6 +66,8 @@ interrupt stack after the scheduler has started. */
 void *pvAlmightyDataCap;
 void *pvAlmightyCodeCap;
 
+#define SANDBOX_RETURN_OTYPE 0
+
 /*
  * Setup the timer to generate the tick interrupts.  The implementation in this
  * file is weak to allow application writers to change the timer used to
@@ -140,6 +142,28 @@ task stack, not the ISR stack). */
 #endif /* ( configCLINT_BASE_ADDRESS != 0 ) */
 /*-----------------------------------------------------------*/
 
+void ( * pxPortSandboxReturnTrampoline ) ( void );
+void ( * pxPortSandboxReturnFunc ) ( BaseType_t xReturn );
+BaseType_t *pxPortSandboxReturnData;
+
+static void vPortSandboxSetup( void )
+{
+extern void ( * pxPortSandboxGetReturnTrampoline( void ) ) ( void );
+extern void xPortSandboxReturn( BaseType_t xReturn );
+void *pvReturnSealer;
+
+	pxPortSandboxReturnTrampoline =
+		cheri_andperm( pxPortSandboxGetReturnTrampoline(),
+		               __CHERI_CAP_PERMISSION_GLOBAL__ |
+		               __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ |
+		               __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
+		               __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__);
+
+	pvReturnSealer = cheri_setaddress( pvAlmightyDataCap, SANDBOX_RETURN_OTYPE );
+	pxPortSandboxReturnFunc = cheri_seal( xPortSandboxReturn, pvReturnSealer );
+	pxPortSandboxReturnData = cheri_seal( pvAlmightyDataCap, pvReturnSealer );
+}
+
 BaseType_t xPortStartScheduler( void )
 {
 extern void xPortStartFirstTask( void );
@@ -178,6 +202,8 @@ extern void xPortStartFirstTask( void );
 		__asm volatile( "csrs mie, %0" :: "r"(0x800) );
 	}
 	#endif /* configCLINT_BASE_ADDRESS */
+
+	vPortSandboxSetup();
 
 	xPortStartFirstTask();
 

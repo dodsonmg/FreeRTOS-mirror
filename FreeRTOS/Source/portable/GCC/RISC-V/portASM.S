@@ -169,6 +169,9 @@ freertos_risc_v_trap_handler:
   csrr              t0, mstatus # Required for MPIE bit.
 	store_x           ct0, 32 * portWORD_SIZE(csp)
 
+  cspecialrw        ct0, cnull, ddc
+  store_x           ct0, 33 * portWORD_SIZE(csp)
+
 	portasmSAVE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to save any registers unique to the RISC-V implementation. */
 
   clgc              ct0, pxCurrentTCB # Load pxCurrentTCB.
@@ -320,6 +323,9 @@ processed_source:
 .Lstashed_stack_and_mepcc:
 	portasmRESTORE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to restore any registers unique to the RISC-V implementation. */
 
+  load_x            ct0, 33 * portWORD_SIZE(csp)
+  cspecialrw        cnull, ct0, ddc
+
 	/* Load mstatus with the interrupt enable bits used by the task. */
   load_x            ct0, 32 * portWORD_SIZE(csp)
 	csrw mstatus, t0						/* Required for MPIE bit. */
@@ -381,6 +387,9 @@ xPortStartFirstTask:
   cspecialrw        cnull, ct0, mepcc # Write mepcc.
 
 	portasmRESTORE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to restore any registers unique to the RISC-V implementation. */
+
+  load_x            ct0, 33 * portWORD_SIZE(csp)
+  cspecialrw        cnull, ct0, ddc
 
   load_x            ct0, 32 * portWORD_SIZE(csp) # mstatus
 	csrw mstatus, t0						/* Required for MPIE bit. */
@@ -453,7 +462,7 @@ xPortStartFirstTaskEnd:
  *
  * (unused)
  * (unused)
- * (unused)
+ * ddc
  * mstatus
  * x31
  * x30
@@ -500,6 +509,7 @@ pxPortInitialiseStack:
 	addi              t0, x0, 0x188			/* Generate the value 0x1880, which are the MPIE and MPP bits to set in mstatus. */
 	slli              t0, t0, 4
 	store_x           ct0, 32 * portWORD_SIZE(ca0) # mstatus onto the stack.
+	store_x           cnull, 33 * portWORD_SIZE(ca0) # Default to null DDC
 
 	addi              t0, zero, portasmADDITIONAL_CONTEXT_SIZE	/* The number of chip specific additional registers. */
 chip_specific_stack_frame:				/* First add any chip specific registers to the stack frame being created. */
@@ -577,6 +587,9 @@ xPortSandboxEnter:
 
 	csrr              a0, mstatus
 	store_x           ca0, 32 * portWORD_SIZE(csp)
+
+	cspecialrw        ca0, cnull, ddc
+	store_x           ca0, 33 * portWORD_SIZE(csp)
 
 	portasmSAVE_ADDITIONAL_REGISTERS
 
@@ -683,6 +696,9 @@ xPortSandboxReturn:
 	/* Commit to leaving the sandbox */
 	csc               cnull, 0(ct0)
 	/* Beyond this point we count as outside the sandbox */
+
+	load_x            ct0, 33 * portWORD_SIZE(csp)
+	cspecialrw        cnull, ct0, ddc
 
 	load_x            ct0, 32 * portWORD_SIZE(csp)
 	csrw              mstatus, t0

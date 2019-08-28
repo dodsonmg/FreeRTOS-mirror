@@ -652,6 +652,7 @@ xPortSandboxEnter:
 	cmove             c29, cnull
 	cmove             c30, cnull
 	/* c31 is ct6 - pxData */
+	cspecialrw        cnull, c30, ddc
 
 	/* GO! */
 	cjr               ct0

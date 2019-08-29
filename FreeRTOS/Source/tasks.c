@@ -5233,7 +5233,7 @@ when performing module tests). */
 
 
 #if ( portHAS_SANDBOX == 1 )
-	BaseType_t xTaskRunSandboxed( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs )
+	xSANDBOX_RET xTaskRunSandboxed( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs )
 	{
 	xSANDBOX_CONTEXT *pxSandboxContext = pxCurrentTCB->pxSandboxContext;
 

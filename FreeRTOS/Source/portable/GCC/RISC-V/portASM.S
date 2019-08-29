@@ -283,12 +283,18 @@ is_exception:
 	beq               t0, zero, .Lbreak_on_exception /* Lazily allocated */
 	clc               ct0, 0(ct0)
 	beq               t0, zero, .Lbreak_on_exception /* No longer sandboxed so no untrusted stack */
-	/* Took exception inside sandbox; abort with -1 return code */
+	/* Took exception inside sandbox; abort with exception details */
 	cspecialrw        cnull, ct0, mscratchc
 	load_x            csp, 0(ct1) # Read sp from first TCB member.
-	li                t0, -1
-	store_x           ct0, 10 * portWORD_SIZE(csp) /* c10 is ca0 */
-	clgc              ct0, xPortSandboxReturn
+	csrr              t1, mccsr
+	srli              t1, t1, 5 /* Truncate low WIRI/d/e bits */
+	slli              t1, t1, 6 /* Assume mcause is max 6 bits */
+	csrr              t0, mcause
+	or                t0, t0, t1
+	store_x           ct0, 10 * portWORD_SIZE(csp) /* c10 is ca0 - cause information in event of trap */
+	csrr              t0, mepc
+	store_x           ct0, 11 * portWORD_SIZE(csp) /* c11 is ca1 - epc (bit 0 will be 0 indicating trap to caller) */
+	clgc              ct0, xPortSandboxTrapReturn
 	cspecialrw        cnull, ct0, mepcc # Write mepcc.
 	j                 .Lstashed_stack_and_mepcc
 
@@ -714,7 +720,7 @@ xPortSandboxReturn:
 	load_x            c8, 8 * portWORD_SIZE(csp)
 	load_x            c9, 9 * portWORD_SIZE(csp)
 	/* c10 is ca0 - return value of sandbox */
-	load_x            c11, 11 * portWORD_SIZE(csp)
+	li                x11, 1 /* c11 is ca1 - low bit of 1 iff sandbox exited normally */
 	load_x            c12, 12 * portWORD_SIZE(csp)
 	load_x            c13, 13 * portWORD_SIZE(csp)
 	load_x            c14, 14 * portWORD_SIZE(csp)
@@ -739,4 +745,58 @@ xPortSandboxReturn:
 
 	cret
 .size xPortSandboxReturn, . - xPortSandboxReturn
+
+.align 4
+.type xPortSandboxTrapReturn, %function
+xPortSandboxTrapReturn:
+	clgc              ct0, pxCurrentTCB           /* &pxCurrentTCB */
+	clc               ct0, 0(ct0)                 /* pxCurrentTCB */
+	clc               ct0, 1 * portWORD_SIZE(ct0) /* pxCurrentTCB->pxSandboxContext */
+	clc               csp, 0(ct0)
+
+	/* Commit to leaving the sandbox */
+	csc               cnull, 0(ct0)
+	/* Beyond this point we count as outside the sandbox */
+
+	load_x            ct0, 33 * portWORD_SIZE(csp)
+	cspecialrw        cnull, ct0, ddc
+
+	load_x            ct0, 32 * portWORD_SIZE(csp)
+	csrw              mstatus, t0
+
+	load_x            c1, 1 * portWORD_SIZE(csp)
+	/* c2 is csp */
+	load_x            c3, 3 * portWORD_SIZE(csp)
+	load_x            c4, 4 * portWORD_SIZE(csp)
+	load_x            c5, 5 * portWORD_SIZE(csp)
+	load_x            c6, 6 * portWORD_SIZE(csp)
+	load_x            c7, 7 * portWORD_SIZE(csp)
+	load_x            c8, 8 * portWORD_SIZE(csp)
+	load_x            c9, 9 * portWORD_SIZE(csp)
+	/* c10 is ca0 - cause information in event of trap */
+	/* c11 is ca1 - epc */
+	load_x            c12, 12 * portWORD_SIZE(csp)
+	load_x            c13, 13 * portWORD_SIZE(csp)
+	load_x            c14, 14 * portWORD_SIZE(csp)
+	load_x            c15, 15 * portWORD_SIZE(csp)
+	load_x            c16, 16 * portWORD_SIZE(csp)
+	load_x            c17, 17 * portWORD_SIZE(csp)
+	load_x            c18, 18 * portWORD_SIZE(csp)
+	load_x            c19, 19 * portWORD_SIZE(csp)
+	load_x            c20, 20 * portWORD_SIZE(csp)
+	load_x            c21, 21 * portWORD_SIZE(csp)
+	load_x            c22, 22 * portWORD_SIZE(csp)
+	load_x            c23, 23 * portWORD_SIZE(csp)
+	load_x            c24, 24 * portWORD_SIZE(csp)
+	load_x            c25, 25 * portWORD_SIZE(csp)
+	load_x            c26, 26 * portWORD_SIZE(csp)
+	load_x            c27, 27 * portWORD_SIZE(csp)
+	load_x            c28, 28 * portWORD_SIZE(csp)
+	load_x            c29, 29 * portWORD_SIZE(csp)
+	load_x            c30, 30 * portWORD_SIZE(csp)
+	load_x            c31, 31 * portWORD_SIZE(csp)
+	cincoffset        csp, csp, portCONTEXT_SIZE
+
+	cret
+.size xPortSandboxTrapReturn, . - xPortSandboxTrapReturn
 /*-----------------------------------------------------------*/

@@ -149,6 +149,11 @@ not necessary for to use this port.  They are defined so the common demo files
 
 #define portHAS_SANDBOX 1
 typedef struct {
+  BaseType_t a0;
+  BaseType_t a1;
+} xSANDBOX_RET;
+
+typedef struct {
 	uintcap_t pxUnsandboxedContext;
 	uintcap_t pxSandboxedTopOfStack;
 } xSANDBOX_CONTEXT;

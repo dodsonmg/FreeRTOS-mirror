@@ -678,7 +678,7 @@ xPortSandboxReturnTrampoline:
 	/* cs1 - pxPortSandboxReturnData (sealed) */
 
 	/* (Hopefully) return from the sandbox */
-	ccall             cs0, cs1, 1
+	ccall             cs0, cs1
 .LxPortSandboxReturnTrampolineEnd:
 .size xPortSandboxReturnTrampoline, .LxPortSandboxReturnTrampolineEnd - xPortSandboxReturnTrampoline
 

@@ -202,7 +202,7 @@ freertos_risc_v_trap_handler:
   clc               ct0, 0(ct0) # Load pxCurrentTCB.
   store_x           csp, 0(ct0)       # Write sp to first TCB member.
 
-  cspecialrw        ca1, cnull, mepcc # Read mepcc.
+  cspecialrw        ca1, mepcc, cnull # Read mepcc.
 #else
 	load_x  t0, pxCurrentTCB			/* Load pxCurrentTCB. */
 	store_x  sp, 0( t0 )				/* Write sp to first TCB member. */
@@ -385,7 +385,7 @@ processed_source:
 
   /* Load mret with the address of the next instruction in the task to run next. */
   load_x            ct0, 0(csp)
-  cspecialrw        cnull, ct0, mepcc # Write mepcc.
+  cspecialrw        cnull, mepcc, ct0 # Write mepcc.
 #else
 	load_x  t1, pxCurrentTCB			/* Load pxCurrentTCB. */
 	load_x  sp, 0( t1 )				 	/* Read sp from first TCB member. */
@@ -491,10 +491,10 @@ xPortStartFirstTask:
 	outside of this file. */
 #ifdef CONFIG_ENABLE_CHERI
 .option nocapmode
-  cspecialrw        ct0, cnull, pcc # Get PCC.
+  cspecialrw        ct0, pcc, cnull # Get PCC.
   la                t1, freertos_risc_v_trap_handler
   csetoffset        ct0, ct0, t1
-  cspecialrw        cnull, ct0, mtcc # Write MTCC.
+  cspecialrw        cnull, mtcc, ct0 # Write MTCC.
 .option capmode
 #else
 	la t0, freertos_risc_v_trap_handler
@@ -721,7 +721,7 @@ pxPortInitialiseStackEnd:
 cheri_getmscratchc:
   # TODO: This function is actually using DDC due to a hardware bug in
   # mscratchc. Revert to mscratchc and clear DDC at boot once it works.
-  cspecialrw        ca0, cnull, ddc
+  cspecialrw        ca0, ddc, cnull
   cret
 cheri_getmscratchc_end:
 .size cheri_getmscratchc, cheri_getmscratchc_end - cheri_getmscratchc

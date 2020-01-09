@@ -83,14 +83,14 @@ boot:
 
 #ifdef CONFIG_ENABLE_CHERI
     # W^X for PCC and DDC
-    cspecialrw      ct0, cnull, ddc
+    cspecialrw      ct0, ddc, cnull
     li              t1, (1<<1)
     not             t1, t1
     candperm        ct0, ct0, t1
-    cspecialrw      cnull, ct0, ddc
-    cspecialrw      cnull, ct0, mscratchc
+    cspecialrw      cnull, ddc, ct0
+    cspecialrw      cnull, mscratchc, ct0
 
-    cspecialrw      ct0, cnull, pcc
+    cspecialrw      ct0, pcc, cnull
     li              t1, ((1<<3) | (1<<5))
     not             t1, t1
     candperm        ct0, ct0, t1
@@ -173,7 +173,7 @@ init_stack:
     sc              csp, 0(t0)
 
     # Initialise the captable.
-    cspecialrw      ct0, cnull, pcc # Get PCC.
+    cspecialrw      ct0, pcc, cnull # Get PCC.
     la              t1, _start_purecap
     csetoffset      ct0, ct0, t1
     li              t1, 1
@@ -187,7 +187,7 @@ init_stack:
     #cspecialrw      cnull, ct0, ddc # Write DDC.
 
     # Jump to main in purecap.
-    cspecialrw      ct0, cnull, pcc # Get PCC.
+    cspecialrw      ct0, pcc, cnull # Get PCC.
     la              t1, main
     csetoffset      ct0, ct0, t1
     li              t1, 1

@@ -134,15 +134,28 @@ SECTIONS {
 	   __data_end = .;
 	} > dmem
 
-    /* Generate Stack definition */
 
-    .stack : {
+   /* Generate Stack and Heap definitions
+    * Stack is used by the ISR and the main() for initialization
+    * Stack grows downwards
+    */
+   .stack : {
        _stack_end = .;
        . += _STACK_SIZE;
        . = ALIGN(8);
        _stack = .;
        __stack = _stack;
+       __freertos_irq_stack_top = .;
     } > dmem
+
+   /* Heap grows upwards */
+    .heap : {
+       . = ALIGN(8);
+       _heap = .;
+       _heap_start = .;
+       . += _HEAP_SIZE;
+       _heap_end = .;
+    } > dmem 
 
     __cap_relocs : {
        . = ALIGN(8);
@@ -170,6 +183,6 @@ SECTIONS {
        . = ALIGN(8);
        __bss_end = .;
     } > dmem
-
+   
     _end = .;
 }

@@ -130,7 +130,7 @@ at the top of this file. */
 .align 8
 .type freertos_risc_v_trap_handler, %function
 freertos_risc_v_trap_handler:
-	cspecialrw        cnull, csp, mscratchc
+	cspecialrw        cnull, mscratchc, csp
 	clgc              csp, pxCurrentTCB            /* &pxCurrentTCB */
 	clc               csp, 0(csp)                  /* pxCurrentTCB */
 	clc               csp, 1 * portWORD_SIZE(csp)  /* pxCurrentTCB->pxSandboxContext */
@@ -139,7 +139,7 @@ freertos_risc_v_trap_handler:
 	bne               sp, zero, .Lsandboxed_trap
 
 .Lunsandboxed_trap:
-	cspecialrw        csp, cnull, mscratchc
+	cspecialrw        csp, mscratchc, cnull
 
 .Lsandboxed_trap:
 	/* We have switched back to the unsandboxed stack */
@@ -180,7 +180,7 @@ freertos_risc_v_trap_handler:
   csrr              t0, mstatus # Required for MPIE bit.
 	store_x           ct0, 32 * portWORD_SIZE(csp)
 
-  cspecialrw        ct0, cnull, ddc
+  cspecialrw        ct0, ddc, cnull
   store_x           ct0, 33 * portWORD_SIZE(csp)
 
 	portasmSAVE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to save any registers unique to the RISC-V implementation. */
@@ -192,12 +192,12 @@ freertos_risc_v_trap_handler:
 	beq               t0, zero, .Luntrusted_stack_saved /* Lazily allocated */
 	clc               ct1, 0(ct0)
 	beq               t1, zero, .Luntrusted_stack_saved /* No longer sandboxed so no untrusted stack */
-	cspecialrw        ct1, cnull, mscratchc
+	cspecialrw        ct1, mscratchc, cnull
 	csc               ct1, 1 * portWORD_SIZE(ct0)
 
 .Luntrusted_stack_saved:
   csrr              a0, mcause
-  cspecialrw        ca1, cnull, mepcc # Read mepcc.
+  cspecialrw        ca1, mepcc, cnull # Read mepcc.
 
 test_if_asynchronous:
 	srli a2, a0, __riscv_xlen - 1		/* MSB of mcause is 1 if handing an asynchronous interrupt - shift to LSB to clear other bits. */
@@ -295,7 +295,7 @@ is_exception:
 	clc               ct0, 0(ct0)
 	beq               t0, zero, .Lbreak_on_exception /* No longer sandboxed so no untrusted stack */
 	/* Took exception inside sandbox; abort with exception details */
-	cspecialrw        cnull, ct0, mscratchc
+	cspecialrw        cnull, mscratchc, ct0
 	load_x            csp, 0(ct1) # Read sp from first TCB member.
 	csrr              t1, mccsr
 	srli              t1, t1, 5 /* Truncate low WIRI/d/e bits */
@@ -306,7 +306,7 @@ is_exception:
 	csrr              t0, mepc
 	store_x           ct0, 11 * portWORD_SIZE(csp) /* c11 is ca1 - epc (bit 0 will be 0 indicating trap to caller) */
 	clgc              ct0, xPortSandboxTrapReturn
-	cspecialrw        cnull, ct0, mepcc # Write mepcc.
+	cspecialrw        cnull, mepcc, ct0 # Write mepcc.
 	j                 .Lstashed_stack_and_mepcc
 
 .Lbreak_on_exception:
@@ -332,16 +332,16 @@ processed_source:
 	cincoffset		ct0, csp, portCONTEXT_SIZE
 
 .Lstash_stack_for_return:
-	cspecialrw        cnull, ct0, mscratchc
+	cspecialrw        cnull, mscratchc, ct0
 	/* Load mret with the address of the next instruction in the task to run next. */
   load_x            ct0, 0(csp)
-  cspecialrw        cnull, ct0, mepcc # Write mepcc.
+  cspecialrw        cnull, mepcc, ct0 # Write mepcc.
 
 .Lstashed_stack_and_mepcc:
 	portasmRESTORE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to restore any registers unique to the RISC-V implementation. */
 
   load_x            ct0, 33 * portWORD_SIZE(csp)
-  cspecialrw        cnull, ct0, ddc
+  cspecialrw        cnull, ddc, ct0
 
 	/* Load mstatus with the interrupt enable bits used by the task. */
   load_x            ct0, 32 * portWORD_SIZE(csp)
@@ -377,7 +377,7 @@ processed_source:
   load_x            c29, 29 * portWORD_SIZE(csp)
   load_x            c30, 30 * portWORD_SIZE(csp)
   load_x            c31, 31 * portWORD_SIZE(csp)
-	cspecialrw        csp, cnull, mscratchc
+	cspecialrw        csp, mscratchc, cnull
 
 	mret
 .size freertos_risc_v_trap_handler, . - freertos_risc_v_trap_handler
@@ -393,7 +393,7 @@ xPortStartFirstTask:
 	outside of this file. */
 1:auipcc            ct0, %pcrel_hi(freertos_risc_v_trap_handler)
   cincoffset        ct0, ct0, %pcrel_lo(1b)
-  cspecialrw        cnull, ct0, mtcc # Write MTCC.
+  cspecialrw        cnull, mtcc, ct0 # Write MTCC.
 #endif /* portasmHAS_CLILNT */
 
   clgc              ct0, pxCurrentTCB # Load the cap to pxCurrentTCB.
@@ -401,12 +401,12 @@ xPortStartFirstTask:
   load_x            csp, 0(ct0) # Read sp from first TCB member.
 
   load_x            ct0, 0(csp)
-  cspecialrw        cnull, ct0, mepcc # Write mepcc.
+  cspecialrw        cnull, mepcc, ct0 # Write mepcc.
 
 	portasmRESTORE_ADDITIONAL_REGISTERS	/* Defined in freertos_risc_v_chip_specific_extensions.h to restore any registers unique to the RISC-V implementation. */
 
   load_x            ct0, 33 * portWORD_SIZE(csp)
-  cspecialrw        cnull, ct0, ddc
+  cspecialrw        cnull, ddc, ct0
 
   load_x            ct0, 32 * portWORD_SIZE(csp) # mstatus
 	csrw mstatus, t0						/* Required for MPIE bit. */
@@ -605,7 +605,7 @@ xPortSandboxEnter:
 	csrr              a0, mstatus
 	store_x           ca0, 32 * portWORD_SIZE(csp)
 
-	cspecialrw        ca0, cnull, ddc
+	cspecialrw        ca0, ddc, cnull
 	store_x           ca0, 33 * portWORD_SIZE(csp)
 
 	portasmSAVE_ADDITIONAL_REGISTERS
@@ -669,7 +669,7 @@ xPortSandboxEnter:
 	cmove             c29, cnull
 	cmove             c30, cnull
 	/* c31 is ct6 - pxData */
-	cspecialrw        cnull, c30, ddc
+	cspecialrw        cnull, ddc, c30
 
 	/* GO! */
 	cjr               ct0
@@ -689,7 +689,7 @@ xPortSandboxReturnTrampoline:
 	/* cs1 - pxPortSandboxReturnData (sealed) */
 
 	/* (Hopefully) return from the sandbox */
-	ccall             cs0, cs1, 1
+	ccall             cs0, cs1
 .LxPortSandboxReturnTrampolineEnd:
 .size xPortSandboxReturnTrampoline, .LxPortSandboxReturnTrampolineEnd - xPortSandboxReturnTrampoline
 
@@ -716,7 +716,7 @@ xPortSandboxReturn:
 	/* Beyond this point we count as outside the sandbox */
 
 	load_x            ct0, 33 * portWORD_SIZE(csp)
-	cspecialrw        cnull, ct0, ddc
+	cspecialrw        cnull, ddc, ct0
 
 	load_x            ct0, 32 * portWORD_SIZE(csp)
 	csrw              mstatus, t0
@@ -770,7 +770,7 @@ xPortSandboxTrapReturn:
 	/* Beyond this point we count as outside the sandbox */
 
 	load_x            ct0, 33 * portWORD_SIZE(csp)
-	cspecialrw        cnull, ct0, ddc
+	cspecialrw        cnull, ddc, ct0
 
 	load_x            ct0, 32 * portWORD_SIZE(csp)
 	csrw              mstatus, t0

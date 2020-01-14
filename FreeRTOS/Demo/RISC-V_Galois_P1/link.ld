@@ -73,6 +73,7 @@
 OUTPUT_ARCH( "riscv" )
 
 _STACK_SIZE = 4K;
+_HEAP_SIZE = 256K;
 
 /*****************************************************************************
  * Define memory layout

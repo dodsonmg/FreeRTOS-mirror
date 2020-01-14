@@ -30,6 +30,7 @@ ifeq ($(USE_CLANG),yes)
 	OBJDUMP	= $(TARGET)-objdump
 	AR		= llvm-ar
 	RANLIB	= llvm-ranlib
+	COMPILER_FLAGS = -mcmodel=medium
 else
 	CC		= $(TARGET)-gcc
 	CPP		= $(TARGET)-g++
@@ -38,9 +39,9 @@ else
 	OBJDUMP	= $(TARGET)-objdump
 	AR		= $(TARGET)-ar
 	RANLIB	= $(TARGET)-ranlib
+	COMPILER_FLAGS = -mcmodel=medany
 endif
 
-COMPILER_FLAGS = -mcmodel=medany
 
 $(info CC=${CC})
 

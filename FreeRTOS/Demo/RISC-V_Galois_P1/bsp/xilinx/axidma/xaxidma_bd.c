@@ -130,7 +130,6 @@ u32 XAxiDma_BdSetBufAddr(XAxiDma_Bd* BdPtr, UINTPTR Addr)
 	HasDRE = XAxiDma_BdRead(BdPtr, XAXIDMA_BD_HAS_DRE_OFFSET);
 	WordLen = HasDRE & XAXIDMA_BD_WORDLEN_MASK;
 
-	if (Addr & (WordLen - 1)) {
 	if ((size_t)Addr & (WordLen - 1)) {
 		if ((HasDRE & XAXIDMA_BD_HAS_DRE_MASK) == 0) {
 			printf("Error set buf addr %x with %x and %x,"

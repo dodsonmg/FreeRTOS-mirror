@@ -137,8 +137,8 @@ task stack, not the ISR stack). */
 		__asm volatile( "csrr %0, mhartid" : "=r"( ulHartId ) );
 		pullMachineTimerCompareRegister  = ( volatile uint64_t * ) ( ullMachineTimerCompareRegisterBase + ( ulHartId * sizeof( uint64_t ) ) );
 
-		pullMachineTimerCompareRegister = cheri_setoffset(pvAlmightyDataCap, ( ullMachineTimerCompareRegisterBase + ( ulHartId * sizeof( uint64_t ) ));
-		pullMachineTimerCompareRegister = cheri_csetbounds((void*)pullMachineTimerCompareRegister, sizeof(uint64_t));    		
+		pullMachineTimerCompareRegister = cheri_setoffset(pvAlmightyDataCap, ( ullMachineTimerCompareRegisterBase + ( ulHartId * sizeof( uint64_t ) )));
+		pullMachineTimerCompareRegister = cheri_csetbounds((void*)pullMachineTimerCompareRegister, sizeof(uint64_t));
 
 		do
 		{

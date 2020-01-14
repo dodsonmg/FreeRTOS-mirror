@@ -278,31 +278,6 @@ int XIic_Start(XIic *InstancePtr)
 	return XST_SUCCESS;
 }
 
-/*****************************************************************************
-*
-* This is a function which tells whether the I2C bus is busy or free.
-*
-* @param BaseAddr is the base address of the I2C core to work on.
-*
-* @return
-*    - TRUE if the bus is busy.
-*    - FALSE if the bus is NOT busy.
-*
-* @note    None.
-*
-******************************************************************************/
-u32 XIic_CheckIsBusBusy(UINTPTR BaseAddress)
-{
- u32 StatusReg;
-
- StatusReg = XIic_ReadReg(BaseAddress, XIIC_SR_REG_OFFSET);
- if (StatusReg & XIIC_SR_BUS_BUSY_MASK) {
-   return TRUE;
- } else {
-   return FALSE;
- }
-}
-
 /*****************************************************************************/
 /**
 *

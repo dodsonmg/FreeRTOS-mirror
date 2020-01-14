@@ -6,12 +6,12 @@ XARCH?=32
 TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
 
 ifeq ($(XARCH),64)
-	ARCH 		= -march=rv64imac
-	ABI 		= -mabi=lp64
+	ARCH 		= -march=rv64imxcheri
+	ABI 		= -mabi=lp64pc128
 	CLANG_ARCH  = riscv64
 else
-	ARCH 		= -march=rv32im
-	ABI 		= -mabi=ilp32
+	ARCH 		= -march=rv32imxcheri
+	ABI 		= -mabi=il32pc64
 	CLANG_ARCH  = riscv32
 endif
 

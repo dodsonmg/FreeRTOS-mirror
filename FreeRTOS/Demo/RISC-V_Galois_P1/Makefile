@@ -7,7 +7,7 @@ TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
 
 ifeq ($(XARCH),64)
 	ARCH 		= -march=rv64imxcheri
-	ABI 		= -mabi=lp64pc128
+	ABI 		= -mabi=l64pc128
 	CLANG_ARCH  = riscv64
 else
 	ARCH 		= -march=rv32imxcheri

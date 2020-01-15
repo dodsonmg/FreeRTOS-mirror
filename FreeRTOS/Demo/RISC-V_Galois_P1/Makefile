@@ -6,7 +6,7 @@ XARCH?=32
 USE_CLANG?=yes
 
 ifeq ($(XARCH),64)
-	ARCH 		= -march=rv64imxcheri
+	ARCH 		= -march=rv64imacxcheri
 	ABI 		= -mabi=l64pc128
 	CLANG_ARCH  = riscv64-unknown-elf
 else

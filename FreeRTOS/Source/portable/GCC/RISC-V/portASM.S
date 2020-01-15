@@ -245,9 +245,9 @@ handle_asynchronous:
 			/* Update the 64-bit mtimer compare match value. */
 			cld  t2, 0(ct1)			 	/* Load ullNextTime into t2. */
 			csd  t2, 0(ct0)				/* Store ullNextTime into compare register. */
-      clgc ct0, uxTimerIncrementsForOneTick # Load the cap to ullTimerIncrementForOneTick into t0 (could this be optimized by storing in an array next to pullNextTime?).
-      cld  t0, 0(ct0) # Load the actual value.
-			add  t4, t0, t2				/* Add the low word of ullNextTime to the timer increments for one tick (assumes timer increment for one tick fits in 32-bits). */
+			clgc ct0, uxTimerIncrementsForOneTick	/* Load the cap to ullTimerIncrementForOneTick into t0 (could this be optimized by storing in an array next to pullNextTime?). */
+			cld  t0, 0(ct0)				/* Load the actual value. */
+			add  t4, t0, t2				/* Add ullNextTime to the timer increments for one tick. */
 			csd  t4, 0(ct1)				/* Store ullNextTime. */
 
 		#endif /* __riscv_xlen == 64 */

@@ -3,35 +3,31 @@ $(info $$PROG is [${PROG}])
 
 CCPATH 		?=
 XARCH?=32
-TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
+USE_CLANG?=yes
 
 ifeq ($(XARCH),64)
 	ARCH 		= -march=rv64imxcheri
 	ABI 		= -mabi=l64pc128
-	CLANG_ARCH  = riscv64
+	CLANG_ARCH  = riscv64-unknown-elf
 else
 	ARCH 		= -march=rv32imxcheri
 	ABI 		= -mabi=il32pc64
-	CLANG_ARCH  = riscv32
+	CLANG_ARCH  = riscv32-unknown-elf
 endif
+
 
 # Decide which compiler to use
 ifeq ($(USE_CLANG),yes)
-	CC		= clang --target=$(CLANG_ARCH)
-	# CPP		= clang++ --target=$(CLANG_ARCH)
-	# TODO: clang has problems with system includes, use g++ for now
-	CPP		= $(TARGET)-g++
-	# LLVM doesn't support linking RISC-V files yet,
-	# so we have to use GCC linker to do so
-	LD		= $(TARGET)-gcc
+	CC		= clang --target=$(CLANG_ARCH) --sysroot=/no/such/path
+	CPP		= clang++ --target=$(CLANG_ARCH) --sysroot=/no/such/path
+	LD		= clang --target=$(CLANG_ARCH) --sysroot=/no/such/path
 	OBJCOPY	= llvm-objcopy
-	# LLVM doesn't uderstand debug symbols created by GCC linker
-	# using GCC objdump for the time being (instead of llvm-objdump)
-	OBJDUMP	= $(TARGET)-objdump
+	OBJDUMP	= llvm-objdump
 	AR		= llvm-ar
 	RANLIB	= llvm-ranlib
 	COMPILER_FLAGS = -mcmodel=medium
 else
+	TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
 	CC		= $(TARGET)-gcc
 	CPP		= $(TARGET)-g++
 	LD		= $(CC)
@@ -147,13 +143,11 @@ INCLUDES = \
 	-I./demo \
 	-I$(NEWLIB_DIR)/newlib/libc/include
 
-ASFLAGS  += -g -target $(TARGET) \
-	$(ARCH) $(ABI) -Wa,-Ilegacy \
+ASFLAGS  += -g $(ARCH) $(ABI) -Wa,-Ilegacy \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
-CFLAGS = -target $(TARGET) \
-	$(WARNINGS) $(INCLUDES) -DAXI_DEBUG_PRINT=1 \
+CFLAGS = $(WARNINGS) $(INCLUDES) -DAXI_DEBUG_PRINT=1 \
 	-g -O0 $(ARCH) $(ABI) -mno-relax
 
 
@@ -348,7 +342,7 @@ PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ) $(CPP_OBJ)
 
-LDFLAGS = -target $(TARGET) -fuse-ld=lld -mno-relax
+LDFLAGS = -fuse-ld=lld -mno-relax
 LDFLAGS += -T link.ld -nostartfiles -nostdlib -L$(NEWLIB_DIR)/newlib/libc/build -L.
 LIBS	 =  -lc -lcompiler_rt
 

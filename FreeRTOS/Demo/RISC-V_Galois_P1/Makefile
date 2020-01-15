@@ -1,35 +1,67 @@
-RISCV_XLEN ?= 32
-RISCV_LIB  ?= elf
-CCPATH =
-ARCH 		= -march=rv32imxcheri
-ABI 		= -mabi=il32pc64
+# For debugging
+$(info $$PROG is [${PROG}])
+
+CCPATH 		?=
+XARCH?=32
+TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
+
+ifeq ($(XARCH),64)
+	ARCH 		= -march=rv64imxcheri
+	ABI 		= -mabi=l64pc128
+	CLANG_ARCH  = riscv64
+else
+	ARCH 		= -march=rv32imxcheri
+	ABI 		= -mabi=il32pc64
+	CLANG_ARCH  = riscv32
+endif
+
+# Decide which compiler to use
+ifeq ($(USE_CLANG),yes)
+	CC		= clang --target=$(CLANG_ARCH)
+	# CPP		= clang++ --target=$(CLANG_ARCH)
+	# TODO: clang has problems with system includes, use g++ for now
+	CPP		= $(TARGET)-g++
+	# LLVM doesn't support linking RISC-V files yet,
+	# so we have to use GCC linker to do so
+	LD		= $(TARGET)-gcc
+	OBJCOPY	= llvm-objcopy
+	# LLVM doesn't uderstand debug symbols created by GCC linker
+	# using GCC objdump for the time being (instead of llvm-objdump)
+	OBJDUMP	= $(TARGET)-objdump
+	AR		= llvm-ar
+	RANLIB	= llvm-ranlib
+	COMPILER_FLAGS = -mcmodel=medium
+else
+	CC		= $(TARGET)-gcc
+	CPP		= $(TARGET)-g++
+	LD		= $(CC)
+	OBJCOPY	= $(TARGET)-objcopy
+	OBJDUMP	= $(TARGET)-objdump
+	AR		= $(TARGET)-ar
+	RANLIB	= $(TARGET)-ranlib
+	COMPILER_FLAGS = -mcmodel=medany
+endif
 
 
-TARGET=$(CCPATH)riscv${RISCV_XLEN}-unknown-${RISCV_LIB}
-
-CC		= $(TARGET)-clang
-OBJCOPY	= llvm-objcopy
-OBJDUMP	= llvm-objdump
-AR		= llvm-ar
-RANLIB	= llvm-ranlib
+$(info CC=${CC})
 
 # Use main_blinky as demo source and target file name if not specified
 PROG 	?= main_blinky
 CRT0	= bsp/boot.S
-
-# For debugging
-$(info $$PROG is [${PROG}])
 
 FREERTOS_SOURCE_DIR	= ../../Source
 FREERTOS_PLUS_SOURCE_DIR = ../../../FreeRTOS-Plus/Source
 FREERTOS_TCP_SOURCE_DIR = $(FREERTOS_PLUS_SOURCE_DIR)/FreeRTOS-Plus-TCP
 FREERTOS_PROTOCOLS_DIR = ./protocols
 
-#WARNINGS= -Werror
+#WARNINGS = -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wsign-compare \
+#		-Waggregate-return -Wmissing-declarations -Wunused -Werror 
+ 
+C_WARNINGS = -Wbad-function-cast -Wmissing-prototypes -Wstrict-prototypes
 
+CPP_WARNINGS = 
 
-# Root of RISC-V tools installation
-RISCV ?= /opt/riscv
+CPP_SRC = 
 
 FREERTOS_SRC = \
 	$(FREERTOS_SOURCE_DIR)/croutine.c \
@@ -77,6 +109,7 @@ APP_SRC = \
 	bsp/xilinx/axiethernet/xaxiethernet_sinit.c \
 	bsp/xilinx/iic/xiic.c \
 	bsp/xilinx/iic/xiic_g.c \
+	bsp/xilinx/iic/xiic_l.c \
 	bsp/xilinx/iic/xiic_sinit.c \
 	bsp/xilinx/iic/xiic_selftest.c \
 	bsp/xilinx/iic/xiic_master.c \
@@ -114,14 +147,14 @@ INCLUDES = \
 	-I./demo \
 	-I$(NEWLIB_DIR)/newlib/libc/include
 
-ASFLAGS  += -target $(TARGET) \
+ASFLAGS  += -g -target $(TARGET) \
 	$(ARCH) $(ABI) -Wa,-Ilegacy \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
 CFLAGS = -target $(TARGET) \
 	$(WARNINGS) $(INCLUDES) -DAXI_DEBUG_PRINT=1 \
-	-g -O0 $(ARCH) $(ABI) -mcmodel=medium -mno-relax
+	-g -O0 $(ARCH) $(ABI) -mno-relax
 
 
 FREERTOS_IP_SRC = \
@@ -189,7 +222,7 @@ ifeq ($(PROG),main_tcp)
 	INCLUDES += $(FREERTOS_IP_INCLUDE)
 	FREERTOS_SRC += $(FREERTOS_IP_SRC)
 	DEMO_SRC += $(FREERTOS_IP_DEMO_SRC)
-		
+
 else
 ifeq ($(PROG),main_peekpoke)
 	CFLAGS += -DmainDEMO_TYPE=9
@@ -218,22 +251,74 @@ ifeq ($(PROG),main_udp)
 else
 ifeq ($(PROG),main_sd)
 	CFLAGS += -DmainDEMO_TYPE=6
-	DEMO_SRC += devices/sdmm.c
-	DEMO_SRC += devices/ff.c
-	DEMO_SRC += devices/ffsystem.c
-	DEMO_SRC += devices/ffunicode.c
+	CPPLAGS += -DmainDEMO_TYPE=6
+	CPP_SRC += SD/src/SD.cpp \
+			   SD/src/File.cpp \
+			   SD/src/utility/Sd2Card.cpp \
+			   SD/src/utility/SdFile.cpp \
+			   SD/src/utility/SdVolume.cpp \
+			   SD/src/SDLib.cpp
+SD_EXAMPLE ?= CardInfo
+USE_RTC_CLOCK ?= 0
+$(info SD_EXAMPLE=${SD_EXAMPLE})
+ifeq ($(SD_EXAMPLE),ReadWrite)
+	CPP_SRC += SD/examples/SdDemo_ReadWrite.cpp
+else
+ifeq ($(SD_EXAMPLE),DumpFile)
+	CPP_SRC += SD/examples/SdDemo_DumpFile.cpp
+else
+ifeq ($(SD_EXAMPLE),CardInfo)
+	CPP_SRC += SD/examples/SdDemo_CardInfo.cpp
+else
+ifeq ($(SD_EXAMPLE),StressTest)
+	DEMO_SRC += SD/examples/SdDemo_StressTest.c
+else
+$(error unknown SD_EXAMPLE: $(SD_EXAMPLE))
+endif
+endif
+endif
+endif
+
+	INCLUDES += -I./SD/src
+ifeq ($(USE_RTC_CLOCK),1)
+# Below includes for RTC clock (SD FAT time)
+	CFLAGS += -DUSE_RTC_CLOCK=1
+	CPPLAGS += -DUSE_RTC_CLOCK=1
 	INCLUDES += -I./devices
+	DEMO_SRC += devices/ds1338rtc.c
+endif # USE_RTC_CLOCK
 else
 ifeq ($(PROG),main_uart)
 	CFLAGS += -DmainDEMO_TYPE=7
 	INCLUDES += -I./devices
 else
 ifeq ($(PROG),main_rtc)
+RTC_YEAR = $(shell date +%-y)
+RTC_MONTH = $(shell date +%-m)
+RTC_DAY = $(shell date +%-d)
+RTC_HOUR = $(shell date +%-H)
+RTC_MINUTE = $(shell date +%-M)
+RTC_SECONDS = $(shell date +%-S)
+	CFLAGS += -DRTC_YEAR=$(RTC_YEAR)
+	CFLAGS += -DRTC_MONTH=$(RTC_MONTH)
+	CFLAGS += -DRTC_DAY=$(RTC_DAY)
+	CFLAGS += -DRTC_HOUR=$(RTC_HOUR)
+	CFLAGS += -DRTC_MINUTE=$(RTC_MINUTE)
+	CFLAGS += -DRTC_SECONDS=$(RTC_SECONDS)
+	CFLAGS += -DRTC_SET_TIME=1
 	CFLAGS += -DmainDEMO_TYPE=10
 	INCLUDES += -I./devices
 	DEMO_SRC += devices/ds1338rtc.c
 else
+ifeq ($(PROG),main_uart_malware)
+	CFLAGS += -DmainDEMO_TYPE=11
+else
+ifeq ($(PROG),main_testgen)
+	include $(INC_TESTGEN)/testgenEnvironment.mk
+else
 $(error unknown demo: $(PROG))
+endif # main_testgen
+endif # main_uart_malware
 endif # main_rtc
 endif # main_uart
 endif # main_sd
@@ -247,6 +332,10 @@ endif # main_blinky
 
 ARFLAGS=crsv
 
+CFLAGS += -O0 -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+# Disable warnings for C++ for now
+CPPFLAGS += -O0 -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+
 #
 # Define all object files.
 #
@@ -254,9 +343,10 @@ RTOS_OBJ = $(FREERTOS_SRC:.c=.o)
 APP_OBJ  = $(APP_SRC:.c=.o)
 PORT_OBJ = $(PORT_SRC:.c=.o)
 DEMO_OBJ = $(DEMO_SRC:.c=.o)
+CPP_OBJ = $(CPP_SRC:.cpp=.o)
 PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
-OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ)
+OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ) $(CPP_OBJ)
 
 LDFLAGS = -target $(TARGET) -fuse-ld=lld -mno-relax
 LDFLAGS += -T link.ld -nostartfiles -nostdlib -L$(NEWLIB_DIR)/newlib/libc/build -L.
@@ -272,22 +362,26 @@ $(info ARFLAGS=$(ARFLAGS))
 	@echo "    CC $<"
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
+%.o: %.cpp
+	@echo "    C++ $<"
+	@$(CPP) -c $(CPPFLAGS) -o $@ $<
+
 %.o: %.S
 	@echo "    CC $<"
 	@$(CC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
 
 all: $(PROG).elf
 
-$(PROG).elf  : $(OBJS) libcompiler_rt.a Makefile 
+$(PROG).elf  : $(OBJS) libcompiler_rt.a Makefile
 	@echo Linking....
-	@$(CC) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
+	@$(CC) -v -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
 	@$(OBJDUMP) -disassemble -h -t -p -r -source $(PROG).elf > $(PROG).dump
 	@echo Completed $@
 
 clean :
 	@rm -f $(OBJS)
 	@rm -f libcompiler_rt.a
-	@rm -f $(PROG).elf 
+	@rm -f $(PROG).elf
 	@rm -f $(PROG).map
 	@rm -f $(PROG).dump
 

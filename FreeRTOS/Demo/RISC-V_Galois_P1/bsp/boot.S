@@ -83,13 +83,13 @@ boot:
     li t6, 0x1800
     csrw mstatus, t6
     # W^X for PCC and DDC
-    cspecialrw      ct0, cnull, ddc
+    cspecialrw      ct0, ddc, cnull
     li              t1, (1<<1)
     not             t1, t1
     candperm        ct0, ct0, t1
-    cspecialrw      cnull, ct0, ddc
+    cspecialrw      cnull, ddc, ct0
 
-    cspecialrw      ct0, cnull, pcc
+    cspecialrw      ct0, pcc, cnull
     li              t1, ((1<<3) | (1<<5))
     not             t1, t1
     candperm        ct0, ct0, t1
@@ -167,11 +167,11 @@ init_stack:
     la              t0, xISRStackTop
     sc              csp, 0(t0)
 
-    cspecialrw      ct0, cnull, ddc # Get DDC.
+    cspecialrw      ct0, ddc, cnull # Get DDC.
     la              t1, pvAlmightyDataCap
     sc              ct0, 0(t1)
 
-    cspecialrw      ct0, cnull, pcc # Get PCC.
+    cspecialrw      ct0, pcc, cnull # Get PCC.
     la              t1, pvAlmightyCodeCap
     sc              ct0, 0(t1)
 
@@ -185,10 +185,10 @@ init_stack:
 
     # From now on, the DDC is always null.
     cmove           ct0, cnull
-    cspecialrw      cnull, ct0, ddc # Write DDC.
+    cspecialrw      cnull, ddc, ct0 # Write DDC.
 
     # Jump to main in purecap.
-    cspecialrw      ct0, cnull, pcc # Get PCC.
+    cspecialrw      ct0, pcc, cnull # Get PCC.
     la              t1, main
     csetoffset      ct0, ct0, t1
     li              t1, 1

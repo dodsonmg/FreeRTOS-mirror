@@ -63,7 +63,11 @@ static void prvSimpleZeroCopyServerTask(void *pvParameters);
 
 /*-----------------------------------------------------------*/
 
+#if __riscv_xlen == 64
+void vStartSimpleUDPClientServerTasks(uint16_t usStackSize, uint64_t ulPort, UBaseType_t uxPriority)
+#else
 void vStartSimpleUDPClientServerTasks(uint16_t usStackSize, uint32_t ulPort, UBaseType_t uxPriority)
+#endif
 {
 	/* Create the client and server tasks that do use the zero copy interface. */
 	xTaskCreate(prvSimpleZeroCopyUDPClientTask, "SimpZCpyClnt", usStackSize, (void *)(uintptr_t)(ulPort + 1), uxPriority, NULL);
@@ -102,7 +106,17 @@ static void prvSimpleZeroCopyUDPClientTask(void *pvParameters)
 															configECHO_SERVER_ADDR1,
 															configECHO_SERVER_ADDR2,
 															configECHO_SERVER_ADDR3);
+#if defined(__clang__)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+#endif
 	xDestinationAddress.sin_port = (uint16_t)((uint32_t)pvParameters) & 0xffffUL;
+#if defined(__clang__)
+#else
+#pragma GCC diagnostic pop
+#endif
+	
 	xDestinationAddress.sin_port = FreeRTOS_htons(xDestinationAddress.sin_port);
 
 	for (;;)
@@ -211,6 +225,11 @@ static void prvSimpleZeroCopyServerTask(void *pvParameters)
 	after the network is up, so the IP address is valid here. */
 	FreeRTOS_GetAddressConfiguration(&ulIPAddress, NULL, NULL, NULL);
 	xBindAddress.sin_addr = ulIPAddress;
+#if defined(__clang__)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+#endif
 	xBindAddress.sin_port = (uint16_t)((uint32_t)pvParameters) & 0xffffUL;
 	xBindAddress.sin_port = FreeRTOS_htons(xBindAddress.sin_port);
 

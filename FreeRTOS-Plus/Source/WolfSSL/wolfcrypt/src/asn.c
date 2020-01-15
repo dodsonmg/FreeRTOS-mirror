@@ -184,6 +184,11 @@
     #ifndef HAVE_VALIDATE_DATE
         #define XVALIDATE_DATE(d, f, t) ValidateDate((d), (f), (t))
     #endif
+#elif defined(testgenOnFreeRTOS)
+    #include <time.h>
+    extern time_t XTIME(time_t *t);
+    #define XGMTIME(c, t) gmtime((c))
+    #define XVALIDATE_DATE(d, f, t) ValidateDate((d), (f), (t))
 #else
     /* default */
     /* uses complete <time.h> facility */

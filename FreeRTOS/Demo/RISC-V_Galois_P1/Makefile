@@ -5,6 +5,8 @@ CCPATH 		?=
 XARCH?=32
 TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
 
+USE_CLANG=yes
+
 ifeq ($(XARCH),64)
 	ARCH 		= -march=rv64imxcheri
 	ABI 		= -mabi=l64pc128

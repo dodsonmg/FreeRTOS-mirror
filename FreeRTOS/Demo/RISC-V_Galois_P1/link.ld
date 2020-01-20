@@ -143,7 +143,7 @@ SECTIONS {
    .stack : {
        _stack_end = .;
        . += _STACK_SIZE;
-       . = ALIGN(8);
+       . = ALIGN(16);
        _stack = .;
        __stack = _stack;
        __freertos_irq_stack_top = .;

@@ -211,4 +211,418 @@ fb_end:
     ret
 .size boot, . - boot
 
+.global inspect_cra
+inspect_cra:
+cmove    ctp, cra
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_csp
+inspect_csp:
+cmove    ctp, csp
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cgp
+inspect_cgp:
+cmove    ctp, cgp
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ct1
+inspect_ct1:
+cmove    ctp, ct1
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ct2
+inspect_ct2:
+cmove    ctp, ct2
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ct3
+inspect_ct3:
+cmove    ctp, ct3
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ct4
+inspect_ct4:
+cmove    ctp, ct4
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ct5
+inspect_ct5:
+cmove    ctp, ct5
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ct6
+inspect_ct6:
+cmove    ctp, ct6
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs0
+inspect_cs0:
+cmove    ctp, cs0
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs1
+inspect_cs1:
+cmove    ctp, cs1
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca0
+inspect_ca0:
+cmove    ctp, ca0
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca1
+inspect_ca1:
+cmove    ctp, ca1
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca2
+inspect_ca2:
+cmove    ctp, ca2
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca3
+inspect_ca3:
+cmove    ctp, ca3
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca4
+inspect_ca4:
+cmove    ctp, ca4
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca5
+inspect_ca5:
+cmove    ctp, ca5
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca6
+inspect_ca6:
+cmove    ctp, ca6
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ca7
+inspect_ca7:
+cmove    ctp, ca7
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs2
+inspect_cs2:
+cmove    ctp, cs2
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs3
+inspect_cs3:
+cmove    ctp, cs3
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs4
+inspect_cs4:
+cmove    ctp, cs4
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs5
+inspect_cs5:
+cmove    ctp, cs5
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs6
+inspect_cs6:
+cmove    ctp, cs6
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs7
+inspect_cs7:
+cmove    ctp, cs7
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs8
+inspect_cs8:
+cmove    ctp, cs8
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs9
+inspect_cs9:
+cmove    ctp, cs9
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs10
+inspect_cs10:
+cmove    ctp, cs10
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_cs11
+inspect_cs11:
+cmove    ctp, cs11
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_ddc
+inspect_ddc:
+cspecialr ctp, ddc
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_pcc
+inspect_pcc:
+cspecialr ctp, pcc
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_mscratchc
+inspect_mscratchc:
+cspecialr ctp, mscratchc
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.global inspect_mepcc
+inspect_mepcc:
+cspecialr ctp, mepcc
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+.option capmode
+.global inspect_mem_cap
+inspect_mem_cap:
+#clc ctp, 0(ca0)
+auipcc    ct0, 0
+csetaddr  ct0, ct0, a0
+clc       ctp, 0(ct0)
+cgettag   t0, ctp
+cgetbase t0, ctp
+cgetlen  t0, ctp
+cgetoffset  t0, ctp
+cgetaddr  t0, ctp
+cgetperm  t0, ctp
+cgetflags t0, ctp
+cret
+
+
+
 .option capmode

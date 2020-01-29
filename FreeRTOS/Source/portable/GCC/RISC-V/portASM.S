@@ -133,6 +133,7 @@ freertos_risc_v_trap_handler:
 	cspecialrw        cnull, mscratchc, csp
 	clgc              csp, pxCurrentTCB            /* &pxCurrentTCB */
 	clc               csp, 0(csp)                  /* pxCurrentTCB */
+	beq               sp, zero, .Lbreak_on_exception /* check for trap before before scheduler starts (e.g. in main) */
 	clc               csp, 1 * portWORD_SIZE(csp)  /* pxCurrentTCB->pxSandboxContext */
 	beq               sp, zero, .Lunsandboxed_trap /* Lazily allocated */
 	clc               csp, 0(csp)
@@ -387,15 +388,6 @@ processed_source:
 .align 8
 .type xPortStartFirstTask, %function
 xPortStartFirstTask:
-
-#if( portasmHAS_MTIME != 0 )
-	/* If there is a clint then interrupts can branch directly to the FreeRTOS
-	trap handler.  Otherwise the interrupt controller will need to be configured
-	outside of this file. */
-1:auipcc            ct0, %pcrel_hi(freertos_risc_v_trap_handler)
-  cincoffset        ct0, ct0, %pcrel_lo(1b)
-  cspecialrw        cnull, mtcc, ct0 # Write MTCC.
-#endif /* portasmHAS_CLILNT */
 
   clgc              ct0, pxCurrentTCB # Load the cap to pxCurrentTCB.
   clc               ct0, 0(ct0) # Load pxCurrentTCB.

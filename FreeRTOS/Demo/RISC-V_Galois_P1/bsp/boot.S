@@ -187,13 +187,19 @@ init_stack:
     cmove           ct0, cnull
     cspecialrw      cnull, ddc, ct0 # Write DDC.
 
-    # Jump to main in purecap.
+    # Set up mtcc and jump to main in purecap mode.
     cspecialrw      ct0, pcc, cnull # Get PCC.
+
+    li              t1, 1
+    csetflags       ct0, ct0, t1     # set cap mode on
+
+    la              t1, freertos_risc_v_trap_handler
+    csetoffset      ct0, ct0, t1
+    cspecialrw      cnull, mtcc, ct0 # Write MTCC.
+
     la              t1, main
     csetoffset      ct0, ct0, t1
-    li              t1, 1
-    csetflags       ct0, ct0, t1
-    cjalr           cra, ct0
+    cjalr           cra, ct0         # jump to main
 
 /* Fills memory blocks */
 fill_block:

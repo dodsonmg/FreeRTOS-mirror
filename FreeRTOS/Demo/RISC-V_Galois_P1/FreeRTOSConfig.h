@@ -90,8 +90,8 @@
 #define configUSE_TICK_HOOK 1
 
 #if __riscv_xlen == 64
-#define configCPU_CLOCK_HZ ((uint32_t)(100000000))
-#define configPERIPH_CLOCK_HZ ((uint32_t)(100000000)) 
+#define configCPU_CLOCK_HZ ((uint32_t)(50000000))
+#define configPERIPH_CLOCK_HZ ((uint32_t)(50000000)) 
 #else
 #define configCPU_CLOCK_HZ ((uint32_t)(50000000))
 #define configPERIPH_CLOCK_HZ ((uint32_t)(50000000))

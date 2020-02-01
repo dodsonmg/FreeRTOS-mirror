@@ -94,10 +94,12 @@ static TaskHandle_t prvEMACDeferredInterruptHandlerTaskHandle = NULL;
  */
 typedef uint8_t EthernetFrame[NUM_PACKETS * XAE_MAX_JUMBO_FRAME_SIZE] __attribute__ ((aligned(BD_ALIGNMENT)));
 // 0x80000000
-static uint8_t * TxFrameBufRef = (uint8_t *)0x80000000;
+#define TX_FRAME_BUF_ADDR 0x80000000
+static uint8_t * TxFrameBufRef;
 //static EthernetFrame TxFrameBuf[TXBD_CNT] __attribute__ ((section(".uncached")));	/* Transmit buffers */
 // 0x80015fc0
-static uint8_t * RxFrameBufRef =(uint8_t *)0x80015fc0;
+#define RX_FRAME_BUF_ADDR 0x80015fc0
+static uint8_t * RxFrameBufRef;
 //static EthernetFrame RxFrameBuf[RXBD_CNT] __attribute__ ((section(".uncached")));	/* Receive buffers */
 
 /*
@@ -105,7 +107,8 @@ static uint8_t * RxFrameBufRef =(uint8_t *)0x80015fc0;
  */
 // 8002bf80
 //char RxBdSpace[RXBD_SPACE_BYTES] __attribute__ ((aligned(BD_ALIGNMENT))) __attribute__ ((section(".uncached")));
-char * RxBdSpaceRef = (char *) 0x8002bf80;
+#define RXBD_SPACE_ADDR 0x8002bf80
+char * RxBdSpaceRef;
 // 8002c200
 //char TxBdSpace[TXBD_SPACE_BYTES] __attribute__ ((aligned(BD_ALIGNMENT))) __attribute__ ((section(".uncached")));
 #define TXBD_SPACE_ADDR 0x8002c200
@@ -254,20 +257,9 @@ void prvEMACDeferredInterruptHandlerTask( void *pvParameters ) {
 			configASSERT( pxBufferDescriptor != NULL);
 
 			// Buf address
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wint-to-pointer-cast"
 			extern void *pvAlmightyDataCap;
 			size_t xRxBufferAddr = XAxiDma_BdGetBufAddr(BdPtr);
 			xRxBuffer = cheri_setoffset(pvAlmightyDataCap, xRxBufferAddr);
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-/* this cast is OK */
-			xRxBuffer = (uint8_t*)XAxiDma_BdGetBufAddr(BdPtr);
-#pragma GCC diagnostic pop
-#endif
 
 			/* pxBufferDescriptor->pucEthernetBuffer now points to an Ethernet
                 buffer large enough to hold the received data.  Copy the
@@ -365,11 +357,6 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 	/* Disable all RX interrupts before RxBD space setup */
 	XAxiDma_BdRingIntDisable(RxRingPtr, XAXIDMA_IRQ_ALL_MASK);
 
-#if defined(__clang__)
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-#endif
 	/*
 	 * Create the RxBD ring
 	 */
@@ -433,7 +420,7 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 			printf("Rx set buffer addr %x on BD %x failed %d\r\n",
 			//(unsigned int)&RxFrameBuf[Index],
 			(unsigned int)(RxFrameBufRef +(Index*sizeof(EthernetFrame))),
-			(unsigned int)(UINTPTR)BdCurPtr, Status);
+			(unsigned int)BdCurPtr, Status);
 
 			return XST_FAILURE;
 		}
@@ -443,7 +430,7 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 					RxRingPtr->MaxTransferLen);
 		if (Status != XST_SUCCESS) {
 			printf("Rx set length %d on BD %x failed %d\r\n",
-				(unsigned int)sizeof(EthernetFrame), (unsigned int)(UINTPTR)BdCurPtr, Status);
+				sizeof(EthernetFrame), (unsigned int)BdCurPtr, Status);
 			    //sizeof(RxFrameBuf[Index]), (UINTPTR)BdCurPtr, Status);
 
 			return XST_FAILURE;
@@ -456,10 +443,6 @@ int DmaSetup(XAxiDma *DmaInstancePtr, u16 AxiDmaDeviceId)
 		XAxiDma_BdSetId(BdCurPtr, Index);
 		BdCurPtr = (XAxiDma_Bd *)XAxiDma_BdRingNext(RxRingPtr, BdCurPtr);
 	}
-#if defined(__clang__)
-#else
-#pragma GCC diagnostic pop
-#endif
 
 	/*
 	 * Enqueue to HW

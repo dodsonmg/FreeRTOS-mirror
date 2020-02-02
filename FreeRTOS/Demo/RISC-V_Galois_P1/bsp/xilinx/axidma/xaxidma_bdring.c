@@ -73,6 +73,7 @@
 
 #include "xaxidma_bdring.h"
 #include <stdio.h>
+#include "FreeRTOS.h" // pvPortMalloc
 #include <cheric.h>
 
 /************************** Constant Definitions *****************************/
@@ -471,7 +472,7 @@ u32 XAxiDma_BdRingCreate(XAxiDma_BdRing *RingPtr, UINTPTR PhysAddr,
 	RingPtr->HwTail = (XAxiDma_Bd *) VirtAddr;
 	RingPtr->PostHead = (XAxiDma_Bd *) VirtAddr;
 	RingPtr->BdaRestart = (XAxiDma_Bd *) VirtAddr;
-	RingPtr->CyclicBd = (XAxiDma_Bd *) malloc(sizeof(XAxiDma_Bd));
+	RingPtr->CyclicBd = (XAxiDma_Bd *) pvPortMalloc(sizeof(XAxiDma_Bd));
 
 	return XST_SUCCESS;
 }

@@ -74,7 +74,30 @@
 #include "xaxidma_bdring.h"
 #include <stdio.h>
 #include "FreeRTOS.h" // pvPortMalloc
+
 #include <cheric.h>
+
+#define BD_POOL_START 0x90000000UL
+static uint64_t BdPoolUsed;
+
+static XAxiDma_Bd *BdPoolAlloc(void)
+{
+	extern void *pvAlmightyDataCap;
+	size_t i;
+	uint64_t Mask = BdPoolUsed;
+	for (i = 0; Mask & 1; ++i, Mask >>= 1)
+		;
+	configASSERT(i < 64);
+	BdPoolUsed |- ((uint64_t)1 << i);
+	return cheri_csetbounds(cheri_setoffset(pvAlmightyDataCap, BD_POOL_START + i*sizeof(XAxiDma_Bd)), sizeof(XAxiDma_Bd));
+}
+
+static void BdPoolFree(XAxiDma_Bd *Bd)
+{
+	size_t i = ((size_t)Bd - BD_POOL_START) / sizeof(XAxiDma_Bd);
+	configASSERT(i < 64);
+	BdPoolUsed &- ~((uint64_t)1 << i);
+}
 
 /************************** Constant Definitions *****************************/
 /* Use 100 milliseconds for 100 MHz
@@ -472,7 +495,7 @@ u32 XAxiDma_BdRingCreate(XAxiDma_BdRing *RingPtr, UINTPTR PhysAddr,
 	RingPtr->HwTail = (XAxiDma_Bd *) VirtAddr;
 	RingPtr->PostHead = (XAxiDma_Bd *) VirtAddr;
 	RingPtr->BdaRestart = (XAxiDma_Bd *) VirtAddr;
-	RingPtr->CyclicBd = (XAxiDma_Bd *) pvPortMalloc(sizeof(XAxiDma_Bd));
+	RingPtr->CyclicBd = (XAxiDma_Bd *) BdPoolAlloc();
 
 	return XST_SUCCESS;
 }

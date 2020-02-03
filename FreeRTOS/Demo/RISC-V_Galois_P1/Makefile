@@ -144,9 +144,15 @@ ASFLAGS  += -g $(ARCH) $(ABI) -Wa,-Ilegacy \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
-CFLAGS = $(WARNINGS) $(INCLUDES) -DAXI_DEBUG_PRINT=1 \
-	-g -O0 $(ARCH) $(ABI) -mno-relax
+CFLAGS = $(WARNINGS) $(INCLUDES) \
+	-g $(ARCH) $(ABI) -mno-relax
 
+ifeq ($(PROG),main_netboot)
+	CFLAGS += -O2
+else
+	CFLAGS += -DAXI_DEBUG_PRINT=1
+	CFLAGS += -O0
+endif
 
 FREERTOS_IP_SRC = \
 	$(FREERTOS_TCP_SOURCE_DIR)/FreeRTOS_IP.c \
@@ -307,7 +313,14 @@ else
 ifeq ($(PROG),main_testgen)
 	include $(INC_TESTGEN)/testgenEnvironment.mk
 else
+ifeq ($(PROG),main_netboot)
+	CFLAGS += -DmainDEMO_TYPE=0xCB002
+	PORT_ASM += demo/netboot.S
+	INCLUDES += $(FREERTOS_IP_INCLUDE)
+	FREERTOS_SRC += $(FREERTOS_IP_SRC)
+else
 $(error unknown demo: $(PROG))
+endif # main_netboot
 endif # main_testgen
 endif # main_uart_malware
 endif # main_rtc
@@ -323,9 +336,9 @@ endif # main_blinky
 
 ARFLAGS=crsv
 
-CFLAGS += -O0 -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+CFLAGS += -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
 # Disable warnings for C++ for now
-CPPFLAGS += -O0 -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+CPPFLAGS += -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
 
 #
 # Define all object files.

@@ -76,12 +76,42 @@
 # The CPU starts in hybrid, and the boot initialisation has to be in hybrid.
 .option nocapmode
 
+#if mainDEMO_TYPE == 0xCB002
+# Written to before .bss zeroing, so use .data
+.data
+.balign __riscv_clen / 8
+.globl pvAlmightyRWXCap
+.type pvAlmightyRWXCap, @object
+pvAlmightyRWXCap:
+	.chericap 0
+	.size pvAlmightyRWXCap, . - pvAlmightyRWXCap
+
+.globl xDtbAddr
+.type xDtbAddr, @object
+xDtbAddr:
+	.zero __riscv_xlen / 8
+	.size xDtbAddr, . - xDtbAddr
+#endif
+
 /* Startup code */
+.text
 .globl boot
 .type boot, @function
 boot:
     li t6, 0x1800
     csrw mstatus, t6
+
+#if mainDEMO_TYPE == 0xCB002
+    cspecialr       ct0, ddc
+    la              t6, pvAlmightyRWXCap
+    sc              ct0, 0(t6)
+#if __riscv_xlen == 64
+    sd              a1, xDtbAddr, t6
+#else
+    sw              a1, xDtbAddr, t6
+#endif
+#endif
+
     # W^X for PCC and DDC
     cspecialrw      ct0, ddc, cnull
     li              t1, (1<<1)
@@ -172,6 +202,8 @@ init_stack:
     sc              ct0, 0(t1)
 
     cspecialrw      ct0, pcc, cnull # Get PCC.
+    li              t1, 1
+    csetflags       ct0, ct0, t1
     la              t1, pvAlmightyCodeCap
     sc              ct0, 0(t1)
 
@@ -179,8 +211,6 @@ init_stack:
     # ct0 is still PCC
     la              t1, _start_purecap
     csetoffset      ct0, ct0, t1
-    li              t1, 1
-    csetflags       ct0, ct0, t1
     cjalr           cra, ct0
 
     # From now on, the DDC is always null.

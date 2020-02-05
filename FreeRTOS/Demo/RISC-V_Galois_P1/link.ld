@@ -73,7 +73,6 @@
 OUTPUT_ARCH( "riscv" )
 
 _STACK_SIZE = 8K;
-_HEAP_SIZE = 256K;
 
 /*****************************************************************************
  * Define memory layout
@@ -135,29 +134,6 @@ SECTIONS {
 	   __data_end = .;
 	} > dmem
 
-
-   /* Generate Stack and Heap definitions
-    * Stack is used by the ISR and the main() for initialization
-    * Stack grows downwards
-    */
-   .stack : {
-       _stack_end = .;
-       . += _STACK_SIZE;
-       . = ALIGN(16);
-       _stack = .;
-       __stack = _stack;
-       __freertos_irq_stack_top = .;
-    } > dmem
-
-   /* Heap grows upwards */
-    .heap : {
-       . = ALIGN(8);
-       _heap = .;
-       _heap_start = .;
-       . += _HEAP_SIZE;
-       _heap_end = .;
-    } > dmem 
-
     __cap_relocs : {
        . = ALIGN(8);
     } > dmem
@@ -165,8 +141,9 @@ SECTIONS {
     .captable : {
        . = ALIGN(8);
     } > dmem
-    
+
 	.sbss : {
+       . = ALIGN(16);
 	   __sbss_start = .;
 	   *(.sbss)
 	   *(.sbss.*)
@@ -175,15 +152,29 @@ SECTIONS {
 	} > dmem
 
     .bss : {
-       . = ALIGN(8);
+       . = ALIGN(16);
        __bss_start = .;
        *(.bss)
        *(.bss.*)
        *(.gnu.linkonce.b.*)
        *(COMMON)
-       . = ALIGN(8);
+       . = ALIGN(16);
        __bss_end = .;
     } > dmem
    
+   /* Generate Stack and Heap definitions
+    * Stack is used by the ISR and the main() for initialization
+    * Stack grows downwards
+    */
+   .stack (NOLOAD) : {
+       . = ALIGN(16);
+       _stack_end = .;
+       . += _STACK_SIZE;
+       . = ALIGN(16);
+       _stack = .;
+       __stack = _stack;
+       __freertos_irq_stack_top = .;
+    } > dmem
+
     _end = .;
 }

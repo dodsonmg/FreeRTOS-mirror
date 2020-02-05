@@ -37,7 +37,7 @@ typedef XCONCAT3(Elf, __riscv_xlen, _Phdr) Elf_Phdr;
 
 #define ELFCLASSXLEN XCONCAT(ELFCLASS, __riscv_xlen)
 
-#define STAGING_ADDR 0xF0000000UL
+#define STAGING_ADDR 0xE0000000UL
 
 #define TFTP_OP_RRQ   1
 #define TFTP_OP_WRQ   2

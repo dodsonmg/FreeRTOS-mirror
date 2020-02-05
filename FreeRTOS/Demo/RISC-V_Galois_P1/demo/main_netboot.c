@@ -145,7 +145,7 @@ void main_netboot(void)
 	printf("\r\n\r\n");
 	printf("CheriBoot RV" XSTR(__riscv_xlen) "\r\n");
 	printf("\r\n");
-	printf("   _____ _               _ ____              _\r\n");
+	printf("   _____ _               \\ ____              _\r\n");
 	printf("  / ____| |             (_)  _ \\            | |\r\n");
 	printf(" | |    | |__   ___ _ __ _| |_) | ___   ___ | |_\r\n");
 	printf(" | |    | '_ \\ / _ \\ '__| |  _ < / _ \\ / _ \\| __|\r\n");
@@ -636,6 +636,7 @@ static int prvTftpAck(struct tftp_client_state *state)
 			state->winbuf += state->lastsize;
 		else
 			state->winbuf += state->blksize;
+		state->retries = 0;
 	}
 	else if (state->retries == TFTP_MAX_RETRIES)
 	{
@@ -688,6 +689,12 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		printf("Failed to create socket\r\n");
 		return 1;
 	}
+
+	BaseType_t timeout = pdMS_TO_TICKS(1000);
+	FreeRTOS_setsockopt(state.sock, 0, FREERTOS_SO_RCVTIMEO, (void *)&timeout,
+	                    sizeof(BaseType_t));
+	FreeRTOS_setsockopt(state.sock, 0, FREERTOS_SO_SNDTIMEO, (void *)&timeout,
+	                    sizeof(BaseType_t));
 
 	if (prvTftpRrq(&state, name))
 		return 1;

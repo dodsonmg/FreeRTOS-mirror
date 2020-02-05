@@ -74,6 +74,7 @@
 #include "xaxidma_bdring.h"
 #include <stdio.h>
 #include "FreeRTOS.h" // pvPortMalloc
+#include "task.h"
 
 #include <cheric.h>
 

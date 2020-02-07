@@ -1,10 +1,16 @@
 # For debugging
 $(info $$PROG is [${PROG}])
 
+
 CCPATH 		?=
 TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
 
-XARCH?=32
+ifdef XARCH
+XLEN=$(XARCH)
+else
+XLEN?=32
+endif
+
 USE_CLANG?=yes
 
 ifeq ($(XARCH),64)

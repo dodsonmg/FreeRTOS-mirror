@@ -722,15 +722,15 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			{
 				size_t scaledbytes = (size_t)(state.winbuf - buf);
 				const char *units = "B";
-				if (scaledbytes > 1024)
-				{
-					scaledbytes >>= 10;
-					units = "KiB";
-				}
-				else if (scaledbytes > 1024*1024)
+				if (scaledbytes > 1024*1024)
 				{
 					scaledbytes >>= 20;
 					units = "MiB";
+				}
+				else if (scaledbytes > 1024)
+				{
+					scaledbytes >>= 10;
+					units = "KiB";
 				}
 
 				printf("Received %lu %s so far in %ds\r\n",
@@ -979,15 +979,15 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 					uint32_t tcur = port_get_current_mtime();
 					size_t scaledbytes = *size;
 					const char *units = "B";
-					if (scaledbytes > 1024)
-					{
-						scaledbytes >>= 10;
-						units = "KiB";
-					}
-					else if (scaledbytes > 1024*1024)
+					if (scaledbytes > 1024*1024)
 					{
 						scaledbytes >>= 20;
 						units = "MiB";
+					}
+					else if (scaledbytes > 1024)
+					{
+						scaledbytes >>= 10;
+						units = "KiB";
 					}
 
 					printf("Finished receiving %lu %s in %ds\r\n",

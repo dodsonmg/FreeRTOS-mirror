@@ -18,6 +18,8 @@
 /* Application includes */
 #include "uart.h"
 
+BaseType_t xNetworkInterfaceDestroy(void);
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #define STR(x) #x
@@ -203,6 +205,9 @@ static void prvShellCommandBoot(int argc, char **argv)
 		bufs[i - 2] = staging;
 		staging += size;
 	}
+
+	printf("Taking down network interface\r\n");
+	xNetworkInterfaceDestroy();
 
 	printf("Booting\r\n");
 	prvLoadAndBoot(argc - 2, argv + 2, bufs);

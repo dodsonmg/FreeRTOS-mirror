@@ -312,6 +312,22 @@ is_exception:
 	j                 .Lstashed_stack_and_mepcc
 
 .Lbreak_on_exception:
+#if mainDEMO_TYPE == 12
+	clgc              ct0, pvAlmightyDataCap
+	clc               ct0, 0(ct0)
+	li                t1, 0x62300000
+	csetoffset        ct0, ct0, t1
+	clgc              ct1, testgenAbortString
+1:	clbu              t2, 0(ct1)
+	beqz              t2, 3f
+2:	clw               t3, 0x14(ct0) /* LSR */
+	andi              t3, t3, 0x40 /* LSR.EMPTY */
+	beqz              t3, 2b
+	csw               t2, 0(ct0) /* THR */
+	cincoffset        ct1, ct1, 1
+	j                 1b
+3:
+#endif
 	ebreak
 	j               .Lbreak_on_exception
 
@@ -804,3 +820,11 @@ xPortSandboxTrapReturn:
 	cret
 .size xPortSandboxTrapReturn, . - xPortSandboxTrapReturn
 /*-----------------------------------------------------------*/
+
+#if mainDEMO_TYPE == 12
+.section .rodata.str1.1, "aMS", @progbits, 1
+.type testgenAbortString, @object
+testgenAbortString:
+	.asciz "<ABORT>"
+.size testgenAbortString, . - testgenAbortString
+#endif

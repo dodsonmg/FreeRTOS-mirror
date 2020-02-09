@@ -317,7 +317,7 @@ is_exception:
 	clc               ct0, 0(ct0)
 	li                t1, 0x62300000
 	csetoffset        ct0, ct0, t1
-	clgc              ct1, testgenAbortString
+	clgc              ct1, testgenCheckGdbString
 1:	clbu              t2, 0(ct1)
 	beqz              t2, 3f
 2:	clw               t3, 0x14(ct0) /* LSR */
@@ -823,8 +823,8 @@ xPortSandboxTrapReturn:
 
 #if mainDEMO_TYPE == 12
 .section .rodata.str1.1, "aMS", @progbits, 1
-.type testgenAbortString, @object
-testgenAbortString:
-	.asciz "<ABORT>"
-.size testgenAbortString, . - testgenAbortString
+.type testgenCheckGdbString, @object
+testgenCheckGdbString:
+	.asciz "<CHECK-GDB>\n"
+.size testgenCheckGdbString, . - testgenCheckGdbString
 #endif

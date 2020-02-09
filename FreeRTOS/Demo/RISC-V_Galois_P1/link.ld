@@ -81,7 +81,8 @@ _DMEM_LENGTH = DEFINED(_DMEM_LENGTH) ? _DMEM_LENGTH : 0x00800000;
 MEMORY {
    cmem : ORIGIN = 0x80000000, LENGTH = 0x00800000
 	imem : ORIGIN = 0xc0000000, LENGTH = 0x00080000
-	dmem : ORIGIN = 0xc0080000, LENGTH = _DMEM_LENGTH
+	/* XXX: LLD doesn't seem to see the definition above */
+	dmem : ORIGIN = 0xc0080000, LENGTH = (DEFINED(_DMEM_LENGTH) ? _DMEM_LENGTH : 0x00800000)
 }
 
 /* Specify the default entry point to the program */

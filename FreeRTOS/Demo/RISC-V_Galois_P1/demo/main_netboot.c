@@ -920,7 +920,8 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			uint16_t block = FreeRTOS_ntohs(upacket.data.block);
 			uint16_t winoff = block - state.winstart;
 
-			if (winoff == 0 && !state.winbuf)
+			if ((winoff < state.winsize || (winoff == 0 && !state.winsize)) &&
+			    !state.winbuf)
 			{
 				state.winbuf = buf;
 				if (!state.winsize)
@@ -966,6 +967,10 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				state.lastblock = block;
 				state.lastsize = blksize;
 			}
+
+			/* If this is the final packet, truncate this window. */
+			if (state.lastsize < state.blksize)
+				state.winsize = winoff + 1;
 
 			state.winbits |= 1 << winoff;
 			/* Check if we've seen the whole of the window */

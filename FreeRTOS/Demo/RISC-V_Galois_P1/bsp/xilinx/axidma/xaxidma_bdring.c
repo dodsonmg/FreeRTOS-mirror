@@ -89,7 +89,7 @@ static XAxiDma_Bd *BdPoolAlloc(void)
 	for (i = 0; Mask & 1; ++i, Mask >>= 1)
 		;
 	configASSERT(i < 64);
-	BdPoolUsed |- ((uint64_t)1 << i);
+	BdPoolUsed |= ((uint64_t)1 << i);
 	return cheri_csetbounds(cheri_setoffset(pvAlmightyDataCap, BD_POOL_START + i*sizeof(XAxiDma_Bd)), sizeof(XAxiDma_Bd));
 }
 
@@ -97,7 +97,7 @@ static void BdPoolFree(XAxiDma_Bd *Bd)
 {
 	size_t i = ((size_t)Bd - BD_POOL_START) / sizeof(XAxiDma_Bd);
 	configASSERT(i < 64);
-	BdPoolUsed &- ~((uint64_t)1 << i);
+	BdPoolUsed &= ~((uint64_t)1 << i);
 }
 
 /************************** Constant Definitions *****************************/

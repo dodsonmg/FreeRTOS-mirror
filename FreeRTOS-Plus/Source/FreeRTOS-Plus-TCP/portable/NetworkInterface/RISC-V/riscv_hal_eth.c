@@ -114,7 +114,7 @@ typedef uint8_t EthernetFrame[NUM_PACKETS * XAE_MAX_JUMBO_FRAME_SIZE] __attribut
 static uint8_t * TxFrameBufRef;
 //static EthernetFrame TxFrameBuf[TXBD_CNT] __attribute__ ((section(".uncached")));	/* Transmit buffers */
 // 0x80015fc0
-#define RX_FRAME_BUF_ADDR 0x80015fc0
+#define RX_FRAME_BUF_ADDR (TX_FRAME_BUF_ADDR + TXBD_CNT * sizeof(EthernetFrame))
 static uint8_t * RxFrameBufRef;
 //static EthernetFrame RxFrameBuf[RXBD_CNT] __attribute__ ((section(".uncached")));	/* Receive buffers */
 
@@ -123,11 +123,11 @@ static uint8_t * RxFrameBufRef;
  */
 // 8002bf80
 //char RxBdSpace[RXBD_SPACE_BYTES] __attribute__ ((aligned(BD_ALIGNMENT))) __attribute__ ((section(".uncached")));
-#define RXBD_SPACE_ADDR 0x8002bf80
+#define RXBD_SPACE_ADDR (RX_FRAME_BUF_ADDR + RXBD_CNT * sizeof(EthernetFrame))
 char * RxBdSpaceRef;
 // 8002c200
 //char TxBdSpace[TXBD_SPACE_BYTES] __attribute__ ((aligned(BD_ALIGNMENT))) __attribute__ ((section(".uncached")));
-#define TXBD_SPACE_ADDR 0x8002c200
+#define TXBD_SPACE_ADDR (RXBD_SPACE_ADDR + RXBD_SPACE_BYTES)
 char * TxBdSpaceRef;
 
 static void* DeriveDmaCap(size_t Addr, size_t Len)

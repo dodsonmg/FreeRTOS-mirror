@@ -60,6 +60,7 @@ struct tftp_client_state
 	struct freertos_sockaddr dstaddr;
 	socklen_t dstaddrlen;
 	char *winbuf;
+	void *recvpacket;
 	uint16_t winprev;
 	uint16_t winstart;
 	uint16_t winsize;
@@ -567,6 +568,12 @@ static void prvLoadAndBoot(int n, char **names, char **bufs)
 
 static void prvTftpTerminate(struct tftp_client_state *state, uint16_t code, char *message)
 {
+	if (state->recvpacket)
+	{
+		FreeRTOS_ReleaseUDPPayloadBuffer(state->recvpacket);
+		state->recvpacket = NULL;
+	}
+
 	size_t mlen = strlen(message);
 	size_t plen = sizeof(struct tftp_error) + mlen + 1;
 	struct tftp_error *packet = pvPortMalloc(plen);
@@ -715,11 +722,12 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			struct tftp_data data;
 			struct tftp_error error;
 			struct tftp_oack oack;
-		} upacket;
+		} *upacket;
 		struct freertos_sockaddr srcaddr;
 		socklen_t srcaddrlen = sizeof(srcaddr);
-		long fromlen = FreeRTOS_recvfrom(state.sock, &upacket, sizeof(upacket)-1,
-		                                 0, &srcaddr, &srcaddrlen);
+		long fromlen = FreeRTOS_recvfrom(state.sock, &upacket, 0,
+		                                 FREERTOS_ZERO_COPY, &srcaddr,
+		                                 &srcaddrlen);
 		if (state.winbuf)
 		{
 			uint32_t tcur = port_get_current_mtime();
@@ -773,7 +781,10 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 
 		/* Ignore stray packets from another host */
 		if (srcaddr.sin_addr != state.dstaddr.sin_addr)
+		{
+			FreeRTOS_ReleaseUDPPayloadBuffer(upacket);
 			continue;
+		}
 
 		/*
 		 * Ignore stray packets from another port, except the first time, since
@@ -786,10 +797,13 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		}
 		else if (srcaddr.sin_port != state.dstaddr.sin_port)
 		{
+			FreeRTOS_ReleaseUDPPayloadBuffer(upacket);
 			continue;
 		}
 
-		if (fromlen < sizeof(upacket.header))
+		state.recvpacket = upacket;
+
+		if (fromlen < sizeof(upacket->header))
 		{
 			printf("Failed to receive: packet missing header%ld\r\n", fromlen);
 			prvTftpTerminate(&state, 0, "Packet missing header");
@@ -797,10 +811,10 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		}
 
 		buf[fromlen] = '\0';
-		switch (FreeRTOS_ntohs(upacket.header.op))
+		switch (FreeRTOS_ntohs(upacket->header.op))
 		{
 		case TFTP_OP_ERROR:
-			if (fromlen < sizeof(upacket.error))
+			if (fromlen < sizeof(upacket->error))
 			{
 				printf("Failed to receive: error packet too short (%ld)\r\n",
 				       fromlen);
@@ -820,7 +834,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				break;
 			}
 			printf("Failed to receive: server code %d: %s\r\n",
-			       FreeRTOS_ntohs(upacket.error.code), upacket.error.message);
+			       FreeRTOS_ntohs(upacket->error.code), upacket->error.message);
 			return 1;
 		default:
 			/* Ignore unknown packets for forwards compatibility */
@@ -845,11 +859,11 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			uint16_t winsize = 1;
 			uint16_t blksize = 512;
 			/* Parse options from server */
-			char *opt = upacket.oack.data;
-			while (opt < upacket.buf + fromlen)
+			char *opt = upacket->oack.data;
+			while (opt < upacket->buf + fromlen)
 			{
 				char *val = opt + strlen(opt) + 1;
-				if (val >= upacket.buf + fromlen)
+				if (val >= upacket->buf + fromlen)
 				{
 					printf("Failed to receive: OACK missing value for option %s\r\n",
 					       opt);
@@ -909,7 +923,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		}
 		case TFTP_OP_DATA:
 		{
-			if (fromlen < sizeof(upacket.data))
+			if (fromlen < sizeof(upacket->data))
 			{
 				printf("Failed to receive: data packet too short (%ld)\r\n",
 				       fromlen);
@@ -917,7 +931,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				return 1;
 			}
 
-			uint16_t block = FreeRTOS_ntohs(upacket.data.block);
+			uint16_t block = FreeRTOS_ntohs(upacket->data.block);
 			uint16_t winoff = block - state.winstart;
 
 			if ((winoff < state.winsize || (winoff == 0 && !state.winsize)) &&
@@ -947,9 +961,9 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			}
 			/* Otherwise, ignore packets outside this window */
 			if (winoff >= state.winsize)
-				continue;
+				break;
 
-			uint16_t blksize = fromlen - sizeof(upacket.data);
+			uint16_t blksize = fromlen - sizeof(upacket->data);
 			if (blksize > state.blksize)
 			{
 				printf("Failed to receive: data packet exceeds blksize (%u)\r\n",
@@ -959,7 +973,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			}
 
 			memcpy(state.winbuf + winoff * state.blksize,
-			       upacket.data.data, blksize);
+			       upacket->data.data, blksize);
 
 			uint16_t lastoff = state.lastblock - state.winstart;
 			if (winoff > lastoff || lastoff >= state.winsize)
@@ -983,6 +997,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				/* Check if we're done */
 				if (state.lastsize < state.blksize)
 				{
+					FreeRTOS_ReleaseUDPPayloadBuffer(upacket);
 					FreeRTOS_closesocket(state.sock);
 					*size = state.winbuf - buf;
 
@@ -1008,5 +1023,8 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			}
 		}
 		}
+
+		FreeRTOS_ReleaseUDPPayloadBuffer(state.recvpacket);
+		state.recvpacket = NULL;
 	}
 }

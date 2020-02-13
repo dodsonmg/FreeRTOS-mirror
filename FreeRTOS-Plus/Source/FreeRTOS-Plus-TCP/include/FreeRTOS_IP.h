@@ -80,7 +80,11 @@ buffer will have the following contents:
 #if( ipconfigBUFFER_PADDING != 0 )
     #define ipBUFFER_PADDING    ipconfigBUFFER_PADDING
 #else
+    #if __SIZEOF_POINTER__ > 8
+    #define ipBUFFER_PADDING    ( __SIZEOF_POINTER__ + ipconfigPACKET_FILLER_SIZE )
+    #else
     #define ipBUFFER_PADDING    ( 8u + ipconfigPACKET_FILLER_SIZE )
+    #endif
 #endif
 
 /* The structure used to store buffers and pass them around the network stack.

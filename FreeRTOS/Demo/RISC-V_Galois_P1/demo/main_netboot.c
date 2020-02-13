@@ -69,7 +69,8 @@ struct tftp_client_state
 	uint16_t lastblock;
 	uint16_t lastsize;
 	uint8_t retries;
-	uint8_t havetid;
+	uint8_t havetid : 1;
+	uint8_t pastrrq : 1;
 };
 
 struct tftp_header
@@ -708,6 +709,8 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 	FreeRTOS_setsockopt(state.sock, 0, FREERTOS_SO_SNDTIMEO, (void *)&timeout,
 	                    sizeof(BaseType_t));
 
+	/* First DATA is block 1. */
+	state.winstart = 1;
 	if (prvTftpRrq(&state, name))
 		return 1;
 
@@ -761,11 +764,8 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				prvTftpTerminate(&state, 0, "Error in FreeRTOS_recvfrom");
 				return 1;
 			}
-			/*
-			 * Timed out. winbuf is null until we see the first DATA, but if we
-			 * get an OACK then we will have winstart == 1.
-			 */
-			if (!state.winbuf && !state.winstart)
+			/* Timed out */
+			if (!state.pastrrq)
 			{
 				/* Still trying to initiate a request */
 				if (prvTftpRrq(&state, name))
@@ -828,6 +828,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				state.blksize = 512;
 				state.retries = 0;
 				state.havetid = 0;
+				state.pastrrq = 0;
 				state.dstaddr.sin_port = FreeRTOS_htons(69);
 				if (prvTftpRrq(&state, name))
 					return 1;
@@ -917,6 +918,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			if (prvTftpAck(&state))
 				return 1;
 
+			state.pastrrq = 1;
 			state.winsize = winsize;
 			state.blksize = blksize;
 			break;
@@ -938,6 +940,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 			    !state.winbuf)
 			{
 				state.winbuf = buf;
+				state.pastrrq = 1;
 				if (!state.winsize)
 				{
 					/* Server ignored our options and we got no OACK */

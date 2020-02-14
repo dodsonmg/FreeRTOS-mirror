@@ -838,9 +838,9 @@ static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 StackType_t *pxTopOfStack;
 UBaseType_t x;
 
-	#if (portHAS_SANDBOX == 1)
+	#if ( portHAS_SANDBOX == 1 )
 		pxNewTCB->pxSandboxContext = NULL;
-	#endif
+	#endif /* portHAS_SANDBOX == 1 */
 
 	#if( portUSING_MPU_WRAPPERS == 1 )
 		/* Should the task be created in privileged mode? */

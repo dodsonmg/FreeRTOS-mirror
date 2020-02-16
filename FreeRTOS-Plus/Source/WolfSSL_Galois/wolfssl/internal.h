@@ -136,6 +136,7 @@
     #endif
 #endif
 
+
 #ifdef HAVE_LIBZ
     #include "zlib.h"
 #endif
@@ -2140,6 +2141,7 @@ typedef struct HS_Hashes {
 #endif
 } HS_Hashes;
 
+
 /* wolfSSL ssl type */
 struct WOLFSSL {
     WOLFSSL_CTX*    ctx;
@@ -2164,8 +2166,8 @@ struct WOLFSSL {
     WOLFSSL_SESSION session;
     WOLFSSL_ALERT_HISTORY alert_history;
     int             error;
-    fd_t            rfd;                /* read  file descriptor */
-    fd_t            wfd;                /* write file descriptor */
+    int             rfd;                /* read  file descriptor */
+    int             wfd;                /* write file descriptor */
     int             rflags;             /* user read  flags */
     int             wflags;             /* user write flags */
     word32          timeout;            /* session timeout */

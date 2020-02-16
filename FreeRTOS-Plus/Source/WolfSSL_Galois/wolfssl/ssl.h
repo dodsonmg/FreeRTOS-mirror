@@ -185,14 +185,6 @@ enum AlertLevel {
     alert_fatal = 2
 };
 
-#ifdef testgenOnFreeRTOS
-#include "FreeRTOS_IP.h"
-#include "FreeRTOS_Sockets.h"
-
-typedef Socket_t fd_t;
-#else
-typedef int fd_t;
-#endif
 
 WOLFSSL_API WOLFSSL_METHOD *wolfSSLv3_server_method(void);
 WOLFSSL_API WOLFSSL_METHOD *wolfSSLv3_client_method(void);
@@ -250,10 +242,10 @@ WOLFSSL_API int wolfSSL_use_RSAPrivateKey_file(WOLFSSL*, const char*, int);
 
 WOLFSSL_API WOLFSSL_CTX* wolfSSL_CTX_new(WOLFSSL_METHOD*);
 WOLFSSL_API WOLFSSL* wolfSSL_new(WOLFSSL_CTX*);
-WOLFSSL_API int  wolfSSL_set_fd (WOLFSSL*, fd_t);
+WOLFSSL_API int  wolfSSL_set_fd (WOLFSSL*, int);
 WOLFSSL_API char* wolfSSL_get_cipher_list(int priority);
 WOLFSSL_API int  wolfSSL_get_ciphers(char*, int);
-WOLFSSL_API fd_t wolfSSL_get_fd(const WOLFSSL*);
+WOLFSSL_API int  wolfSSL_get_fd(const WOLFSSL*);
 WOLFSSL_API void wolfSSL_set_using_nonblock(WOLFSSL*, int);
 WOLFSSL_API int  wolfSSL_get_using_nonblock(WOLFSSL*);
 WOLFSSL_API int  wolfSSL_connect(WOLFSSL*);     /* please see note at top of README
@@ -351,8 +343,8 @@ WOLFSSL_API const char* wolfSSL_ERR_reason_error_string(unsigned long);
 
 WOLFSSL_API int  wolfSSL_set_ex_data(WOLFSSL*, int, void*);
 WOLFSSL_API int  wolfSSL_get_shutdown(const WOLFSSL*);
-WOLFSSL_API int  wolfSSL_set_rfd(WOLFSSL*, fd_t);
-WOLFSSL_API int  wolfSSL_set_wfd(WOLFSSL*, fd_t);
+WOLFSSL_API int  wolfSSL_set_rfd(WOLFSSL*, int);
+WOLFSSL_API int  wolfSSL_set_wfd(WOLFSSL*, int);
 WOLFSSL_API void wolfSSL_set_shutdown(WOLFSSL*, int);
 WOLFSSL_API int  wolfSSL_set_session_id_context(WOLFSSL*, const unsigned char*,
                                            unsigned int);

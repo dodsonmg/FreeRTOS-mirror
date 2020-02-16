@@ -82,10 +82,8 @@ _DMEM_LENGTH = 0x00800000;
  * Define memory layout
  ****************************************************************************/
 MEMORY {
-   cmem : ORIGIN = 0x80000000, LENGTH = 0x00800000
-	imem : ORIGIN = 0xc0000000, LENGTH = 0x00080000
-	/* XXX: LLD doesn't seem to see the definition above */
-	dmem : ORIGIN = 0xc0080000, LENGTH = 0x00800000
+	umem : ORIGIN = 0x80000000, LENGTH = 0x40000000
+	cmem : ORIGIN = 0xc0000000, LENGTH = 0x40000000
 }
 
 /* Specify the default entry point to the program */
@@ -100,21 +98,21 @@ SECTIONS {
       . = ALIGN(64);
       *(.uncached);
 		*(.uncached.*);
-   } > cmem
+   } > umem
 	.text : {
       . = ALIGN(8);
 	    *boot.o(.text);
 		*(.text);
 		*(.text.*);
-	} > imem
+	} > cmem
 
 	.init : {
 	   KEEP (*(.init))
-	} > imem
+	} > cmem
 
     .fini : {
        KEEP (*(.fini))
-    } > imem
+    } > cmem
 
     .rodata : {
        __rodata_start = .;
@@ -122,13 +120,13 @@ SECTIONS {
        *(.rodata.*)
        *(.gnu.linkonce.r.*)
        __rodata_end = .;
-	} > dmem
+	} > cmem
 
     .sdata : {
         _gp = . + 0x800;
         *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*)
         *(.sdata .sdata.* .gnu.linkonce.s.*)
-     }	> dmem
+     }	> cmem
 
 	.data : {
 	   . = ALIGN(8);
@@ -137,15 +135,15 @@ SECTIONS {
 	   *(.data.*)
 	   *(.gnu.linkonce.d.*)
 	   __data_end = .;
-	} > dmem
+	} > cmem
 
     __cap_relocs : {
        . = ALIGN(8);
-    } > dmem
+    } > cmem
 
     .captable : {
        . = ALIGN(8);
-    } > dmem
+    } > cmem
 
 	.sbss : {
        . = ALIGN(16);
@@ -154,7 +152,7 @@ SECTIONS {
 	   *(.sbss.*)
 	   *(.gnu.linkonce.sb.*)
 	   __sbss_end = .;
-	} > dmem
+	} > cmem
 
     .bss : {
        . = ALIGN(16);
@@ -165,7 +163,7 @@ SECTIONS {
        *(COMMON)
        . = ALIGN(16);
        __bss_end = .;
-    } > dmem
+    } > cmem
    
    /* Generate Stack and Heap definitions
     * Stack is used by the ISR and the main() for initialization
@@ -179,7 +177,7 @@ SECTIONS {
        _stack = .;
        __stack = _stack;
        __freertos_irq_stack_top = .;
-    } > dmem
+    } > cmem
 
     _end = .;
 }

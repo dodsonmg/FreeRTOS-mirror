@@ -388,22 +388,22 @@ $(info ARFLAGS=$(ARFLAGS))
 
 %.o: %.c
 	@echo "    CC $<"
-	@$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.cpp
 	@echo "    C++ $<"
-	@$(CPP) -c $(CPPFLAGS) -o $@ $<
+	$(CPP) -c $(CPPFLAGS) -o $@ $<
 
 %.o: %.S
 	@echo "    CC $<"
-	@$(CC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
+	$(CC) $(ASFLAGS) -c $(CFLAGS) -o $@ $<
 
 all: $(PROG).elf
 
 $(PROG).elf  : $(OBJS) Makefile 
 	@echo Linking....
-	@$(LD) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
-	@$(OBJDUMP) -S $(PROG).elf > $(PROG).asm	
+	$(LD) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
+	$(OBJDUMP) -S $(PROG).elf > $(PROG).asm	
 	@echo Completed $@
 
 clean :

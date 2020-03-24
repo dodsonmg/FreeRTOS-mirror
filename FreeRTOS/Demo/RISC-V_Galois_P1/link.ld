@@ -72,9 +72,9 @@
 
 OUTPUT_ARCH( "riscv" )
 
-_STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 4K;
-_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 256K;
-_DMEM_LENGTH = DEFINED(_DMEM_LENGTH) ? _DMEM_LENGTH : 0x00800000;
+_STACK_SIZE = 4K;
+_HEAP_SIZE = 256K;
+_DMEM_LENGTH = 0x00800000;
 
 /*****************************************************************************
  * Define memory layout
@@ -82,7 +82,7 @@ _DMEM_LENGTH = DEFINED(_DMEM_LENGTH) ? _DMEM_LENGTH : 0x00800000;
 MEMORY {
    cmem : ORIGIN = 0x80000000, LENGTH = 0x00800000
 	imem : ORIGIN = 0xc0000000, LENGTH = 0x00080000
-	dmem : ORIGIN = 0xc0080000, LENGTH = _DMEM_LENGTH
+	dmem : ORIGIN = 0xc0080000, LENGTH = 0x00800000
 }
 
 /* Specify the default entry point to the program */

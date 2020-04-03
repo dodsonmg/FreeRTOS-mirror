@@ -1,6 +1,8 @@
 # For debugging
 $(info $$PROG is [${PROG}])
 
+configCPU_CLOCK_HZ ?=
+configMTIME_HZ ?=
 
 CCPATH 		?=
 XARCH ?= 64
@@ -356,7 +358,22 @@ endif # main_blinky
 
 ARFLAGS=crsv
 
-CFLAGS += -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+ifeq ($(PROG),main_netboot)
+	OPT = -O2
+else
+	OPT = -O0
+endif
+
+CFLAGS += $(OPT) -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+
+# If configCPU_CLOCK_HZ is not empty, pass it as a definition
+ifneq ($(configCPU_CLOCK_HZ),)
+CFLAGS += -DconfigCPU_CLOCK_HZ=$(configCPU_CLOCK_HZ)
+endif
+# If configMTIME_HZ is not empty, pass it as a definition
+ifneq ($(configMTIME_HZ),)
+CFLAGS += -DconfigMTIME_HZ=$(configMTIME_HZ)
+endif
 # Disable warnings for C++ for now
 CPPFLAGS += -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
 

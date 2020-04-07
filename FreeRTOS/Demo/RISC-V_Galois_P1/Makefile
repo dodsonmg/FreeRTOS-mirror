@@ -2,6 +2,7 @@
 $(info $$PROG is [${PROG}])
 
 configCPU_CLOCK_HZ ?=
+configMTIME_HZ ?=
 
 CCPATH 		?=
 TARGET=$(CCPATH)riscv64-unknown-elf
@@ -360,6 +361,10 @@ CFLAGS += $(OPT) -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
 # If configCPU_CLOCK_HZ is not empty, pass it as a definition
 ifneq ($(configCPU_CLOCK_HZ),)
 CFLAGS += -DconfigCPU_CLOCK_HZ=$(configCPU_CLOCK_HZ)
+endif
+# If configMTIME_HZ is not empty, pass it as a definition
+ifneq ($(configMTIME_HZ),)
+CFLAGS += -DconfigMTIME_HZ=$(configMTIME_HZ)
 endif
 # Disable warnings for C++ for now
 CPPFLAGS += $(OPT) -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)

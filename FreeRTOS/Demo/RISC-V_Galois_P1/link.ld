@@ -72,9 +72,10 @@
 
 OUTPUT_ARCH( "riscv" )
 
-_STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 4K;
-_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 256K;
-_DMEM_LENGTH = DEFINED(_DMEM_LENGTH) ? _DMEM_LENGTH : 0x00800000;
+/* hardcoded values so LLD understands the definitions */
+_STACK_SIZE = 4K;
+_HEAP_SIZE = 256K;
+_DMEM_LENGTH = 0x00800000;
 
 /*****************************************************************************
  * Define memory layout

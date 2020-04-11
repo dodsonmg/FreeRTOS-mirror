@@ -22,19 +22,16 @@ endif
 # Decide which compiler to use
 ifeq ($(USE_CLANG),yes)
 	CC		= clang --target=$(CLANG_ARCH)
-	# CPP		= clang++ --target=$(CLANG_ARCH)
-	# TODO: clang has problems with system includes, use g++ for now
-	CPP		= $(TARGET)-g++
-	# LLVM doesn't support linking RISC-V files yet,
-	# so we have to use GCC linker to do so
-	LD		= $(TARGET)-gcc
+	CPP		= clang++
+	LD		= clang --target=$(CLANG_ARCH) -v
 	OBJCOPY	= llvm-objcopy
-	# LLVM doesn't uderstand debug symbols created by GCC linker
-	# using GCC objdump for the time being (instead of llvm-objdump)
-	OBJDUMP	= $(TARGET)-objdump
+	OBJDUMP	= llvm-objdump
 	AR		= llvm-ar
 	RANLIB	= llvm-ranlib
-	WERROR = #-Werror
+	COMPILER_FLAGS = -mno-relax --sysroot=$(SYSROOT_DIR)
+	LINKER_FLAGS = -mno-relax --sysroot=$(SYSROOT_DIR) -fuse-ld=lld
+	LIBS	 =  -lc -lclang_rt.builtins-riscv$(XLEN)
+	WERROR =
 else
 	CC		= $(TARGET)-gcc
 	CPP		= $(TARGET)-g++
@@ -43,10 +40,13 @@ else
 	OBJDUMP	= $(TARGET)-objdump
 	AR		= $(TARGET)-ar
 	RANLIB	= $(TARGET)-ranlib
+	COMPILER_FLAGS =
+	LINKER_FLAGS =
+	LIBS	 =  -lc -lgcc
 	WERROR = -Werror
 endif
 
-COMPILER_FLAGS = -mcmodel=medany
+COMPILER_FLAGS += -mcmodel=medany
 
 $(info CC=${CC})
 
@@ -381,8 +381,7 @@ PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ) $(CPP_OBJ)
 
-LDFLAGS	 += -T link.ld -nostartfiles -nostdlib $(ARCH) $(ABI)
-LIBS	 =  -lc -lgcc
+LDFLAGS	 += -T link.ld -nostartfiles -nostdlib $(ARCH) $(ABI) $(LINKER_FLAGS)
 
 $(info ASFLAGS=$(ASFLAGS))
 $(info LDLIBS=$(LDLIBS))

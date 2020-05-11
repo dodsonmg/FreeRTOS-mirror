@@ -174,7 +174,7 @@ definition is found. */
 #endif
 
 
-
+#ifdef __CHERI_PURE_CAPABILITY__
 #define portHAS_SANDBOX 1
 typedef struct {
   BaseType_t a0;
@@ -196,6 +196,7 @@ typedef struct {
 	uintcap_t ca6;
 	uintcap_t ca7;
 } xSANDBOX_ARGS;
+#endif
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,9 @@
  * Implementation of functions defined in portable.h for the RISC-V RV32 port.
  *----------------------------------------------------------*/
 
+#ifdef __CHERI_PURE_CAPABILITY__
 #include <cheric.h>
+#endif
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
@@ -69,20 +71,31 @@ stack that was used by main before the scheduler was started for use as the
 interrupt stack after the scheduler has started. */
 #ifdef configISR_STACK_SIZE_WORDS
 	static __attribute__ ((aligned(16))) StackType_t xISRStack[ configISR_STACK_SIZE_WORDS ] = { 0 };
+#ifdef __CHERI_PURE_CAPABILITY__
 	const StackType_t *xISRStackTop = &( xISRStack[ configISR_STACK_SIZE_WORDS & ~portBYTE_ALIGNMENT_MASK ] );
+#else
+	const StackType_t xISRStackTop = ( StackType_t ) &( xISRStack[ configISR_STACK_SIZE_WORDS & ~portBYTE_ALIGNMENT_MASK ] );
+#endif
 
 	/* Don't use 0xa5 as the stack fill bytes as that is used by the kernerl for
 	the task stacks, and so will legitimately appear in many positions within
 	the ISR stack. */
 	#define portISR_STACK_FILL_BYTE	0xee	
 #else
+#ifdef __CHERI_PURE_CAPABILITY__
 	const StackType_t *xISRStackTop;
+#else
+	extern const uint32_t __freertos_irq_stack_top[];
+	const StackType_t xISRStackTop = ( StackType_t ) __freertos_irq_stack_top;
+#endif
 #endif
 
+#ifdef __CHERI_PURE_CAPABILITY__
 void *pvAlmightyDataCap;
 void *pvAlmightyCodeCap;
 
 #define SANDBOX_RETURN_OTYPE 0
+#endif
 
 /*
  * Setup the timer to generate the tick interrupts.  The implementation in this
@@ -127,6 +140,7 @@ task stack, not the ISR stack). */
 	void vPortSetupTimerInterrupt( void )
 	{
 	uint32_t ulCurrentTimeHigh, ulCurrentTimeLow;
+#ifdef __CHERI_PURE_CAPABILITY__
 	volatile uint32_t * pulTimeHigh = cheri_setoffset(pvAlmightyDataCap, configMTIME_BASE_ADDRESS+4UL);
 	pulTimeHigh = cheri_csetbounds((void*)pulTimeHigh, sizeof(uint32_t));
 	volatile uint32_t * pulTimeLow = cheri_setoffset(pvAlmightyDataCap, configMTIME_BASE_ADDRESS);
@@ -136,7 +150,14 @@ task stack, not the ISR stack). */
 		__asm volatile( "csrr %0, mhartid" : "=r"( ulHartId ) );
 		pullMachineTimerCompareRegister = cheri_setoffset(pvAlmightyDataCap, ( ullMachineTimerCompareRegisterBase + ( ulHartId * sizeof( uint64_t ) )));
 		pullMachineTimerCompareRegister = cheri_csetbounds((void*)pullMachineTimerCompareRegister, sizeof(uint64_t));
+#else
+	volatile uint32_t * const pulTimeHigh = ( volatile uint32_t * const ) ( ( configMTIME_BASE_ADDRESS ) + 4UL ); /* 8-byte typer so high 32-bit word is 4 bytes up. */
+	volatile uint32_t * const pulTimeLow = ( volatile uint32_t * const ) ( configMTIME_BASE_ADDRESS );
+	volatile uint32_t ulHartId;
 
+		__asm volatile( "csrr %0, mhartid" : "=r"( ulHartId ) );
+		pullMachineTimerCompareRegister  = ( volatile uint64_t * ) ( ullMachineTimerCompareRegisterBase + ( ulHartId * sizeof( uint64_t ) ) );
+#endif
 		do
 		{
 			ulCurrentTimeHigh = *pulTimeHigh;
@@ -156,6 +177,7 @@ task stack, not the ISR stack). */
 #endif /* ( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIME_BASE_ADDRESS != 0 ) */
 /*-----------------------------------------------------------*/
 
+#ifdef __CHERI_PURE_CAPABILITY__
 void ( * pxPortSandboxReturnTrampoline ) ( void );
 void ( * pxPortSandboxReturnFunc ) ( BaseType_t xReturn );
 BaseType_t *pxPortSandboxReturnData;
@@ -177,6 +199,7 @@ void *pvReturnSealer;
 	pxPortSandboxReturnFunc = cheri_seal( xPortSandboxReturn, pvReturnSealer );
 	pxPortSandboxReturnData = cheri_seal( pvAlmightyDataCap, pvReturnSealer );
 }
+#endif
 
 BaseType_t xPortStartScheduler( void )
 {
@@ -223,7 +246,9 @@ extern void xPortStartFirstTask( void );
 	}
 	#endif /* ( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIMECMP_BASE_ADDRESS != 0 ) */
 
+#ifdef __CHERI_PURE_CAPABILITY__
 	vPortSandboxSetup();
+#endif
 
 	xPortStartFirstTask();
 

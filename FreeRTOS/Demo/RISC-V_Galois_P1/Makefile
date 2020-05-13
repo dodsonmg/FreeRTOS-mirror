@@ -3,7 +3,11 @@ $(info $$PROG is [${PROG}])
 
 
 CCPATH 		?=
+XARCH ?= 64
 TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
+
+CFLAGS  ?=
+LDFLAGS ?=
 
 ifdef XARCH
 XLEN=$(XARCH)
@@ -12,6 +16,9 @@ XLEN?=32
 endif
 
 USE_CLANG?=yes
+
+# Build assuming NIX packaging with sysroot and toolchain namings
+NIX_ENV ?=yes
 
 ifeq ($(XARCH),64)
 	ARCH 		= -march=rv64imacxcheri
@@ -24,8 +31,15 @@ endif
 
 # Decide which compiler to use
 ifeq ($(USE_CLANG),yes)
+ifeq ($(NIX_ENV),yes)
 	CC		= $(TARGET)-clang
 	CPP		= $(TARGET)-clang++
+else
+	CC		= clang -target $(TARGET)
+	CPP		= clang++ -target $(TARGET)
+	CFLAGS  += -mno-relax -mcmodel=medium --sysroot=$(SYSROOT)
+	LDFLAGS += --sysroot=$(SYSROOT)
+endif
 	OBJCOPY	= llvm-objcopy
 	OBJDUMP	= llvm-objdump
 	AR		= llvm-ar
@@ -150,7 +164,7 @@ ASFLAGS  += -g $(ARCH) $(ABI) -Wa,-Ilegacy \
 	-I$(FREERTOS_SOURCE_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions \
 	-DportasmHANDLE_INTERRUPT=external_interrupt_handler
 
-CFLAGS = $(WARNINGS) $(INCLUDES) \
+CFLAGS += $(WARNINGS) $(INCLUDES) \
 	-g $(ARCH) $(ABI) -mno-relax
 
 ifeq ($(PROG),main_netboot)
@@ -358,7 +372,7 @@ PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ) $(CPP_OBJ)
 
-LDFLAGS = -fuse-ld=lld -mno-relax
+LDFLAGS += -fuse-ld=lld -mno-relax
 LDFLAGS += -T link.ld -nostartfiles -nostdlib -L.
 LIBS	 =  -lc $(shell $(CC) -print-libgcc-file-name)
 
@@ -385,7 +399,8 @@ all: $(PROG).elf
 $(PROG).elf  : $(OBJS) Makefile
 	@echo Linking....
 	@$(LD) -o $@ $(LDFLAGS) $(OBJS) $(LIBS)
-	@$(OBJDUMP) -disassemble -h -t -p -r -source $(PROG).elf > $(PROG).dump
+	# The following command fails currently on llvm/dev
+	#@$(OBJDUMP) -disassemble -h -t -p -r -source $(PROG).elf > $(PROG).dump
 	@echo Completed $@
 
 clean :

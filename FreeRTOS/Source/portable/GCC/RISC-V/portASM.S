@@ -1079,4 +1079,4 @@ testgenCheckGdbString:
 	.asciz "<CHECK-GDB>\n"
 .size testgenCheckGdbString, . - testgenCheckGdbString
 #endif
-#endif __CHERI_PURE_CAPABILITY__
+#endif /* __CHERI_PURE_CAPABILITY__ */

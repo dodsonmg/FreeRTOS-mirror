@@ -79,9 +79,9 @@ extern void main_rtc(void);
 #undef configGENERATE_RUN_TIME_STATS
 #pragma message "Demo type 12: Testgen"
 extern void main_testgen(void);
-#elif mainDEMO_TYPE == 0xCB002
+#elif mainDEMO_TYPE == 0xB002
 #undef configGENERATE_RUN_TIME_STATS
-#pragma message "Demo type 0xCB002: Netboot"
+#pragma message "Demo type 0xB002: Netboot"
 extern void main_netboot(void);
 
 #else
@@ -200,7 +200,7 @@ int main(void)
 	{
 		main_testgen();
 	}
-#elif mainDEMO_TYPE == 0xCB002
+#elif mainDEMO_TYPE == 0xB002
 	{
 		main_netboot();
 	}

@@ -6,12 +6,13 @@
 
 // Note that there are no assertions or bounds checking on these
 // parameter values.
-static void volatile_memzero(uint8_t *base, unsigned int size);
+static void volatile_memzero32(uint32_t *base, unsigned int size);
 
-static void volatile_memzero(uint8_t *base, unsigned int size)
+static void volatile_memzero32(uint32_t *base, unsigned int size)
 {
-    volatile uint8_t *ptr;
-    for (ptr = base; ptr < (base + size); ptr++)
+    volatile uint32_t *ptr;
+    unsigned int words = (size + sizeof(*ptr) - 1) / sizeof(*ptr);
+    for (ptr = base; ptr < (base + words); ptr++)
     {
         *ptr = 0;
     }
@@ -36,14 +37,17 @@ void PLIC_init(
     }
 
     // Disable all interrupts (don't assume that these registers are reset).
-    volatile_memzero((uint8_t *)(this_plic->base_addr +
-                                 PLIC_ENABLE_OFFSET),
-                     (num_sources + 8) / 8);
+    volatile_memzero32((uint32_t *)(this_plic->base_addr +
+                                    PLIC_ENABLE_OFFSET),
+                       (num_sources + 7) / 8);
 
     // Set all priorities to 0 (equal priority -- don't assume that these are reset).
-    volatile_memzero((uint8_t *)(this_plic->base_addr +
-                                 PLIC_PRIORITY_OFFSET),
-                     (num_sources + 1) << PLIC_PRIORITY_SHIFT_PER_SOURCE);
+    // The 0th entry in the memory map is reserved and so should not be written
+    // to, but is also included in num_sources.
+    volatile_memzero32((uint32_t *)(this_plic->base_addr +
+                                    PLIC_PRIORITY_OFFSET +
+                                    (1 << PLIC_PRIORITY_SHIFT_PER_SOURCE)),
+                       (num_sources - 1) << PLIC_PRIORITY_SHIFT_PER_SOURCE);
 
     // Set the threshold to 0.
     volatile plic_threshold *threshold = (plic_threshold *)(this_plic->base_addr +
@@ -65,22 +69,22 @@ void PLIC_set_threshold(plic_instance_t *this_plic,
 void PLIC_enable_interrupt(plic_instance_t *this_plic, plic_source source)
 {
 
-    volatile uint8_t *current_ptr = (volatile uint8_t *)(this_plic->base_addr +
-                                                         PLIC_ENABLE_OFFSET +
-                                                         (source >> 3));
-    uint8_t current = *current_ptr;
-    current = current | (1 << (source & 0x7));
+    volatile uint32_t *current_ptr = (volatile uint32_t *)(this_plic->base_addr +
+                                                           PLIC_ENABLE_OFFSET +
+                                                           (source >> 5));
+    uint32_t current = *current_ptr;
+    current = current | ((uint32_t)1 << (source & 0x1f));
     *current_ptr = current;
 }
 
 void PLIC_disable_interrupt(plic_instance_t *this_plic, plic_source source)
 {
 
-    volatile uint8_t *current_ptr = (volatile uint8_t *)(this_plic->base_addr +
-                                                         PLIC_ENABLE_OFFSET +
-                                                         (source >> 3));
-    uint8_t current = *current_ptr;
-    current = current & ~((1 << (source & 0x7)));
+    volatile uint32_t *current_ptr = (volatile uint32_t *)(this_plic->base_addr +
+                                                           PLIC_ENABLE_OFFSET +
+                                                           (source >> 5));
+    uint32_t current = *current_ptr;
+    current = current & ~(((uint32_t)1 << (source & 0x1f)));
     *current_ptr = current;
 }
 

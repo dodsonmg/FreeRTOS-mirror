@@ -45,7 +45,7 @@ connected. */
 /* Set to 1 to print out debug messages.  If ipconfigHAS_DEBUG_PRINTF is set to
 1 then FreeRTOS_debug_printf should be defined to the function used to print
 out the debugging messages. */
-#if( mainDEMO_TYPE != 0xCB002 )
+#if( mainDEMO_TYPE != 0xB002 )
 	#define ipconfigHAS_DEBUG_PRINTF	1
 #endif
 #if( ipconfigHAS_DEBUG_PRINTF == 1 )
@@ -226,7 +226,7 @@ aborted. */
 #define ipconfigTCP_TIME_TO_LIVE		128 /* also defined in FreeRTOSIPConfigDefaults.h */
 
 /* USE_TCP: Use TCP and all its features */
-#define ipconfigUSE_TCP				( mainDEMO_TYPE != 0xCB002 )
+#define ipconfigUSE_TCP				( mainDEMO_TYPE != 0xB002 )
 
 /* USE_WIN: Let TCP use windowing mechanism. */
 #define ipconfigUSE_TCP_WIN			( 1 )

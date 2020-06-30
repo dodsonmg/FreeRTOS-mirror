@@ -17,9 +17,10 @@
 #define NUM_PACKETS  1 /* Number of ethernet frames to hold */
 
 /* IEEE PHY Specific definitions */
-#define PHY_R0_CTRL_REG		0
-#define PHY_R1_STATUS_REG	1
+#define PHY_R0_CTRL_REG			0
+#define PHY_R1_STATUS_REG		1
 #define PHY_R3_PHY_IDENT_REG	3
+
 #define PHY_R5_PART_ABIL_1_REG	5
 #define PHY_R10_PART_ABIL_3_REG	10
 
@@ -37,7 +38,7 @@
 #define PHY_R1_ANEG_COMP	0x0020
 #define PHY_R1_1GBPS_EXT	0x0100
 
-#define PHY_R5_ACK		0x4000
+#define PHY_R5_ACK			0x4000
 #define PHY_R5_100MBPS		0x0380
 #define PHY_R5_10MBPS		0x0060
 
@@ -64,7 +65,6 @@
 #define PHY_REG21_10      0x0030
 #define PHY_REG21_100     0x2030
 #define PHY_REG21_1000    0x0070
-
 #define PHY_R32_RGMIICTL1 0x32
 
 /* Marvel PHY flags */
@@ -90,6 +90,10 @@
 #define TI_PHY_CFGR4_RES_BIT7		0x080
 #define TI_PHY_CFGR4_ANEG_TIMER		0x060
 
+#define TI_PHY_CFGR4			0x31
+#define TI_PHY_CFGR4_RES_BIT8		0x100
+#define TI_PHY_CFGR4_RES_BIT7		0x080
+#define TI_PHY_CFGR4_ANEG_TIMER		0x060
 
 /* Driver instances*/
 XAxiEthernet AxiEthernetInstance;
@@ -172,7 +176,6 @@ int PhyLinkStatus(XAxiEthernet *AxiEthernetInstancePtr) {
 int AxiEtherentConfigureTIPhy(XAxiEthernet *AxiEthernetInstancePtr, u32 PhyAddr)
 {
 	u16 PhyReg5;
-	u16 PhyReg14;
 	u16 PhyRegCfg4;
 	u16 Speed;
 	u16 Status;
@@ -206,7 +209,7 @@ int AxiEtherentConfigureTIPhy(XAxiEthernet *AxiEthernetInstancePtr, u32 PhyAddr)
 
 	/* Wait for autonegotiation */
 	XAxiEthernet_PhyRead(AxiEthernetInstancePtr, PhyAddr,
-			     PHY_R5_PART_ABIL_1_REG, &PhyReg5);
+		  			     PHY_R5_PART_ABIL_1_REG, &PhyReg5);
 	while (!(PhyReg5 & PHY_R5_ACK)) {
 		msleep(100);
 		XAxiEthernet_PhyRead(AxiEthernetInstancePtr, PhyAddr,
@@ -264,7 +267,6 @@ int AxiEtherentConfigureTIPhy(XAxiEthernet *AxiEthernetInstancePtr, u32 PhyAddr)
 		}
 	}
 
-
 	configASSERT(XAxiEthernet_SetOperatingSpeed(AxiEthernetInstancePtr, Speed) == 0);
 
 	return XST_SUCCESS;
@@ -306,7 +308,7 @@ void DmaFreeBDTask( void *pvParameters ) {
 void prvEMACDeferredInterruptHandlerTask( void *pvParameters ) {
 	(void) pvParameters;
 	NetworkBufferDescriptor_t *pxBufferDescriptor;
-	size_t xBytesReceived;
+	size_t xBytesReceived = 0;
 	uint8_t* xRxBuffer;
 	/* Used to indicate that xSendEventStructToIPTask() is being called because
 	of an Ethernet receive event. */

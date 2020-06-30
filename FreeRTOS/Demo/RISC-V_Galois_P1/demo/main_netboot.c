@@ -1,6 +1,8 @@
 /* Standard includes. */
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
@@ -14,11 +16,10 @@
 /* IP stack includes. */
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
+#include "NetworkInterface.h"
 
 /* Application includes */
 #include "uart.h"
-
-BaseType_t xNetworkInterfaceDestroy(void);
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -40,6 +41,7 @@ typedef XCONCAT3(Elf, __riscv_xlen, _Phdr) Elf_Phdr;
 #define ELFCLASSXLEN XCONCAT(ELFCLASS, __riscv_xlen)
 
 #define STAGING_ADDR 0xE0000000UL
+#define STAGING_BUFS_ALIGN 16
 
 #define TFTP_OP_RRQ   1
 #define TFTP_OP_WRQ   2
@@ -118,9 +120,15 @@ struct load_command
 	size_t zerosz;
 };
 
+/* Must be in .data; startup code writes to it early before zeroing BSS! */
+__attribute__((section(".data")))
+size_t xDtbAddr;
+__attribute__((section(".data")))
+uintptr_t pvAlmightyRWXCap;
+
 extern char netboot_load_trampoline_start[];
 extern char netboot_load_trampoline_end[];
-typedef void (*netboot_load_trampoline_type)(size_t, size_t, size_t, struct load_command *, size_t, uintptr_t) __attribute__((noreturn));
+typedef void (*netboot_load_trampoline_type)(size_t, size_t, size_t, struct load_command *, size_t, bool, uintptr_t) __attribute__((noreturn));
 
 /* The default IP and MAC address used by the demo.  The address configuration
 defined here will be used if ipconfigUSE_DHCP is 0, or if ipconfigUSE_DHCP is
@@ -140,8 +148,8 @@ const uint8_t ucMACAddress[6] = {configMAC_ADDR0, configMAC_ADDR1, configMAC_ADD
 
 void main_netboot(void);
 static void prvShellTask(void *pvParameters);
-static void prvLoadAndBoot(int n, char **names, char **bufs);
-static int prvTftpReceive(const char *host, const char *name, char *buf, size_t *size);
+static void prvLoadAndBoot(int n, char **names, char **bufs, bool halt);
+static int prvTftpReceive(const char *host, uint16_t port, const char *name, char *buf, size_t *size);
 
 void main_netboot(void)
 {
@@ -180,46 +188,78 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
 static void prvShellCommandBoot(int argc, char **argv)
 {
 	char *bufs[2];
-	if (argc < 3)
+	size_t argi = 1;
+	bool halt = false;
+        unsigned long port = 69;
+
+	if ((size_t)argc > argi && strcmp(argv[argi], "-h") == 0)
+	{
+		halt = true;
+		++argi;
+	}
+
+        if ((size_t)argc > argi && strcmp(argv[argi], "-p") == 0)
+        {
+		++argi;
+		if ((size_t)argc > argi)
+		{
+			errno = 0;
+			port = strtoul(argv[argi], NULL, 10);
+			if (port == 0 && errno != 0)
+			{
+				printf("Error: port must be a number\r\n");
+				return;
+			}
+			if (port > UINT16_MAX)
+			{
+				printf("Error: port out of range\r\n");
+				return;
+			}
+			++argi;
+		}
+        }
+
+	if ((size_t)argc < argi + 2)
 	{
 		printf("Error: too few arguments\r\n");
-		printf("Usage: boot <host> <file> [file]\r\n");
+		printf("Usage: boot [-h] [-p <port>] <host> <file> [file]\r\n");
 		return;
 	}
 
-	if (argc > 2 + ARRAY_SIZE(bufs))
+	if ((size_t)argc > argi + 1 + ARRAY_SIZE(bufs))
 	{
 		printf("Error: too many arguments\r\n");
-		printf("Usage: boot <host> <file> [file]\r\n");
+		printf("Usage: boot [-h] [-p <port>] <host> <file> [file]\r\n");
 		return;
 	}
 
-	const char *host = argv[1];
+	const char *host = argv[argi];
 	extern void *pvAlmightyDataCap;
-	char *staging = cheri_setoffset(pvAlmightyDataCap, STAGING_ADDR);
-	for (int i = 2; i < argc; ++i)
+	char *staging = (char *)cheri_setoffset(pvAlmightyDataCap, STAGING_ADDR);
+	for (int i = argi + 1; i < argc; ++i)
 	{
 		size_t size;
 		printf("Requesting %s\r\n", argv[i]);
-		if (prvTftpReceive(host, argv[i], staging, &size))
+		if (prvTftpReceive(host, port, argv[i], staging, &size))
 			return;
 
-		bufs[i - 2] = staging;
-		staging += size;
+		bufs[i - argi - 1] = staging;
+		staging += size + (-size % STAGING_BUFS_ALIGN);
 	}
 
-	printf("Taking down network interface\r\n");
-	xNetworkInterfaceDestroy();
-
 	printf("Booting\r\n");
-	prvLoadAndBoot(argc - 2, argv + 2, bufs);
+	prvLoadAndBoot(argc - argi - 1, argv + argi + 1, bufs, halt);
 }
 
 static void prvShellCommandHelp(int argc, char **argv)
 {
+	(void)argc;
+	(void)argv;
+
 	printf("Supported commands:\r\n");
-	printf("    boot <host> <file> [file]\r\n");
+	printf("    boot [-h] [-p <port>] <host> <file> [file]\r\n");
 	printf("                              Load and boot the given file(s) via TFTP\r\n");
+	printf("                              Optionally halts just before jumping\r\n");
 	printf("    help                      Display this message\r\n");
 	printf("    ifconfig                  Display network config\r\n");
 }
@@ -284,7 +324,7 @@ static void prvShellCommand(char *command)
 			start = command;
 		}
 	}
-	if (start && argc < ARRAY_SIZE(argv))
+	if (start && (size_t)argc < ARRAY_SIZE(argv))
 	{
 		argv[argc++] = start;
 		start = NULL;
@@ -299,7 +339,7 @@ static void prvShellCommand(char *command)
 	if (argc == 0)
 		return;
 
-	for (int i = 0; i < ARRAY_SIZE(xShellCommands); ++i)
+	for (size_t i = 0; i < ARRAY_SIZE(xShellCommands); ++i)
 	{
 		if (!strcmp(xShellCommands[i].name, argv[0]))
 			return xShellCommands[i].func(argc, argv);
@@ -316,6 +356,8 @@ static void prvShellPrompt(void)
 
 static void prvShellTask(void *pvParameters)
 {
+	(void)pvParameters;
+
 	char buf[1024];
 	int len = 0;
 	bool overflow = false;
@@ -401,7 +443,8 @@ static void prvShellTask(void *pvParameters)
 					printf("^%c", buf[len + i] | '\100');
 					continue;
 				}
-				/* Tab and fallthrough */
+				/* Fallthrough */
+				/* Tab */
 			case '\t':
 				putchar(buf[len + i]);
 				break;
@@ -435,7 +478,7 @@ static BaseType_t prvGetLoadCommands(struct load_command **commands,
 		char *name, char *buf, size_t *pentry)
 {
 	extern void *pvAlmightyDataCap;
-	Elf_Ehdr *ehdr = (Elf_Ehdr *)buf;
+	Elf_Ehdr *ehdr = (Elf_Ehdr *)(uintptr_t)buf;
 	if (ehdr->e_ident[EI_MAG0] != ELFMAG0 ||
 	    ehdr->e_ident[EI_MAG1] != ELFMAG1 ||
 	    ehdr->e_ident[EI_MAG2] != ELFMAG2 ||
@@ -487,7 +530,7 @@ static BaseType_t prvGetLoadCommands(struct load_command **commands,
 		return 1;
 	}
 
-	Elf_Phdr *phdrs = (Elf_Phdr *)(buf + ehdr->e_phoff);
+	Elf_Phdr *phdrs = (Elf_Phdr *)(uintptr_t)(buf + ehdr->e_phoff);
 	size_t entry = 0;
 	for (int i = ehdr->e_phnum - 1; i >= 0; --i)
 	{
@@ -507,7 +550,8 @@ static BaseType_t prvGetLoadCommands(struct load_command **commands,
 		--*commands;
 		(*commands)->src = buf + phdrs[i].p_offset;
 		(*commands)->dst =
-			cheri_setoffset(pvAlmightyDataCap, phdrs[i].p_paddr);
+			(char *)cheri_setoffset(pvAlmightyDataCap,
+				                phdrs[i].p_paddr);
 		(*commands)->copysz = phdrs[i].p_filesz;
 		(*commands)->zerosz = phdrs[i].p_memsz - phdrs[i].p_filesz;
 
@@ -531,14 +575,14 @@ static BaseType_t prvGetLoadCommands(struct load_command **commands,
 	return 0;
 }
 
-static void prvLoadAndBoot(int n, char **names, char **bufs)
+static void prvLoadAndBoot(int n, char **names, char **bufs, bool halt)
 {
 	extern void *pvAlmightyDataCap;
 	extern void *pvAlmightyCodeCap;
-	extern uintptr_t pvAlmightyRWXCap;
 	extern size_t xDtbAddr;
 	struct load_command *commands =
-		cheri_setoffset(pvAlmightyDataCap, STAGING_ADDR);
+		(struct load_command *)cheri_setoffset(pvAlmightyDataCap,
+		                                       STAGING_ADDR);
 	--commands;
 	commands->src = NULL;
 	commands->dst = NULL;
@@ -553,16 +597,20 @@ static void prvLoadAndBoot(int n, char **names, char **bufs)
 			return;
 	}
 
+	printf("Taking down network interface\r\n");
+	xNetworkInterfaceDestroy();
+
 	size_t load_trampoline_size =
 		netboot_load_trampoline_end - netboot_load_trampoline_start;
 	netboot_load_trampoline_type load_trampoline =
-		(netboot_load_trampoline_type )((char *)commands - load_trampoline_size);
+		(netboot_load_trampoline_type)((uintptr_t)commands - load_trampoline_size);
 	memcpy((char *)load_trampoline, netboot_load_trampoline_start,
 	       load_trampoline_size);
 	__asm__ __volatile__ ("fence.i" ::: "memory");
 	load_trampoline =
-		cheri_setoffset(pvAlmightyCodeCap, (size_t)load_trampoline);
-	load_trampoline(0, xDtbAddr, 0, commands, entry, pvAlmightyRWXCap);
+		(netboot_load_trampoline_type)cheri_setoffset(
+			pvAlmightyCodeCap, (size_t)load_trampoline);
+	load_trampoline(0, xDtbAddr, 0, commands, entry, halt, pvAlmightyRWXCap);
 }
 
 /* TFTP implementation */
@@ -623,7 +671,7 @@ static int prvTftpRrq(struct tftp_client_state *state, const char *name)
 	err = FreeRTOS_sendto(state->sock, packet, plen, 0, &state->dstaddr,
 	                      state->dstaddrlen);
 	vPortFree(packet);
-	if (err != plen)
+	if (err != (long)plen)
 	{
 		printf("Failed to send RRQ: FreeRTOS_sendto returned %ld != %ld\r\n",
 		       err, (unsigned long)plen);
@@ -670,7 +718,7 @@ static int prvTftpAck(struct tftp_client_state *state)
 	long err;
 	err = FreeRTOS_sendto(state->sock, &packet, plen, 0, &state->dstaddr,
 	                      state->dstaddrlen);
-	if (err != plen)
+	if (err != (long)plen)
 	{
 		printf("Failed to send ACK: FreeRTOS_sendto returned %ld != %ld\r\n",
 		       err, (unsigned long)plen);
@@ -681,7 +729,7 @@ static int prvTftpAck(struct tftp_client_state *state)
 	return 0;
 }
 
-static int prvTftpReceive(const char *host, const char *name, char *buf, size_t *size)
+static int prvTftpReceive(const char *host, uint16_t port, const char *name, char *buf, size_t *size)
 {
 	struct tftp_client_state state;
 	memset(&state, 0, sizeof(state));
@@ -692,7 +740,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		printf("Invalid IPv4 address: %s\r\n", host);
 		return 1;
 	}
-	state.dstaddr.sin_port = FreeRTOS_htons(69);
+	state.dstaddr.sin_port = FreeRTOS_htons(port);
 	state.dstaddrlen = sizeof(state.dstaddr);
 
 	state.sock = FreeRTOS_socket(FREERTOS_AF_INET, FREERTOS_SOCK_DGRAM,
@@ -749,9 +797,9 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 					units = "KiB";
 				}
 
-				printf("Received %lu %s so far in %ds\r\n",
+				printf("Received %lu %s so far in %us\r\n",
 				       (unsigned long)scaledbytes, units,
-				       (tcur - tstart) / 1000000);
+				       (unsigned int)((tcur - tstart) / 1000000));
 				tprev = tcur;
 			}
 		}
@@ -803,7 +851,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 
 		state.recvpacket = upacket;
 
-		if (fromlen < sizeof(upacket->header))
+		if (fromlen < (long)sizeof(upacket->header))
 		{
 			printf("Failed to receive: packet missing header%ld\r\n", fromlen);
 			prvTftpTerminate(&state, 0, "Packet missing header");
@@ -814,7 +862,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		switch (FreeRTOS_ntohs(upacket->header.op))
 		{
 		case TFTP_OP_ERROR:
-			if (fromlen < sizeof(upacket->error))
+			if (fromlen < (long)sizeof(upacket->error))
 			{
 				printf("Failed to receive: error packet too short (%ld)\r\n",
 				       fromlen);
@@ -829,7 +877,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 				state.retries = 0;
 				state.havetid = 0;
 				state.pastrrq = 0;
-				state.dstaddr.sin_port = FreeRTOS_htons(69);
+				state.dstaddr.sin_port = FreeRTOS_htons(port);
 				if (prvTftpRrq(&state, name))
 					return 1;
 				break;
@@ -925,7 +973,7 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 		}
 		case TFTP_OP_DATA:
 		{
-			if (fromlen < sizeof(upacket->data))
+			if (fromlen < (long)sizeof(upacket->data))
 			{
 				printf("Failed to receive: data packet too short (%ld)\r\n",
 				       fromlen);
@@ -1018,9 +1066,9 @@ static int prvTftpReceive(const char *host, const char *name, char *buf, size_t 
 						units = "KiB";
 					}
 
-					printf("Finished receiving %lu %s in %ds\r\n",
+					printf("Finished receiving %lu %s in %us\r\n",
 					       (unsigned long)scaledbytes, units,
-					       (tcur - tstart) / 1000000);
+					       (unsigned int)((tcur - tstart) / 1000000));
 					return 0;
 				}
 			}

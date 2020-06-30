@@ -76,21 +76,9 @@
 # The CPU starts in hybrid, and the boot initialisation has to be in hybrid.
 .option nocapmode
 
-#if mainDEMO_TYPE == 0xCB002
-# Written to before .bss zeroing, so use .data
-.data
-.balign __riscv_clen / 8
-.globl pvAlmightyRWXCap
-.type pvAlmightyRWXCap, @object
-pvAlmightyRWXCap:
-	.chericap 0
-	.size pvAlmightyRWXCap, . - pvAlmightyRWXCap
-
-.globl xDtbAddr
-.type xDtbAddr, @object
-xDtbAddr:
-	.zero __riscv_xlen / 8
-	.size xDtbAddr, . - xDtbAddr
+#if mainDEMO_TYPE == 0xB002
+.extern xDtbAddr
+.extern pvAlmightyRWXCap
 #endif
 
 /* Startup code */
@@ -101,7 +89,7 @@ boot:
     li t6, 0x1800
     csrw mstatus, t6
 
-#if mainDEMO_TYPE == 0xCB002
+#if mainDEMO_TYPE == 0xB002
     cspecialr       ct0, ddc
     la              t6, pvAlmightyRWXCap
     sc              ct0, 0(t6)

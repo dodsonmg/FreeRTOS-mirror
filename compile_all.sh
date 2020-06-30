@@ -7,7 +7,7 @@ export C_INCLUDE_PATH=$RISCV_C_INCLUDE_PATH
 for use_clang in yes no
 do
     export USE_CLANG=$use_clang
-    for prog in main_blinky main_full main_udp main_tcp main_iic main_gpio main_uart main_sd main_peekpoke main_rtc
+    for prog in main_blinky main_full main_udp main_tcp main_iic main_gpio main_uart main_sd main_peekpoke main_rtc main_netboot
     do
         make clean
         export PROG=$prog
@@ -24,11 +24,11 @@ do
 done
 
 # 64-bit test
-export XARCH=64
+export XLEN=64
 for use_clang in yes no
 do
     export USE_CLANG=$use_clang
-    for prog in main_blinky main_full main_udp main_tcp
+    for prog in main_blinky main_full main_udp main_tcp main_netboot
     do
         make clean
         export PROG=$prog

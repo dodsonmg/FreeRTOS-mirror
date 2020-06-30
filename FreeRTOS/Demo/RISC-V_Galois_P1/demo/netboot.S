@@ -21,10 +21,11 @@ netboot_load_trampoline_start:
 	 *  a2 - dynamic info
 	 * ca3 - commands
 	 *  a4 - entry point
-	 * ca5 - almighty RWX capabiliity
+	 *  a5 - halt before jump
+	 * ca6 - almighty RWX capabiliity
 	 */
 netboot_load_trampoline:
-	csetoffset ca5, ca5, zero
+	csetoffset ca6, ca6, zero
 
 	/*
 	 * We don't want to trap back to the FreeRTOS handler; the handler and/or
@@ -34,7 +35,7 @@ netboot_load_trampoline:
 	 */
 	csrw mstatus, zero
 	cllc ct0, netboot_load_trampoline_trap
-	csetoffset ct0, ca5, t0
+	csetoffset ct0, ca6, t0
 	cspecialw mtcc, ct0
 
 	/*
@@ -120,11 +121,15 @@ netboot_load_trampoline:
 	cspecialw mtdc, ct0
 	cspecialw mscratchc, ct0
 	/* Make ddc/mepcc almighty to match reset state */
-	cspecialw ddc, ca5
-	cspecialw mepcc, ca5
-	/* Jump to next stage */
-	csetoffset ca4, ca5, a4
+	cspecialw ddc, ca6
+	cspecialw mepcc, ca6
+	/* Prepare jump target*/
+	csetoffset ca4, ca6, a4
 	csetflags ca4, ca4, zero
+	/* Halt if requested */
+	beqz a5, 9f
+	ebreak
+9:	/* Jump to next stage */
 	cjr ca4
 	.size netboot_load_trampoline, . - netboot_load_trampoline
 

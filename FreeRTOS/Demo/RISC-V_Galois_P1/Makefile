@@ -1,6 +1,8 @@
 # For debugging
 $(info $$PROG is [${PROG}])
 
+configCPU_CLOCK_HZ ?=
+configMTIME_HZ ?=
 
 CCPATH 		?=
 TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
@@ -30,6 +32,10 @@ ifeq ($(USE_CLANG),yes)
 	OBJDUMP	= llvm-objdump
 	AR		= llvm-ar
 	RANLIB	= llvm-ranlib
+	COMPILER_FLAGS = -mno-relax
+	LINKER_FLAGS = -mno-relax -fuse-ld=lld
+	LIBS	 =  -lc $(shell $(CC) -print-libgcc-file-name)
+	WERROR =
 else
 	CC		= $(TARGET)-gcc
 	CPP		= $(TARGET)-g++
@@ -37,11 +43,14 @@ else
 	OBJDUMP	= $(TARGET)-objdump
 	AR		= $(TARGET)-ar
 	RANLIB	= $(TARGET)-ranlib
+	COMPILER_FLAGS =
+	LINKER_FLAGS =
+	LIBS	 =  -lc -lgcc
+	WERROR = -Werror
 endif
 
-
 LD = $(CC)
-COMPILER_FLAGS = -mcmodel=medany
+COMPILER_FLAGS += -mcmodel=medany
 
 $(info CC=${CC})
 
@@ -54,8 +63,8 @@ FREERTOS_PLUS_SOURCE_DIR = ../../../FreeRTOS-Plus/Source
 FREERTOS_TCP_SOURCE_DIR = $(FREERTOS_PLUS_SOURCE_DIR)/FreeRTOS-Plus-TCP
 FREERTOS_PROTOCOLS_DIR = ./protocols
 
-#WARNINGS = -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wsign-compare \
-#		-Waggregate-return -Wmissing-declarations -Wunused -Werror 
+WARNINGS = -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wsign-compare \
+		-Waggregate-return -Wmissing-declarations -Wunused $(WERROR) 
  
 C_WARNINGS = -Wbad-function-cast -Wmissing-prototypes -Wstrict-prototypes
 
@@ -320,7 +329,7 @@ ifeq ($(PROG),main_testgen)
 	include $(INC_TESTGEN)/testgenEnvironment.mk
 else
 ifeq ($(PROG),main_netboot)
-	CFLAGS += -DmainDEMO_TYPE=0xCB002
+	CFLAGS += -DmainDEMO_TYPE=0xB002
 	PORT_ASM += demo/netboot.S
 	INCLUDES += $(FREERTOS_IP_INCLUDE)
 	FREERTOS_SRC += $(FREERTOS_IP_SRC)
@@ -342,9 +351,24 @@ endif # main_blinky
 
 ARFLAGS=crsv
 
-CFLAGS += -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+ifeq ($(PROG),main_netboot)
+	OPT = -O2
+else
+	OPT = -O0
+endif
+
+CFLAGS += $(OPT) -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+
+# If configCPU_CLOCK_HZ is not empty, pass it as a definition
+ifneq ($(configCPU_CLOCK_HZ),)
+CFLAGS += -DconfigCPU_CLOCK_HZ=$(configCPU_CLOCK_HZ)
+endif
+# If configMTIME_HZ is not empty, pass it as a definition
+ifneq ($(configMTIME_HZ),)
+CFLAGS += -DconfigMTIME_HZ=$(configMTIME_HZ)
+endif
 # Disable warnings for C++ for now
-CPPFLAGS += -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
+CPPFLAGS += $(OPT) -g3 $(ARCH) $(ABI) $(COMPILER_FLAGS) $(INCLUDES)
 
 #
 # Define all object files.
@@ -358,9 +382,7 @@ PORT_ASM_OBJ = $(PORT_ASM:.S=.o)
 CRT0_OBJ = $(CRT0:.S=.o)
 OBJS = $(CRT0_OBJ) $(PORT_ASM_OBJ) $(PORT_OBJ) $(RTOS_OBJ) $(DEMO_OBJ) $(APP_OBJ) $(CPP_OBJ)
 
-LDFLAGS = -fuse-ld=lld -mno-relax
-LDFLAGS += -T link.ld -nostartfiles -nostdlib -L.
-LIBS	 =  -lc $(shell $(CC) -print-libgcc-file-name)
+LDFLAGS	 += -T link.ld -nostartfiles -nostdlib $(ARCH) $(ABI) $(LINKER_FLAGS)
 
 $(info ASFLAGS=$(ASFLAGS))
 $(info LDLIBS=$(LDLIBS))

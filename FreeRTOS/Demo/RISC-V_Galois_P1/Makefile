@@ -4,18 +4,18 @@ $(info $$PROG is [${PROG}])
 configCPU_CLOCK_HZ ?=
 configMTIME_HZ ?=
 
-CCPATH 		?=
-TARGET=$(CCPATH)riscv${XARCH}-unknown-elf
-
 ifdef XARCH
 XLEN=$(XARCH)
 else
 XLEN?=32
 endif
 
+CCPATH 		?=
+TARGET=$(CCPATH)riscv${XLEN}-unknown-elf
+
 USE_CLANG?=yes
 
-ifeq ($(XARCH),64)
+ifeq ($(XLEN),64)
 	ARCH 		= -march=rv64imacxcheri
 	ABI 		= -mabi=l64pc128
 else

@@ -131,6 +131,10 @@ at the top of this file. */
 .extern xISRStackTop
 .extern portasmHANDLE_INTERRUPT
 
+#if configPORT_ALLOW_APP_EXCEPTION_HANDLERS
+.extern vPortExceptionHandler
+#endif
+
 /*-----------------------------------------------------------*/
 
 .align 8
@@ -437,6 +441,20 @@ is_exception:
 	j                 1b
 3:
 #endif
+
+#if configPORT_ALLOW_APP_EXCEPTION_HANDLERS
+	/* a0 and a1 should already have mcause and mepcc,
+	 * put exception frame in a2 as a third argument to vPortExceptionHandler. */
+#ifdef __CHERI_PURE_CAPABILITY__
+	cmove             ca2, csp
+	clgc              ct0, vPortExceptionHandler
+	cjalr             cra, ct0
+#else
+	mv                a2, sp
+	la                t0, vPortExceptionHandler
+	jalr              ra, t0
+#endif
+#endif /* configPORT_ALLOW_APP_EXCEPTION_HANDLERS */
 	ebreak
 	j               .Lbreak_on_exception
 #else

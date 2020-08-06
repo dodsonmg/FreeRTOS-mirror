@@ -170,12 +170,18 @@ extern void ( * pxPortSandboxGetReturnTrampoline( void ) ) ( void );
 extern void xPortSandboxReturn( BaseType_t xReturn );
 void *pvReturnSealer;
 
+	/* pxPortSandboxReturnTrampoline will be assigned an unsealed/non-sentry as
+	pxPortSandboxGetReturnTrampoline() needs to modify it setting its bounds
+	and we set its permissions here. */
 	pxPortSandboxReturnTrampoline =
 		cheri_andperm( pxPortSandboxGetReturnTrampoline(),
 		               __CHERI_CAP_PERMISSION_GLOBAL__ |
 		               __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ |
 		               __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
 		               __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__);
+
+	/* sealentry again after setting bounds and permissions to avoid leaking a non-sentry. */
+	pxPortSandboxReturnTrampoline = __builtin_cheri_seal_entry( pxPortSandboxReturnTrampoline );
 
 	pvReturnSealer = cheri_setaddress( pvAlmightyDataCap, SANDBOX_RETURN_OTYPE );
 	pxPortSandboxReturnFunc = cheri_setaddress( pvAlmightyCodeCap, ( ptraddr_t )  xPortSandboxReturn );

@@ -119,6 +119,8 @@ void *pvAlmightyDataCap;
 void *pvAlmightyCodeCap;
 
 #define SANDBOX_RETURN_OTYPE 0
+//#define SENTRY_OTYPE -2
+#define SENTRY_OTYPE -2
 #endif
 
 /*

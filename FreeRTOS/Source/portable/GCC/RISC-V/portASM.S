@@ -972,7 +972,7 @@ xPortSandboxReturnTrampoline:
 .size xPortSandboxReturnTrampoline, .LxPortSandboxReturnTrampolineEnd - xPortSandboxReturnTrampoline
 
 /* void ( * pxPortSandboxGetReturnTrampoline( void ) ) ( void ); */
-.align 4
+.align 8
 .type pxPortSandboxGetReturnTrampoline, %function
 pxPortSandboxGetReturnTrampoline:
 	/* Load a PCC-derived unsealed (non-sentry) cap to xPortSandboxReturnTrampoline */

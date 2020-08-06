@@ -706,7 +706,7 @@ xPortSandboxReturnTrampoline:
 .align 4
 .type pxPortSandboxGetReturnTrampoline, %function
 pxPortSandboxGetReturnTrampoline:
-	clgc              ca0, xPortSandboxReturnTrampoline
+	cllc              ca0, xPortSandboxReturnTrampoline
 	li                a1, %lo(.LxPortSandboxReturnTrampolineEnd - xPortSandboxReturnTrampoline)
 	csetboundsexact   ca0, ca0, a1
 	cret

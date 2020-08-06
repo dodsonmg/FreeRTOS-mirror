@@ -196,7 +196,8 @@ void *pvReturnSealer;
 		               __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__);
 
 	pvReturnSealer = cheri_setaddress( pvAlmightyDataCap, SANDBOX_RETURN_OTYPE );
-	pxPortSandboxReturnFunc = cheri_seal( xPortSandboxReturn, pvReturnSealer );
+	pxPortSandboxReturnFunc = cheri_setaddress( pvAlmightyCodeCap, ( ptraddr_t )  xPortSandboxReturn );
+	pxPortSandboxReturnFunc = cheri_seal( pxPortSandboxReturnFunc, pvReturnSealer );
 	pxPortSandboxReturnData = cheri_seal( pvAlmightyDataCap, pvReturnSealer );
 }
 #endif

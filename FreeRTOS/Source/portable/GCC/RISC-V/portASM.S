@@ -957,9 +957,23 @@ xPortSandboxReturnTrampoline:
 .align 4
 .type pxPortSandboxGetReturnTrampoline, %function
 pxPortSandboxGetReturnTrampoline:
-	clgc              ca0, xPortSandboxReturnTrampoline
+	/* Load a PCC-derived unsealed (non-sentry) cap to xPortSandboxReturnTrampoline */
+	cllc              ca0, xPortSandboxReturnTrampoline
+
+	/* Set bounds */
 	li                a1, %lo(.LxPortSandboxReturnTrampolineEnd - xPortSandboxReturnTrampoline)
 	csetboundsexact   ca0, ca0, a1
+
+	/* Set permissions */
+	li                t1, __CHERI_CAP_PERMISSION_GLOBAL__ | \
+		                __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \
+		                __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
+		                __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__
+	candperm          ca0, ca0, t1
+
+	/* sealentry after setting bounds and permissions to avoid leaking a non-sentry. */
+	csealentry        ca0, ca0
+
 	cret
 .size pxPortSandboxGetReturnTrampoline, . - pxPortSandboxGetReturnTrampoline
 

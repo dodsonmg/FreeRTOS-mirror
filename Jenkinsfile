@@ -6,7 +6,7 @@ class GlobalVars { // "Groovy"
 
 // Set job properties:
 def jobProperties = [rateLimitBuilds([count: 1, durationName: 'hour', userBoost: true]),
-                     [$class: 'GithubProjectProperty', displayName: '', projectUrlStr: 'https://github.com/CTSRD-CHERI/cheribsd/'],
+                     [$class: 'GithubProjectProperty', displayName: '', projectUrlStr: 'https://github.com/CTSRD-CHERI/FreeRTOS-mirror'],
                      copyArtifactPermission('*'), // Downstream jobs need the kernels/disk images
 ]
 // Set the default job properties (work around properties() not being additive but replacing)

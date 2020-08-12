@@ -64,7 +64,7 @@ cp -av tarball/riscv64-unknown-elf/* \$(./cherisdk/bin/clang -print-resource-dir
     }
 }
 
-boolean runParallel = true;
+boolean runParallel = /*true*/false;
 echo("Running jobs in parallel: ${runParallel}")
 if (runParallel) {
     jobs.failFast = false

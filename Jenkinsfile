@@ -42,7 +42,7 @@ mv -f tarball/* cherisdk/baremetal/baremetal-riscv64${PURECAP}/"""
             llvmRepo["branches"] = [[name: '*/master']]
             cheribuildProject(target: "compiler-rt-builtins-baremetal-riscv64${PURECAP}",
                     customGitCheckoutDir: 'llvm-project', scmOverride: llvmRepo,
-                    nodeLabel: null, buildStage: "Build Newlib",
+                    nodeLabel: null, buildStage: "Build compiler-rt-builtins",
                     extraArgs: '--install-prefix=/riscv64-unknown-elf',
                     sdkCompilerOnly: true, skipTarball: true,
                     uniqueId: "compiler-rt-build")

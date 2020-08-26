@@ -189,7 +189,7 @@ void prvServerInitialization(char *ip, int port,
 
 /*-----------------------------------------------------------*/
 
-void prvServerTask(void *pvParameters)
+void vServerTask(void *pvParameters)
 {
 #ifndef NDEBUG
   print_shim_info("modbus_server", __FUNCTION__);
@@ -369,7 +369,7 @@ static void prvCriticalSectionTask(void *pvParameters)
         /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
         taskEXIT_CRITICAL();
 
-        /* queue the response to send back to prvServerTask */
+        /* queue the response to send back to vServerTask */
         pxQueueRsp->msg = rsp;
         pxQueueRsp->msg_length = rsp_length;
         xReturned = xQueueSend(xQueueResponse, &pxQueueRsp, 0U);

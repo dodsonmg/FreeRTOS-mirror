@@ -36,7 +36,7 @@ to ticks using the pdMS_TO_TICKS() macro. */
  * Receives a modbus request from a client and
  * sends it to libmodbus
  */
-void prvServerTask(void *pvParameters);
+void vServerTask(void *pvParameters);
 
 /*
  * Called by main_modbus() to initialise the server before

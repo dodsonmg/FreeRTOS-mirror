@@ -118,7 +118,7 @@ void prvClientInitialization(char *ip, int port,
 
 /*-----------------------------------------------------------*/
 
-void prvClientTask(void *pvParameters)
+void vClientTask(void *pvParameters)
 {
   /* structure to hold the request and request length */
   modbus_queue_msg_t *pxRequest = (modbus_queue_msg_t *)pvPortMalloc(sizeof(modbus_queue_msg_t));

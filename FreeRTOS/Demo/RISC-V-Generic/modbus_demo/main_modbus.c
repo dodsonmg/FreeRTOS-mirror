@@ -146,14 +146,14 @@ void main_modbus(void)
     * Start the client and server tasks as described in the comments at the top of this
     * file.
     */
-  xTaskCreate(prvClientTask,                 /* The function that implements the task. */
+  xTaskCreate(vClientTask,                 /* The function that implements the task. */
               "Client",                      /* The text name assigned to the task - for debug only as it is not used by the kernel. */
               configMINIMAL_STACK_SIZE * 2U, /* The size of the stack to allocate to the task. */
               NULL,                          /* The parameter passed to the task - not used in this case. */
               mainCLIENT_TASK_PRIORITY,      /* The priority assigned to the task. */
               NULL);                         /* The task handle is not required, so NULL is passed. */
 
-  xTaskCreate(prvServerTask,                 /* The function that implements the task. */
+  xTaskCreate(vServerTask,                 /* The function that implements the task. */
               "Server",                      /* The text name assigned to the task - for debug only as it is not used by the kernel. */
               configMINIMAL_STACK_SIZE * 2U, /* The size of the stack to allocate to the task. */
               NULL,                          /* The parameter passed to the task - not used in this case. */

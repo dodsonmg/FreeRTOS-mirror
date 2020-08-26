@@ -32,7 +32,7 @@
  * Constructs modbus requests and sends them to the server
  * Receives modbus responses from the server
  */
-void prvClientTask(void *pvParameters);
+void vClientTask(void *pvParameters);
 
 /*
  * Called by main_modbus() to initialise the client before

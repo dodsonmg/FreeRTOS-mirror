@@ -359,6 +359,8 @@ static int prvCriticalSectionWrapper(const uint8_t *req, const int req_length,
     *rsp_length = pxQueueRsp->msg_length;
     memcpy(rsp, pxQueueRsp->msg, *rsp_length);
 
+    vPortFree(pxQueueReq);
+
     return 0;
 }
 

@@ -44,7 +44,7 @@ to ticks using the pdMS_TO_TICKS() macro. */
  * the number of iterations to discard before performing microbenchmarking
  * to ensure the system is quiescent.
  */
-#define mainMICROBENCHMARK_ITERATIONS 10
+#define mainMICROBENCHMARK_ITERATIONS 100 /* limited based on default stack and heap sizing */
 #define mainMICROBENCHMARK_DISCARD 10
 #endif
 

@@ -23,7 +23,6 @@
 /* Priorities used by the tasks. */
 #define mainCLIENT_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
 #define mainSERVER_TASK_PRIORITY (tskIDLE_PRIORITY + 2)
-#define mainCRITICAL_SECTION_TASK_PRIORITY (tskIDLE_PRIORITY + 3)
 
 /* The maximum number items the queue can hold.  The priority of the receiving
 task is above the priority of the sending task, so the receiving task will

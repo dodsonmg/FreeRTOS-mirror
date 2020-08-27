@@ -28,6 +28,10 @@
 #ifndef _MODBUS_SERVER_H_
 #define _MODBUS_SERVER_H_
 
+/* priority for tasks initialised by the server task */
+#define prvCRITICAL_SECTION_TASK_PRIORITY (tskIDLE_PRIORITY + 3)
+#define prvPRINT_STATS_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
+
 /* The rate at which data is sent to the queue.  The 200ms value is converted
 to ticks using the pdMS_TO_TICKS() macro. */
 #define mainQUEUE_SEND_FREQUENCY_MS pdMS_TO_TICKS(200)

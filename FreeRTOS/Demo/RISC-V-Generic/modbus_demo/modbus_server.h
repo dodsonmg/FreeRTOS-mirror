@@ -46,7 +46,7 @@ void vServerTask(void *pvParameters);
  * Called by main_modbus() to initialise the server before
  * creating tasks and starting the scheduler
  */
-void prvServerInitialization(char *ip, int port,
+void vServerInitialization(char *ip, int port,
                              QueueHandle_t xQueueRequest,
                              QueueHandle_t xQueueResponse);
 #endif /* _MODBUS_SERVER_H_ */

@@ -139,8 +139,8 @@ void main_modbus(void)
 
 
   /* Initialise the server and client */
-  prvServerInitialization(ip, port, xQueueClientServer, xQueueServerClient);
-  prvClientInitialization(ip, port, xQueueClientServer, xQueueServerClient);
+  vServerInitialization(ip, port, xQueueClientServer, xQueueServerClient);
+  vClientInitialization(ip, port, xQueueClientServer, xQueueServerClient);
 
   /*
     * Start the client and server tasks as described in the comments at the top of this

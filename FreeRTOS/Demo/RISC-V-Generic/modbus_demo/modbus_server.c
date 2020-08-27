@@ -89,9 +89,6 @@ static int prvBuildPrintTaskStatusStruct(const char *pcModbusFunctionName,
         TaskStatus_t *pxTaskStatus,
         PrintTaskStatus_t *pxPrintTaskStatus,
         uint32_t *pulTotalRunTime);
-
-static uint32_t prvCalcRunTimeDiff(const char *pcTaskName, UBaseType_t uxArraySize,
-        TaskStatus_t *pxTaskStatusArrayStart, TaskStatus_t *pxTaskStatusArrayEnd);
 #endif
 
 /*-----------------------------------------------------------*/
@@ -122,7 +119,8 @@ extern QueueHandle_t xQueueServerClientMacaroons;
 #endif
 
 /*-----------------------------------------------------------*/
-void prvServerInitialization(char *ip, int port,
+
+void vServerInitialization(char *ip, int port,
                              QueueHandle_t xQueueClientServer,
                              QueueHandle_t xQueueServerClient)
 {
@@ -260,14 +258,8 @@ void vServerTask(void *pvParameters)
    *
    * NOTE: using uxTaskGetNumberOfTasks() must occur AFTER creating the two tasks above */
   UBaseType_t uxArraySize = uxTaskGetNumberOfTasks();
-  TaskStatus_t *pxTaskStatusArrayStart = (TaskStatus_t *)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
-  TaskStatus_t *pxTaskStatusArrayEnd = (TaskStatus_t *)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
   TaskStatus_t *pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
   PrintTaskStatus_t xPrintTaskStatus;
-  xPrintTaskStatus.pcTaskName;
-  xPrintTaskStatus.pcModbusFunctionName;
-  UBaseType_t uxArraySizeReturnedStart = 0;
-  UBaseType_t uxArraySizeReturnedEnd = 0;
   UBaseType_t uxArraySizeReturned = 0;
   uint32_t *pulTotalRunTime = (uint32_t *)pvPortMalloc(sizeof(uint32_t));
 
@@ -298,36 +290,22 @@ void vServerTask(void *pvParameters)
     /* discard mainMICROBENCHMARK_DISCARD runs to ensure quiescence */
     for (int i = 0; i < mainMICROBENCHMARK_DISCARD; ++i)
     {
-        uxArraySizeReturnedStart = uxTaskGetSystemState(pxTaskStatusArrayStart, uxArraySize,
-                pulTotalRunTime);
-
         rc = prvCriticalSectionWrapper(req, req_length, rsp, &rsp_length);
         configASSERT(rc != -1);
 
-        uxArraySizeReturnedEnd = uxTaskGetSystemState(pxTaskStatusArrayEnd, uxArraySize,
+        uxArraySizeReturned = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize,
                 pulTotalRunTime);
 
-        configASSERT(uxArraySizeReturnedStart == uxArraySize &&
-                uxArraySizeReturnedEnd == uxArraySize);
+        configASSERT(uxArraySizeReturned == uxArraySize);
 
     }
 
     /* perform mainMICROBENCHMARK_ITERATIONS runs of the critical section */
     for (int i = 0; i < mainMICROBENCHMARK_ITERATIONS; ++i)
     {
-        uxArraySizeReturnedStart = uxTaskGetSystemState(pxTaskStatusArrayStart, uxArraySize,
-                pulTotalRunTime);
-
         rc = prvCriticalSectionWrapper(req, req_length, rsp, &rsp_length);
         configASSERT(rc != -1);
 
-        uxArraySizeReturnedEnd = uxTaskGetSystemState(pxTaskStatusArrayEnd, uxArraySize,
-                pulTotalRunTime);
-
-        configASSERT(uxArraySizeReturnedStart == uxArraySize &&
-                uxArraySizeReturnedEnd == uxArraySize);
-
-        /* eventually just use this and get rid of the start/end ones... */
         uxArraySizeReturned = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize,
                 pulTotalRunTime);
 
@@ -337,6 +315,8 @@ void vServerTask(void *pvParameters)
         {
             rc = prvBuildPrintTaskStatusStruct(pcModbusFunctionName, &pxTaskStatusArray[j],
                     &xPrintTaskStatus, pulTotalRunTime);
+            configASSERT(rc != -1);
+
             xReturned = xQueueSend(xQueuePrint, &xPrintTaskStatus, 0U);
             configASSERT(xReturned == pdPASS);
         }
@@ -450,44 +430,12 @@ static void prvCriticalSectionTask(void *pvParameters)
 
 /*-----------------------------------------------------------*/
 
-/* Calculates the difference in the ulRunTimeCounter field for two
- * TaskStatus_t arrays (presumably representing a start and end state)
- */
-static uint32_t prvCalcRunTimeDiff(const char *pcTaskName, UBaseType_t uxArraySize,
-        TaskStatus_t *pxTaskStatusArrayStart, TaskStatus_t *pxTaskStatusArrayEnd)
-{
-    uint32_t ulRunTimeCounterStart, ulRunTimeCounterEnd;
-
-    for (UBaseType_t i = 0; i < uxArraySize; ++i)
-    {
-        if (strncmp(pxTaskStatusArrayStart[i].pcTaskName, pcTaskName, 20) == 0)
-        {
-            ulRunTimeCounterStart = pxTaskStatusArrayStart[i].ulRunTimeCounter;
-        }
-        if (strncmp(pxTaskStatusArrayEnd[i].pcTaskName, pcTaskName, 20) == 0)
-        {
-            ulRunTimeCounterEnd = pxTaskStatusArrayEnd[i].ulRunTimeCounter;
-        }
-    }
-
-    if (ulRunTimeCounterEnd - ulRunTimeCounterStart > 0)
-    {
-        return ulRunTimeCounterEnd - ulRunTimeCounterStart;
-    }
-    else
-    {
-        return -1;
-    }
-}
-
-/*-----------------------------------------------------------*/
-
 #if defined(MICROBENCHMARK)
 static void prvPrintStatsTask(void *pvParameters)
 {
     PrintTaskStatus_t xPrintTaskStatus;
 	/* Print out column headings for the run-time stats table. */
-    printf("modbus_function_name, task_name, task_runtime_counter, stack_highwater_mark, total_runtime");
+    printf("modbus_function_name, task_name, task_runtime_counter, stack_highwater_mark, total_runtime\n");
     for(;;)
     {
         /* dequeue PrintTaskStatus_t structures */

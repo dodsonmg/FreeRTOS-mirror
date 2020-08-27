@@ -78,7 +78,7 @@ extern QueueHandle_t xQueueServerClientMacaroons;
 
 /*-----------------------------------------------------------*/
 
-void prvClientInitialization(char *ip, int port,
+void vClientInitialization(char *ip, int port,
                              QueueHandle_t xQueueClientServer,
                              QueueHandle_t xQueueServerClient)
 {

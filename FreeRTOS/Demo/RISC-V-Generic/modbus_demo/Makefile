@@ -162,7 +162,7 @@ ifeq ($(PROG),modbus_baseline_microbenchmark)
 	CFLAGS += \
 		-DmainDEMO_TYPE=42 \
 		-D__freertos__=1 \
-		-DNDEBUG \
+		-DNDEBUG=1 \
 		-DMICROBENCHMARK=1
 	DEMO_SRC += \
 		main_modbus.c \
@@ -187,11 +187,49 @@ ifeq ($(PROG),modbus_cheri_layer)
 		$(LIBMODBUS_SRC) \
 		$(LIBMODBUS_CHERI_SRC)
 else
+ifeq ($(PROG),modbus_cheri_layer_microbenchmark)
+	CFLAGS += \
+		-DmainDEMO_TYPE=42 \
+		-DCHERI_LAYER=1 \
+		-D__freertos__=1 \
+		-DNDEBUG=1 \
+		-DMICROBENCHMARK=1
+	DEMO_SRC += \
+		main_modbus.c \
+		modbus_server.c \
+		modbus_client.c
+	INCLUDES += \
+		$(LIBMODBUS_INCLUDES) \
+		$(LIBMODBUS_CHERI_INCLUDES)
+	DEMO_SRC += \
+		$(LIBMODBUS_SRC) \
+		$(LIBMODBUS_CHERI_SRC)
+else
 ifeq ($(PROG),modbus_macaroons_layer)
 	CFLAGS += \
 		-DmainDEMO_TYPE=42 \
 		-DMACAROONS_LAYER=1 \
 		-D__freertos__=1
+	DEMO_SRC += \
+		main_modbus.c \
+		modbus_server.c \
+		modbus_client.c
+	INCLUDES += \
+		$(LIBMODBUS_INCLUDES) \
+		$(LIBMODBUS_MACAROONS_INCLUDES) \
+		$(LIBMACAROONS_INCLUDES)
+ 	DEMO_SRC += \
+		$(LIBMODBUS_SRC) \
+		$(LIBMODBUS_MACAROONS_SRC) \
+		$(LIBMACAROONS_SRC)
+else
+ifeq ($(PROG),modbus_macaroons_layer_microbenchmark)
+	CFLAGS += \
+		-DmainDEMO_TYPE=42 \
+		-DMACAROONS_LAYER=1 \
+		-D__freertos__=1 \
+		-DNDEBUG=1 \
+		-DMICROBENCHMARK=1
 	DEMO_SRC += \
 		main_modbus.c \
 		modbus_server.c \
@@ -226,12 +264,38 @@ ifeq ($(PROG),modbus_cheri_macaroons_layers)
 		$(LIBMODBUS_MACAROONS_SRC) \
 		$(LIBMACAROONS_SRC)
 else
+ifeq ($(PROG),modbus_cheri_macaroons_layers_microbenchmark)
+	CFLAGS += \
+		-DmainDEMO_TYPE=42 \
+		-DMACAROONS_LAYER=1 \
+		-DCHERI_LAYER=1 \
+		-D__freertos__=1 \
+		-DNDEBUG=1 \
+		-DMICROBENCHMARK
+	DEMO_SRC += \
+		main_modbus.c \
+		modbus_server.c \
+		modbus_client.c
+	INCLUDES += \
+		$(LIBMODBUS_INCLUDES) \
+		$(LIBMODBUS_CHERI_INCLUDES) \
+		$(LIBMODBUS_MACAROONS_INCLUDES) \
+		$(LIBMACAROONS_INCLUDES)
+ 	DEMO_SRC += \
+		$(LIBMODBUS_SRC) \
+		$(LIBMODBUS_CHERI_SRC) \
+		$(LIBMODBUS_MACAROONS_SRC) \
+		$(LIBMACAROONS_SRC)
+else
 	$(info unknown demo: $(PROG))
 endif # modbus_baseline
 endif # modbus_baseline_microbenchmark
 endif # modbus_cheri_layer
+endif # modbus_cheri_layer_microbenchmark
 endif # modbus_macaroons_layer
+endif # modbus_macaroons_layer_microbenchmark
 endif # modbus_cheri_macaroons_layers
+endif # modbus_cheri_macaroons_layers_microbenchmark
 
 # PLATFORM Variants
 ifeq ($(PLATFORM),spike)

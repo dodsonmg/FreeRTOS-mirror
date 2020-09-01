@@ -213,6 +213,7 @@ rtems_rtl_symbol_obj_compare (const void* a, const void* b)
 void
 rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj)
 {
+/*
   qsort (obj->local_table,
          obj->local_syms,
          sizeof (rtems_rtl_obj_sym),
@@ -221,6 +222,7 @@ rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj)
          obj->global_syms,
          sizeof (rtems_rtl_obj_sym),
          rtems_rtl_symbol_obj_compare);
+*/
 }
 
 rtems_rtl_obj_sym*

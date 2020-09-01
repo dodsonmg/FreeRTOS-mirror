@@ -144,6 +144,9 @@ rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
          * Return the location of the data in the cache.
          */
         *buffer = cache->buffer + buffer_offset;
+#ifdef  __CHERI_PURE_CAPABILITY__
+        //*buffer = cheri_build_data_cap((ptraddr_t) cache->buffer + buffer_offset, size, 0xff);
+#endif
 
         /*
          * Is all the data in the cache or just a part ?

@@ -62,7 +62,7 @@ inline void *cheri_build_code_cap(size_t address, size_t size, size_t perms) {
   void *returned_cap = pvAlmightyCodeCap;
   returned_cap = __builtin_cheri_perms_and(returned_cap, perms);
   returned_cap = __builtin_cheri_offset_set(returned_cap, address);
-  returned_cap = __builtin_cheri_bounds_set(returned_cap, size);
+  //returned_cap = __builtin_cheri_bounds_set(returned_cap, size);
 
   returned_cap = __builtin_cheri_seal_entry(returned_cap);
 

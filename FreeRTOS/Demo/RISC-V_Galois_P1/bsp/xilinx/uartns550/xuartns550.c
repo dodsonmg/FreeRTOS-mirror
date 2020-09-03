@@ -149,8 +149,12 @@ int XUartNs550_CfgInitialize(XUartNs550 *InstancePtr,
 	/*
 	 * Setup the data that is from the configuration information
 	 */
+#ifdef __CHERI_PURE_CAPABILITY__
     extern void *pvAlmightyDataCap;
 	InstancePtr->BaseAddress = (uintptr_t)cheri_setoffset(pvAlmightyDataCap, EffectiveAddr);
+#else
+	InstancePtr->BaseAddress = EffectiveAddr;
+#endif
 	InstancePtr->InputClockHz = Config->InputClockHz;
 
 	/*

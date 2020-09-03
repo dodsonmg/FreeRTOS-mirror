@@ -91,8 +91,10 @@ extern u32 XStl_RegUpdate(u32 RegAddr, u32 RegVal);
 #define INLINE __inline
 #endif
 
+#ifdef __CHERI_PURE_CAPABILITY__
 #include <cheric.h>
 extern void *pvAlmightyDataCap;
+#endif
 /*
  * TODO: the following IO functions are simply using an almighty capability
  * with the address being the offset. At least two things can be improved.
@@ -115,7 +117,11 @@ extern void *pvAlmightyDataCap;
 ******************************************************************************/
 static INLINE u8 Xil_In8(UINTPTR Addr)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	return *(volatile u8 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    return *(volatile u8 *) Addr;
+#endif
 }
 
 /*****************************************************************************/
@@ -132,7 +138,11 @@ static INLINE u8 Xil_In8(UINTPTR Addr)
 ******************************************************************************/
 static INLINE u16 Xil_In16(UINTPTR Addr)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	return *(volatile u16 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    return *(volatile u16 *) Addr;
+#endif
 }
 
 /*****************************************************************************/
@@ -149,7 +159,11 @@ static INLINE u16 Xil_In16(UINTPTR Addr)
 ******************************************************************************/
 static INLINE u32 Xil_In32(UINTPTR Addr)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	return *(volatile u32 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    return *(volatile u32 *) Addr;
+#endif
 }
 
 /*****************************************************************************/
@@ -166,7 +180,11 @@ static INLINE u32 Xil_In32(UINTPTR Addr)
 ******************************************************************************/
 static INLINE u64 Xil_In64(UINTPTR Addr)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	return *(volatile u64 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    return *(volatile u64 *) Addr;
+#endif
 }
 
 /*****************************************************************************/
@@ -184,7 +202,11 @@ static INLINE u64 Xil_In64(UINTPTR Addr)
 ******************************************************************************/
 static INLINE void Xil_Out8(UINTPTR Addr, u8 Value)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	volatile u8 *LocalAddr = (volatile u8 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    volatile u8 *LocalAddr = (volatile u8 *)Addr;
+#endif
 	*LocalAddr = Value;
 }
 
@@ -202,7 +224,11 @@ static INLINE void Xil_Out8(UINTPTR Addr, u8 Value)
 ******************************************************************************/
 static INLINE void Xil_Out16(UINTPTR Addr, u16 Value)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	volatile u16 *LocalAddr = (volatile u16 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    volatile u16 *LocalAddr = (volatile u16 *)Addr;
+#endif
 	*LocalAddr = Value;
 }
 
@@ -222,7 +248,11 @@ static INLINE void Xil_Out16(UINTPTR Addr, u16 Value)
 static INLINE void Xil_Out32(UINTPTR Addr, u32 Value)
 {
 #ifndef ENABLE_SAFETY
+#ifdef __CHERI_PURE_CAPABILITY__
 	volatile u32 *LocalAddr = (volatile u32 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    volatile u32 *LocalAddr = (volatile u32 *)Addr;
+#endif
 	*LocalAddr = Value;
 #else
 	XStl_RegUpdate(Addr, Value);
@@ -243,7 +273,11 @@ static INLINE void Xil_Out32(UINTPTR Addr, u32 Value)
 ******************************************************************************/
 static INLINE void Xil_Out64(UINTPTR Addr, u64 Value)
 {
+#ifdef __CHERI_PURE_CAPABILITY__
 	volatile u64 *LocalAddr = (volatile u64 *)cheri_setoffset(pvAlmightyDataCap, Addr);
+#else
+    volatile u64 *LocalAddr = (volatile u64 *)Addr;
+#endif
 	*LocalAddr = Value;
 }
 

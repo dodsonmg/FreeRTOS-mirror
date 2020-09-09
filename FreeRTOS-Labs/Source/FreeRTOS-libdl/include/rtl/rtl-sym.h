@@ -47,6 +47,12 @@ typedef struct rtems_rtl_symbols
   size_t               nbuckets;
 } rtems_rtl_symbols;
 
+typedef enum interface_symbol_type {
+  RTL_INTERFACE_SYMBOL_EMPTY,
+  RTL_INTERFACE_SYMBOL_ALL_GLOBALS,
+  RTL_INTERFACE_SYMBOL_SUBSET_GLOBALS
+} isymbol_table_mode_t;
+
 /**
  * Open a symbol table with the specified number of buckets.
  *
@@ -154,6 +160,15 @@ rtems_rtl_isymbol_obj_find (rtems_rtl_obj* obj, const char* name);
  */
 rtems_rtl_obj_sym*
 rtems_rtl_esymbol_obj_find (rtems_rtl_obj* obj, const char* name);
+
+/**
+ * Create a new interface symbol table for an object file.
+ *
+ * @param obj The object file to create the table for.
+ * @param mode The create mode for the interface table.
+ * @retval false if failed to create, true if succeeded.
+ */
+bool rtems_rtl_isymbol_create (rtems_rtl_obj* obj, isymbol_table_mode_t mode);
 
 /**
  * Find a symbol given the symbol label and value in the local object file.

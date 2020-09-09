@@ -371,6 +371,54 @@ rtems_rtl_symbol_obj_extract (rtems_rtl_obj* obj, const char* name)
   return NULL;
 }
 
+bool
+rtems_rtl_isymbol_create (rtems_rtl_obj* obj, isymbol_table_mode_t mode)
+{
+  char *istring = NULL;
+  char *name = NULL;
+  size_t slen = 0;
+
+  // Copy all the globals to the interface list. Ang global symbol in this
+  // compartment can then be accessed from other compartments. That is the
+  // simplest and most straightforward policy, following standard C static
+  // linking behavior.
+  if (mode == RTL_INTERFACE_SYMBOL_ALL_GLOBALS) {
+    obj->interface_table = rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_SYMBOL,
+                                            obj->global_size, true);
+    if (!obj->interface_table) {
+      obj->interface_syms = 0;
+      rtems_rtl_set_error (ENOMEM, "no memory for obj interface syms");
+      return false;
+    }
+
+    memcpy(obj->interface_table, obj->global_table, obj->global_size);
+
+    istring = (char*) obj->interface_table + (obj->global_syms * sizeof(rtems_rtl_obj_sym));
+
+    for (int i = 0; i < obj->global_syms; i++) {
+
+       vListInitialiseItem(&obj->interface_table[i].node);
+       vListInsertEnd(&obj->interface_list, &obj->interface_table[i].node);
+
+       name = obj->global_table[i].name;
+       slen = strlen (name) + 1;
+       memcpy(istring, name, slen);
+
+       obj->interface_table[i].name = istring;
+       istring += slen;
+    }
+
+    obj->interface_syms = obj->global_syms;
+
+    return true;
+  } else {
+    rtems_rtl_set_error (EINVAL, "Invalid mode for creating a new interface list");
+    return false;
+  }
+
+  return false;
+}
+
 void
 rtems_rtl_symbol_obj_add (rtems_rtl_obj* obj)
 {

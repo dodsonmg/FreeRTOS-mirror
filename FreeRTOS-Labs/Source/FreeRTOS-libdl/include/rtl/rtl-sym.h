@@ -111,6 +111,8 @@ void rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj);
 
 /**
  * Find a symbol given the symbol label in the local object file.
+ * This searches all locals, globals, interface, externals and public global
+ * list for this object file.
  *
  * @param obj The object file to search.
  * @param name The name as an ASCIIZ string.
@@ -119,6 +121,39 @@ void rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj);
  */
 rtems_rtl_obj_sym* rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj,
                                               const char*    name);
+
+/**
+ * Find a symbol given the symbol label in the globals list of that object file.
+ *
+ * @param obj The object file to search.
+ * @param name The name as an ASCIIZ string.
+ * @retval NULL No symbol found.
+ * @return rtems_rtl_obj_sym* Reference to the symbol.
+ */
+rtems_rtl_obj_sym*
+rtems_rtl_gsymbol_obj_find (rtems_rtl_obj* obj, const char* name);
+
+/**
+ * Find a symbol given the symbol label in the interface list of that object file.
+ *
+ * @param obj The object file to search.
+ * @param name The name as an ASCIIZ string.
+ * @retval NULL No symbol found.
+ * @return rtems_rtl_obj_sym* Reference to the symbol.
+ */
+rtems_rtl_obj_sym*
+rtems_rtl_isymbol_obj_find (rtems_rtl_obj* obj, const char* name);
+
+/**
+ * Find a symbol given the symbol label in the extenals list of that object file.
+ *
+ * @param obj The object file to search.
+ * @param name The name as an ASCIIZ string.
+ * @retval NULL No symbol found.
+ * @return rtems_rtl_obj_sym* Reference to the symbol.
+ */
+rtems_rtl_obj_sym*
+rtems_rtl_esymbol_obj_find (rtems_rtl_obj* obj, const char* name);
 
 /**
  * Find a symbol given the symbol label and value in the local object file.

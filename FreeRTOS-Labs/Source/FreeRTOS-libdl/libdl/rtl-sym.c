@@ -225,6 +225,49 @@ rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj)
 */
 }
 
+static rtems_rtl_obj_sym*
+rtems_rtl_symbol_list_find (List_t* list, const char* name)
+{
+  ListItem_t *node = listGET_HEAD_ENTRY (list);
+
+  while (listGET_END_MARKER (list) != node)
+  {
+    rtems_rtl_obj_sym* sym = (rtems_rtl_obj_sym*) node;
+
+    if (strcmp(sym->name, name) == 0) {
+      return sym;
+    }
+
+    node = listGET_NEXT (node);
+  }
+
+  return NULL;
+}
+
+rtems_rtl_obj_sym*
+rtems_rtl_lsymbol_obj_find (rtems_rtl_obj* obj, const char* name)
+{
+  return rtems_rtl_symbol_list_find(&obj->locals_list, name);
+}
+
+rtems_rtl_obj_sym*
+rtems_rtl_gsymbol_obj_find (rtems_rtl_obj* obj, const char* name)
+{
+  return rtems_rtl_symbol_list_find(&obj->globals_list, name);
+}
+
+rtems_rtl_obj_sym*
+rtems_rtl_isymbol_obj_find (rtems_rtl_obj* obj, const char* name)
+{
+  return rtems_rtl_symbol_list_find(&obj->interface_list, name);
+}
+
+rtems_rtl_obj_sym*
+rtems_rtl_esymbol_obj_find (rtems_rtl_obj* obj, const char* name)
+{
+  return rtems_rtl_symbol_list_find(&obj->externals_list, name);
+}
+
 rtems_rtl_obj_sym*
 rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {

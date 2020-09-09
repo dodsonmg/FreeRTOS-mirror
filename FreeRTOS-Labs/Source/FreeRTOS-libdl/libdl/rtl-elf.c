@@ -1135,6 +1135,7 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
             vListInitialiseItem(&osym->node);
             string = gstring;
             gstring += slen;
+            vListInsertEnd(&obj->globals_list, &osym->node);
             ++gsym;
           }
         }

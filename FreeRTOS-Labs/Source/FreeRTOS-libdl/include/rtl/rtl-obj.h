@@ -775,6 +775,13 @@ bool rtems_rtl_obj_relocate (rtems_rtl_obj*             obj,
 void rtems_rtl_obj_synchronize_cache (rtems_rtl_obj* obj);
 
 /**
+ * Perform any required relocations after resolving externals
+ *
+ * @param obj The object file's descriptor.
+ */
+bool rtems_rtl_obj_post_resolve_reloc (rtems_rtl_obj* obj);
+
+/**
  * Relocate an object file's unresolved reference.
  *
  * @param rec The unresolved relocation record.

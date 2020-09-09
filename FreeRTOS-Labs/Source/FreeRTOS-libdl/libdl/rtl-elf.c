@@ -588,11 +588,11 @@ rtems_rtl_elf_relocs_locator (rtems_rtl_obj*      obj,
                                         rtems_rtl_elf_reloc_relocator, 0, data);
 }
 
-static bool
+bool
 rtems_rtl_elf_relocs_lo12_locator (rtems_rtl_obj*      obj,
-                                  int                 fd,
-                                  rtems_rtl_obj_sect* sect,
-                                  void*               data)
+                                   int                 fd,
+                                   rtems_rtl_obj_sect* sect,
+                                   void*               data)
 {
   if (!rtems_rtl_elf_relocate_worker (obj, fd, sect,
                                         rtems_rtl_elf_reloc_relocator, R_RISCV_PCREL_LO12_I, data))

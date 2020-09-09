@@ -901,6 +901,14 @@ rtems_rtl_obj_sect_sync_handler (ListItem_t* node, void* data)
   return true;
 }
 
+bool
+rtems_rtl_obj_post_resolve_reloc (rtems_rtl_obj* obj)
+{
+  return rtems_rtl_obj_relocate (obj,
+                                rtl_freertos_compartment_open(obj->oname),
+                                rtems_rtl_elf_relocs_lo12_locator, NULL);
+}
+
 void
 rtems_rtl_obj_synchronize_cache (rtems_rtl_obj* obj)
 {

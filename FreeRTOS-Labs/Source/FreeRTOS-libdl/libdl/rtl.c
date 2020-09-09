@@ -594,6 +594,10 @@ rtems_rtl_load (const char* name, int mode)
 
     rtems_rtl_unresolved_resolve ();
 
+    if (!rtems_rtl_obj_post_resolve_reloc (obj)) {
+      return NULL;
+    }
+
     /*
      * Iterator over the pending list of object files that have been loaded.
      */

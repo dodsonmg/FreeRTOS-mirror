@@ -148,6 +148,11 @@ bool rtems_rtl_elf_rel_resolve_sym (Elf_Word type);
  */
 size_t rtems_rtl_elf_relocate_tramp_max_size (void);
 
+bool
+rtems_rtl_elf_relocs_lo12_locator (rtems_rtl_obj*     obj,
+                                   int                 fd,
+                                   rtems_rtl_obj_sect* sect,
+                                   void*               data);
 /**
  * Architecture specific relocation trampoline handler compiled in for a
  * specific architecture by the build system. The handler determines if the

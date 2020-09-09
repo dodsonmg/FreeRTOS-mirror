@@ -1898,9 +1898,9 @@ rtems_rtl_elf_file_load (rtems_rtl_obj* obj, int fd)
     return false;
 
   /*
-   * Fix up the LO12 relocations.
+   * Create an interface table from the globals
    */
-  if (!rtems_rtl_obj_relocate (obj, fd, rtems_rtl_elf_relocs_lo12_locator, &ehdr))
+  if (!rtems_rtl_isymbol_create(obj, RTL_INTERFACE_SYMBOL_ALL_GLOBALS))
     return false;
 
   //rtems_rtl_symbol_obj_erase_local (obj);

@@ -201,6 +201,16 @@ struct rtems_rtl_obj
   size_t              local_size;   /**< Local symbol memory usage. */
   rtems_rtl_obj_sym*  global_table; /**< Global symbol table. */
   size_t              global_syms;  /**< Global symbol count. */
+  List_t              globals_list; /* A list of globals symbols */
+
+  rtems_rtl_obj_sym*  interface_table; /**< Interface symbol table. */
+  List_t              interface_list;  /* A list of interface symbols */
+  size_t              interface_syms;  /**< Interface symbol count. */
+
+  rtems_rtl_obj_sym*  externals_table; /**< Externals symbol table. */
+  List_t              externals_list;  /* A list of external symbols */
+  size_t              externals_syms;  /**< Externals symbol count. */
+
   size_t              global_size;  /**< Global symbol memory usage. */
   size_t              unresolved;   /**< The number of unresolved relocations. */
   void*               text_base;    /**< The base address of the text section

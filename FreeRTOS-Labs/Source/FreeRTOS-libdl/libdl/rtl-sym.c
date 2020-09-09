@@ -271,12 +271,39 @@ rtems_rtl_esymbol_obj_find (rtems_rtl_obj* obj, const char* name)
 rtems_rtl_obj_sym*
 rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {
+  rtems_rtl_obj_sym* match = NULL;
   /*
    * Check the object file's symbols first. If not found search the
    * global symbol table.
    */
   if (obj->local_syms)
   {
+    match = rtems_rtl_lsymbol_obj_find (obj, name);
+    if (match != NULL)
+      return match;
+  }
+
+  if (obj->global_syms)
+  {
+    match = rtems_rtl_gsymbol_obj_find (obj, name);
+    if (match != NULL)
+      return match;
+  }
+
+  if (obj->interface_syms)
+  {
+    match = rtems_rtl_isymbol_obj_find (obj, name);
+    if (match != NULL)
+      return match;
+  }
+
+  if (obj->externals_syms)
+  {
+    match = rtems_rtl_esymbol_obj_find (obj, name);
+    if (match != NULL)
+      return match;
+  }
+#if 0
     rtems_rtl_obj_sym* match;
     rtems_rtl_obj_sym  key = { 0 };
     key.name = name;
@@ -286,9 +313,6 @@ rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
                      rtems_rtl_symbol_obj_compare);
     if (match != NULL)
       return match;
-  }
-  if (obj->global_syms)
-  {
     rtems_rtl_obj_sym* match;
     rtems_rtl_obj_sym  key = { 0 };
     key.name = name;
@@ -298,7 +322,13 @@ rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
                      rtems_rtl_symbol_obj_compare);
     if (match != NULL)
       return match;
-  }
+#endif
+
+
+  /*
+   * This is the public global list (currently FreeRTOS kernel and libc)
+   * FIXME This may beed to be changed/refined later.
+   */
   return rtems_rtl_symbol_global_find (name);
 }
 

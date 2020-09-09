@@ -1321,8 +1321,8 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
       }
   }
 
-  if (obj->global_size)
-    rtems_rtl_symbol_obj_add (obj);
+  //if (obj->global_size)
+  //  rtems_rtl_symbol_obj_add (obj);
 
   return true;
 }

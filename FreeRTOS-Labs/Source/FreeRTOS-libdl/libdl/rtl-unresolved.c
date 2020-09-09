@@ -261,6 +261,36 @@ rtems_rtl_unresolved_resolve_reloc (rtems_rtl_unresolv_rec* rec,
         printf ("rtl: unresolv: resolve reloc: %s\n",
                 rd->name_rec->rec.name.name);
 
+      rtems_rtl_obj* obj = rtems_rtl_find_obj_with_symbol (rd->name_rec->rec.name.name);
+      if (obj) {
+        if (rtems_rtl_trace (RTEMS_RTL_TRACE_UNRESOLVED))
+          printf("rtl: unresolv: found symbol %s in object -> %s\n",
+                 rd->name_rec->rec.name.name,
+                 obj->oname);
+
+        if (rtems_rtl_isymbol_obj_mint(obj, rec->rec.reloc.obj, rd->name_rec->rec.name.name)) {
+          if (rtems_rtl_trace (RTEMS_RTL_TRACE_UNRESOLVED))
+            printf("rtl: unresolv: minted symbol from object: %s -> object: %s\n",
+                   rd->name_rec->rec.name.name,
+                   obj->oname,
+                   rec->rec.reloc.obj->oname);
+        } else {
+          if (rtems_rtl_trace (RTEMS_RTL_TRACE_UNRESOLVED))
+            printf("rtl: unresolv: failed to mint symbol from object: %s -> object: %s\n",
+                   rd->name_rec->rec.name.name,
+                   obj->oname,
+                   rec->rec.reloc.obj->oname);
+          return false;
+        }
+      } else {
+          if (rtems_rtl_trace (RTEMS_RTL_TRACE_UNRESOLVED))
+            printf("rtl: unresolv: failed to mint symbol from object: %s -> object: %s\n",
+                   rd->name_rec->rec.name.name,
+                   obj->oname,
+                   rec->rec.reloc.obj->oname);
+          return false;
+      }
+
       if (rtems_rtl_obj_relocate_unresolved (&rec->rec.reloc, rd->sym))
       {
         /*
@@ -305,7 +335,12 @@ rtems_rtl_unresolved_resolve_iterator (rtems_rtl_unresolv_rec* rec,
     if (rtems_rtl_trace (RTEMS_RTL_TRACE_UNRESOLVED))
       printf ("rtl: unresolv: lookup: %d: %s\n", rd->name, rec->rec.name.name);
 
-    rd->sym = rtems_rtl_symbol_global_find (rec->rec.name.name);
+    // Search for a loaded object that has this symbol
+    rtems_rtl_obj* obj = rtems_rtl_find_obj_with_symbol (rec->rec.name.name);
+    if (obj) {
+      // Search the interface list for that symbol
+      rd->sym = rtems_rtl_isymbol_obj_find(obj, (rec->rec.name.name));
+    }
 
     if (rd->sym)
     {
@@ -605,6 +640,8 @@ rtems_rtl_unresolved_add (rtems_rtl_obj*        obj,
       rtems_rtl_set_error (ENOMEM, "internal unresolved block error");
       return false;
     }
+
+    obj->externals_syms++;
 
     rtems_rtl_unresolved_reindex_names (name_index, 1);
   }

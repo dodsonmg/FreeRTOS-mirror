@@ -171,6 +171,20 @@ rtems_rtl_esymbol_obj_find (rtems_rtl_obj* obj, const char* name);
 bool rtems_rtl_isymbol_create (rtems_rtl_obj* obj, isymbol_table_mode_t mode);
 
 /**
+ * Mint/Copy a symbol from one object's interface table (that owns the symbol)
+ * to another object's externals (that requests to access it).
+ *
+ * @param src_obj The object file that owns the symbol.
+ * @param dest_obj The object file that references that external symbol.
+ * @retval NULL if failed to mint it, or a newly created symbol that's added to
+ * the externals list of the dest_obj if all checks and allocations pass.
+ */
+rtems_rtl_obj_sym*
+rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj,
+                            rtems_rtl_obj* dest_obj,
+                            const char* name);
+
+/**
  * Find a symbol given the symbol label and value in the local object file.
  * This should only be used after sections have been relocated to find
  * a unique symbol entry even if the labels are duplicated.

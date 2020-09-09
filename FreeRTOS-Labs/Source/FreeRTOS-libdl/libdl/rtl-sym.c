@@ -419,6 +419,44 @@ rtems_rtl_isymbol_create (rtems_rtl_obj* obj, isymbol_table_mode_t mode)
   return false;
 }
 
+rtems_rtl_obj_sym*
+rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, const char* name)
+{
+  char *estring = NULL;
+  size_t slen = 0;
+  rtems_rtl_obj_sym *esym = NULL;
+
+  // Seach the interface list of the src_obj to check if it does own that symbol
+  // TODO: check of dest_obj is allowed to call src_obj:name
+  rtems_rtl_obj_sym* sym = rtems_rtl_isymbol_obj_find(src_obj, name);
+  if (!sym) {
+    return NULL;
+  }
+
+  slen = strlen(name) + 1;
+
+  // Allocate a new buffer for the symbol and its name
+  esym = rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_SYMBOL, sizeof(rtems_rtl_obj_sym) + slen, true);
+  if (!esym) {
+    rtems_rtl_set_error (ENOMEM, "no memory for an external symbol");
+    return NULL;
+  }
+
+  estring = (char*) esym + (sizeof(rtems_rtl_obj_sym));
+
+  // Copy the symbol from interface table to externals table
+  memcpy(esym, sym, sizeof(rtems_rtl_obj_sym));
+  memcpy(estring, name, slen);
+
+  // TODO: We may need to bookkeep the owner of that object (src_obj) in the
+  // symbol struct (e.g., capability).
+  // Add the symbol to the dest_obj extenals list
+  vListInitialiseItem(&esym->node);
+  vListInsertEnd(&dest_obj->externals_list, &esym->node);
+
+  return esym;
+}
+
 void
 rtems_rtl_symbol_obj_add (rtems_rtl_obj* obj)
 {

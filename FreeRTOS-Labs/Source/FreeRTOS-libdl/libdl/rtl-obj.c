@@ -71,6 +71,10 @@ rtems_rtl_obj_alloc (void)
      */
     vListInitialise (&obj->sections);
     vListInitialise (&obj->dependents);
+    vListInitialise (&obj->globals_list);
+    vListInitialise (&obj->locals_list);
+    vListInitialise (&obj->interface_list);
+    vListInitialise (&obj->externals_list);
 
     /*
      * Initialise the obj link.

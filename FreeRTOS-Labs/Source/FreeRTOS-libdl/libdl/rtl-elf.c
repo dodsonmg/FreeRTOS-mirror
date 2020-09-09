@@ -1028,7 +1028,6 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
     }
 
     obj->local_syms = locals;
-    vListInitialise(&obj->locals_list);
   }
 
   if (globals)

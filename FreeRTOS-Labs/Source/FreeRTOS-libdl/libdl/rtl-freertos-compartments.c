@@ -66,8 +66,10 @@ ssize_t rtl_freertos_compartment_read(int fd, void *buffer, UBaseType_t offset, 
     return -1;
   }
 
+  // If trying to read past the file size, trim down the count to read only to
+  // the EoF.
   if (offset + count > comp_list[fd].size) {
-    count = (offset + count) - comp_list[fd].size;
+    count -= (offset + count) - comp_list[fd].size;
   }
 
   if (memcpy(buffer, comp_list[fd].cap + offset, count)) {

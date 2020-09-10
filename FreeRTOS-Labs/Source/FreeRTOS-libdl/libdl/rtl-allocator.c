@@ -158,6 +158,23 @@ rtems_rtl_alloc_wr_disable (rtems_rtl_alloc_tag tag, void* address)
   rtems_rtl_unlock ();
 }
 
+void
+rtems_rtl_alloc_set_perms (rtems_rtl_alloc_tag tag, void* address)
+{
+  rtems_rtl_data* rtl = rtems_rtl_lock ();
+
+  if (rtems_rtl_trace (RTEMS_RTL_TRACE_ALLOCATOR))
+    printf ("rtl: alloc: wr-enable: addr=%p\n", address);
+
+  if (rtl != NULL && address != NULL)
+    rtl->allocator.allocator (RTEMS_RTL_ALLOC_SET_PERMS,
+                              tag,
+                              address,
+                              0);
+
+  rtems_rtl_unlock ();
+}
+
 rtems_rtl_allocator
 rtems_rtl_alloc_hook (rtems_rtl_allocator handler)
 {

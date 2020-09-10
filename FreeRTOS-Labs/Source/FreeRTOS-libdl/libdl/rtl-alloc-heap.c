@@ -42,6 +42,29 @@ rtems_rtl_alloc_heap (rtems_rtl_alloc_cmd cmd,
     case RTEMS_RTL_ALLOC_UNLOCK:
       _RTEMS_Unlock_allocator();
       break;
+    case RTEMS_RTL_ALLOC_WR_DISABLE:
+#ifdef __CHERI_PURE_CAPABILITY__
+      address = __builtin_cheri_perms_and(address,
+                   ~(__CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
+                   __CHERI_CAP_PERMISSION_PERMIT_STORE__));
+    case RTEMS_RTL_ALLOC_SET_PERMS: {
+      switch (tag)
+      {
+        case RTEMS_RTL_ALLOC_READ:
+          address = __builtin_cheri_perms_and(address,
+                       ~(__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \
+                       __CHERI_CAP_PERMISSION_PERMIT_STORE__));
+        case RTEMS_RTL_ALLOC_READ_WRITE:
+          address = __builtin_cheri_perms_and(address,
+                       ~(__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__));
+        case RTEMS_RTL_ALLOC_READ_EXEC:
+          address = __builtin_cheri_perms_and(address,
+                       ~(__CHERI_CAP_PERMISSION_PERMIT_STORE__));
+        default:
+          break;
+      }
+    } break;
+#endif
     default:
       break;
   }

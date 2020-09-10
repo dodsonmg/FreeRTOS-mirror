@@ -55,6 +55,7 @@ enum rtems_rtl_alloc_cmd {
   RTEMS_RTL_ALLOC_UNLOCK,     /**< Unlock the allocator. */
   RTEMS_RTL_ALLOC_WR_ENABLE,  /**< Enable writes to the memory. */
   RTEMS_RTL_ALLOC_WR_DISABLE, /**< Disable writes to the memory. */
+  RTEMS_RTL_ALLOC_SET_PERMS   /**< Set permissions on the memory. */
 };
 
 /**

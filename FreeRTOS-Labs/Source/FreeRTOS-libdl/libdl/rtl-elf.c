@@ -34,6 +34,7 @@
 #include "rtl-trampoline.h"
 #include "rtl-unwind.h"
 #include <rtl/rtl-unresolved.h>
+#include <rtl/rtl-freertos-compartments.h>
 
 #ifdef __CHERI_PURE_CAPABILITY__
 #include <cheri/cheri-utility.h>
@@ -1269,7 +1270,7 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
 
         printf("Trying to install: "); cheri_print_cap(cap);
 
-        osym->capability = rtems_rtl_captable_install_new_cap(obj, cap);
+        osym->capability = rtl_cherifreertos_captable_install_new_cap(obj, cap);
         if (!osym->capability) {
           printf("Failed to install a new cap\n");
           return false;
@@ -1319,7 +1320,7 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
           __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
         }
 
-        osym->capability = rtems_rtl_captable_install_new_cap(obj, cap);
+        osym->capability = rtl_cherifreertos_captable_install_new_cap(obj, cap);
         if (!osym->capability) {
           printf("Failed to install a new cap\n");
           return false;
@@ -1864,6 +1865,18 @@ rtems_rtl_elf_file_load (rtems_rtl_obj* obj, int fd)
   if (!rtems_rtl_obj_load_symbols (obj, fd, rtems_rtl_elf_symbols_load, &ehdr))
     return false;
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  obj->captable = NULL;
+  // Allocate a new captable for this object. The captable is going to be holding
+  // caps to local, caps to global, caps to an interface (which is going to be the
+  // same size as globals if the table is created in RTL_INTERFACE_SYMBOL_ALL_GLOBALS
+  // mode).
+  if (!rtl_cherifreertos_captable_alloc(obj, obj->local_syms + obj->global_syms * 2))
+  {
+    return false;
+  }
+#endif
+
   /*
    * Parse the relocation records. It lets us know how many dependents
    * and fixup trampolines there are.
@@ -1891,11 +1904,6 @@ rtems_rtl_elf_file_load (rtems_rtl_obj* obj, int fd)
 
   if (!rtems_rtl_elf_alloc_trampoline (obj, relocs.unresolved))
     return false;
-
-#ifdef __CHERI_PURE_CAPABILITY__
-  if (!rtems_rtl_obj_alloc_captable (obj))
-    return false;
-#endif
 
   /*
    * Unlock the allocator.

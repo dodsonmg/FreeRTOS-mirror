@@ -1197,6 +1197,7 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
         osym->name = string;
         osym->value = (uint8_t*) value;
         osym->data = symbol.st_shndx;
+        osym->data |= (symbol.st_info << 16);
 
 #ifdef __CHERI_PURE_CAPABILITY__
       /*if(strlen(string)) {
@@ -1239,7 +1240,7 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
   {
       rtems_rtl_obj_sym*  osym = &obj->local_table[sym];
       rtems_rtl_obj_sect* symsect;
-      symsect = rtems_rtl_obj_find_section_by_index (obj, osym->data);
+      symsect = rtems_rtl_obj_find_section_by_index (obj, osym->data & 0xffffu);
       if (symsect)
       {
         osym->value += (intptr_t) symsect->base;
@@ -1265,15 +1266,23 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
           __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
         }
 
+        printf("Trying to install: "); cheri_print_cap(cap);
+
+        osym->capability = rtems_rtl_captable_install_new_cap(obj, cap);
+        if (!osym->capability) {
+          printf("Failed to install a new cap\n");
+          return false;
+        }
+
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL)) {
           printf("rtl :sym:locate:cheri: Created a local cap for %s @ rtl_sym %p @ %p ",
-          osym->name, osym, &osym->capability);
-          cheri_print_cap(osym->capability);
+          osym->name, osym, osym->capability);
+          cheri_print_cap(*(osym->capability));
         }
 #endif
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL))
           printf ("rtl: sym:locate:local :%-4d name: %-20s val:%-8p sect:%-3d (%s, %p)\n",
-                  sym, osym->name, osym->value, osym->data,
+                  sym, osym->name, osym->value, osym->data & 0xffffu,
                   symsect->name, symsect->base);
       }
   }
@@ -1308,15 +1317,21 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
           __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
         }
 
+        osym->capability = rtems_rtl_captable_install_new_cap(obj, cap);
+        if (!osym->capability) {
+          printf("Failed to install a new cap\n");
+          return false;
+        }
+
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL)) {
           printf("rtl :sym:locate:cheri: Created a global cap for %s @ rtl_sym %p @ %p ",
-                 osym->name, osym, &osym->capability);
-          cheri_print_cap(osym->capability);
+                 osym->name, osym, osym->capability);
+          cheri_print_cap(*(osym->capability));
         }
 #endif
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL))
           printf ("rtl: sym:locate:global:%-4d name: %-20s val:%-8p sect:%-3d (%s, %p)\n",
-                  sym, osym->name, osym->value, osym->data,
+                  sym, osym->name, osym->value, osym->data & 0xffffu,
                   symsect->name, symsect->base);
       }
   }

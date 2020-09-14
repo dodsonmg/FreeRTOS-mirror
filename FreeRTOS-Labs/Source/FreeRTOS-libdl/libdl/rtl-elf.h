@@ -231,7 +231,7 @@ rtems_rtl_elf_rel_status rtems_rtl_elf_relocate_rela (rtems_rtl_obj*            
                                                       const Elf_Rela*           rela,
                                                       const rtems_rtl_obj_sect* sect,
                                                       const char*               symname,
-                                                      const Elf_Byte            syminfo,
+                                                      const Elf_Word            syminfo,
                                                       const Elf_Word            symvalue,
                                                       Elf_Word                  type);
 

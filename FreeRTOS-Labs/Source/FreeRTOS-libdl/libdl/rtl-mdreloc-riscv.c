@@ -229,7 +229,7 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
                           const Elf_Rela*           rela,
                           const rtems_rtl_obj_sect* sect,
                           const char*               symname,
-                          const Elf_Byte            syminfo,
+                          const Elf_Word            syminfo,
                           const Elf_Word            symvalue,
                           Elf_Word                  type,
                           const bool parsing) {
@@ -244,7 +244,7 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
   // Final PCREL value
   Elf_Word pcrel_val = symvalue - ((Elf_Word) where);
 
-  if (syminfo == STT_SECTION) {
+  if (ELF_ST_TYPE (syminfo >> 16) == STT_SECTION) {
     local = 1;
     return rtems_rtl_elf_rel_no_error;
   }
@@ -561,7 +561,7 @@ rtems_rtl_elf_relocate_rela (rtems_rtl_obj*            obj,
                              const Elf_Rela*           rela,
                              const rtems_rtl_obj_sect* sect,
                              const char*               symname,
-                             const Elf_Byte            syminfo,
+                             const Elf_Word            syminfo,
                              const Elf_Word            symvalue,
                              Elf_Word                  type) {
   return rtems_rtl_elf_reloc_rela (obj,

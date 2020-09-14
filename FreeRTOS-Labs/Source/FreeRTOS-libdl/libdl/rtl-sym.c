@@ -448,6 +448,15 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   memcpy(esym, sym, sizeof(rtems_rtl_obj_sym));
   memcpy(estring, name, slen);
 
+  // Allocate a new cap slot in the interface captable and install it
+  // For now, just copy the same copy, but we may want to version/ID them for
+  // each different object compartment.
+  esym->capability = rtl_cherifreertos_captable_install_new_cap(dest_obj, *sym->capability);
+  if (!esym->capability) {
+    rtems_rtl_set_error (ENOMEM, "Could not ming a new cap to the dest obj");
+    return NULL;
+  }
+
   // TODO: We may need to bookkeep the owner of that object (src_obj) in the
   // symbol struct (e.g., capability).
   // Add the symbol to the dest_obj extenals list

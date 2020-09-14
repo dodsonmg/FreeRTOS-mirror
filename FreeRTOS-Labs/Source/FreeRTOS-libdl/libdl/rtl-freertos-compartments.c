@@ -88,12 +88,13 @@ void
 rtems_rtl_symbol_global_insert (rtems_rtl_symbols* symbols,
                                 rtems_rtl_obj_sym* symbol);
 
-size_t rtl_freertos_global_symbols_add(rtems_rtl_obj* obj) {
-Elf_Sym*  symtab_start = &__symtab_start;
-Elf_Sym*  symtab_end = &__symtab_end;
-char*  strtab_start = &__strtab_start;
-char*  strtab_end = &__strtab_end;
-uint32_t syms_count =  ((size_t) &__symtab_end - (size_t) &__symtab_start) / sizeof(Elf_Sym);
+size_t
+rtl_freertos_global_symbols_add(rtems_rtl_obj* obj) {
+  Elf_Sym*  symtab_start = &__symtab_start;
+  Elf_Sym*  symtab_end = &__symtab_end;
+  char*  strtab_start = &__strtab_start;
+  char*  strtab_end = &__strtab_end;
+  uint32_t syms_count =  ((size_t) &__symtab_end - (size_t) &__symtab_start) / sizeof(Elf_Sym);
 
 #ifdef __CHERI_PURE_CAPABILITY__
   size_t strtab_size = ((size_t) &__strtab_end - (size_t) &__strtab_start);
@@ -124,6 +125,17 @@ uint32_t syms_count =  ((size_t) &__symtab_end - (size_t) &__symtab_start) / siz
     return false;
   }
 
+#ifdef __CHERI_PURE_CAPABILITY__
+  obj->captable = NULL;
+  if (!rtl_cherifreertos_captable_alloc(obj, globals_count))
+  {
+    if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI))
+      printf("rtl:cheri: Failed to alloc a global cap table for %s\n", obj->oname);
+
+    return 0;
+  }
+#endif
+
   symbols = rtems_rtl_global_symbols ();
 
   sym = obj->global_table;
@@ -134,14 +146,15 @@ uint32_t syms_count =  ((size_t) &__symtab_end - (size_t) &__symtab_start) / siz
       uint32_t str_idx = symtab_start[i].st_name;
       char *cap_str = strtab_start + str_idx;
 #ifdef __CHERI_PURE_CAPABILITY__
+      void *cap = NULL;
       if (ELF_ST_TYPE(symtab_start[i].st_info) == STT_OBJECT) {
-        sym->capability = cheri_build_data_cap((ptraddr_t) symtab_start[i].st_value,
+        cap = cheri_build_data_cap((ptraddr_t) symtab_start[i].st_value,
         symtab_start[i].st_size,
         __CHERI_CAP_PERMISSION_GLOBAL__ | \
         __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
         __CHERI_CAP_PERMISSION_PERMIT_STORE__);
       } else if (ELF_ST_TYPE(symtab_start[i].st_info) == STT_FUNC) {
-        sym->capability = cheri_build_code_cap((ptraddr_t) symtab_start[i].st_value,
+        cap = cheri_build_code_cap((ptraddr_t) symtab_start[i].st_value,
         symtab_start[i].st_size,
         __CHERI_CAP_PERMISSION_GLOBAL__ | \
         __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \
@@ -149,6 +162,13 @@ uint32_t syms_count =  ((size_t) &__symtab_end - (size_t) &__symtab_start) / siz
         __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__ | \
         __CHERI_CAP_PERMISSION_PERMIT_STORE__ | \
         __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
+      }
+
+      sym->capability = rtl_cherifreertos_captable_install_new_cap(obj, cap);
+      if (!sym->capability) {
+        if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI))
+          printf("rtl:cheri: Failed to install a new cap in %s captable\n", obj->oname);
+        return 0;
       }
 #endif
       sym->value = symtab_start[i].st_value;

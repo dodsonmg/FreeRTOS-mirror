@@ -7,6 +7,7 @@
 #include <rtl/rtl-obj.h>
 #include <rtl/rtl-trace.h>
 #include <errno.h>
+#include "rtl-error.h"
 
 #include <FreeRTOS.h>
 
@@ -164,3 +165,131 @@ uint32_t syms_count =  ((size_t) &__symtab_end - (size_t) &__symtab_start) / siz
 
   return globals_count;
 }
+
+#ifdef __CHERI_PURE_CAPABILITY__
+static bool
+rtl_cherifreertos_captable_copy(void **dest_captable, void **src_captable, size_t caps_count) {
+  void** cap_table = NULL;
+
+  if (!dest_captable || !src_captable) {
+    rtems_rtl_set_error (EINVAL, "Invalid captables to copy");
+    return false;
+  }
+
+  memcpy(dest_captable, src_captable, caps_count * sizeof(void *));
+
+  return true;
+}
+
+static bool
+rtl_cherifreertos_captable_realloc(rtems_rtl_obj* obj, size_t new_caps_count) {
+  void** cap_table = NULL;
+
+  if (!obj->captable) {
+    rtems_rtl_set_error (ENOTEMPTY, "There is no cap table for this object");
+    return false;
+  }
+
+  cap_table = (void **) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT,
+                                   new_caps_count * sizeof(void *), true);
+  if (cap_table) {
+    rtems_rtl_set_error (ENOMEM, "no memory to re-create a new captable");
+    return false;
+  }
+
+  if (!rtl_cherifreertos_captable_copy(cap_table, obj->captable, obj->caps_count)) {
+    rtems_rtl_set_error (ENOMEM, "Failed to copy cap tables");
+  }
+
+  memset(obj->captable, 0, obj->caps_count * sizeof(void *));
+  rtems_rtl_alloc_del(RTEMS_RTL_ALLOC_OBJECT, obj->captable);
+
+  obj->captable = cap_table;
+  obj->caps_count = new_caps_count;
+
+  return true;
+}
+
+static void **
+rtl_cherifreertos_captable_get_free_slot(rtems_rtl_obj* obj) {
+
+  if (!obj->captable) {
+    rtems_rtl_set_error (EINVAL, "There is no cap table for this object");
+    return NULL;
+  }
+
+  // Try to find the first NULL-cap entry as a free slot
+  for (int i = 0; i < obj->caps_count; i++) {
+    if (*(obj->captable + i) == NULL) {
+      return obj->captable + i;
+    }
+  }
+
+  return NULL;
+}
+
+void **
+rtl_cherifreertos_captable_install_new_cap(rtems_rtl_obj* obj, void* new_cap) {
+  void **free_slot;
+
+  if (!obj->captable) {
+    rtems_rtl_set_error (EINVAL, "There is no cap table for this object");
+    return NULL;
+  }
+
+  free_slot = rtl_cherifreertos_captable_get_free_slot(obj);
+  if (!free_slot) {
+    // Try to realloc a new captable to install a new slot
+    if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI)) {
+      printf("rtl:captable: no empty slot for a new cap, trying to realloc\n");
+    }
+
+    // Re-alloc a new captable with an extra slot for a new cap. We may want to
+    // increase the number of slots to add when re-allocating if it's expected
+    // to on-demand allocate many new caps for (i.e., if the object does many
+    // externals accesses.
+    if (!rtl_cherifreertos_captable_realloc(obj, obj->caps_count + 1)) {
+      rtems_rtl_set_error (ENOMEM, "Couldn't realloc a new captable to install a new cap in");
+      return NULL;
+    }
+
+    // Try again after increasing the cap table size
+    free_slot = rtl_cherifreertos_captable_get_free_slot(obj);
+    if (!free_slot) {
+      rtems_rtl_set_error (ENOMEM, "Still can not find a free slot after realloc");
+      return NULL;
+    }
+  }
+
+
+  if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI)) {
+    printf("rtl:captable: Installing a new cap: "); cheri_print_cap(new_cap);
+  }
+
+  *free_slot = new_cap;
+
+  return free_slot;
+}
+
+bool
+rtl_cherifreertos_captable_alloc(rtems_rtl_obj* obj, size_t caps_count) {
+  void** cap_table = NULL;
+
+  if (obj->captable) {
+    rtems_rtl_set_error (ENOTEMPTY, "There is already a cap table for this object");
+    return false;
+  }
+
+  cap_table = (void **) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT,
+                                   caps_count * sizeof(void *), true);
+  if (!cap_table) {
+    rtems_rtl_set_error (ENOMEM, "no memory to create a new captable");
+    return false;
+  }
+
+  obj->captable = cap_table;
+  obj->caps_count = caps_count;
+
+  return true;
+}
+#endif

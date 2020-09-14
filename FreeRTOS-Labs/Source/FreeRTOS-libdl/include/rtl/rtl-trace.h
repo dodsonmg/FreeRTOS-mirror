@@ -52,6 +52,7 @@ typedef uint32_t rtems_rtl_trace_mask;
 #define RTEMS_RTL_TRACE_ARCHIVE_SYMS           (1UL << 13)
 #define RTEMS_RTL_TRACE_DEPENDENCY             (1UL << 14)
 #define RTEMS_RTL_TRACE_BIT_ALLOC              (1UL << 15)
+#define RTEMS_RTL_TRACE_CHERI                  (1UL << 16)
 #define RTEMS_RTL_TRACE_ALL                    (0xffffffffUL & ~(RTEMS_RTL_TRACE_CACHE | \
                                                                  RTEMS_RTL_TRACE_GLOBAL_SYM | \
                                                                  RTEMS_RTL_TRACE_ARCHIVE_SYMS))

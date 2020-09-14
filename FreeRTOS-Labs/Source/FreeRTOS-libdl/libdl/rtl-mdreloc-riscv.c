@@ -529,18 +529,19 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
       }
     }
 
-    pcrel_val = ((Elf_Word) &rtl_sym->capability) - ((Elf_Word) where);
+    pcrel_val = ((Elf_Word) (rtl_sym->capability)) - ((Elf_Word) where);
     int64_t hi = SignExtend64(pcrel_val + 0x800, bits); //pcrel_val + 0x800;
     write32le(where, (read32le(where) & 0xFFF) | (hi & 0xFFFFF000));
 
     if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC)) {
       printf("riscv:sym %s - hi20 pc = %p\n", symname, where);
-      printf("riscv:sym %s - adding a cap reloc at address = %p\n", symname, &rtl_sym->capability);
+      printf("riscv:sym %s - adding a cap reloc at address = %p\n", symname, (rtl_sym->capability));
       printf("riscv:sym :%s - hi20_cap pcrel_val = %d\n", symname, pcrel_val);
     }
 
+
     /* Add a hi20 reloc to the table to be searched later for lo12 relocs */
-    rtems_rtl_elf_relocate_riscv_hi20_add(symvalue,  where, true, (Elf_Word) &rtl_sym->capability);
+    rtems_rtl_elf_relocate_riscv_hi20_add(symvalue,  where, true, (Elf_Word) (rtl_sym->capability));
   }
   break;
 

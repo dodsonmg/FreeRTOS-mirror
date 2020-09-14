@@ -1246,9 +1246,10 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
         osym->value += (intptr_t) symsect->base;
 #ifdef __CHERI_PURE_CAPABILITY__
         Elf_Sym *capsym = (Elf_Sym *) osym->capability;
+        void *cap = NULL;
 
         if (ELF_ST_TYPE(capsym->st_info) == STT_OBJECT) {
-          osym->capability = cheri_build_data_cap((ptraddr_t) osym->value,
+          cap = cheri_build_data_cap((ptraddr_t) osym->value,
           capsym->st_size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
@@ -1256,7 +1257,7 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
           __CHERI_CAP_PERMISSION_PERMIT_STORE__ | \
           __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
         } else if (ELF_ST_TYPE(capsym->st_info) == STT_FUNC) {
-          osym->capability = cheri_build_code_cap((ptraddr_t) osym->value,
+          cap = cheri_build_code_cap((ptraddr_t) osym->value,
           capsym->st_size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \
@@ -1291,15 +1292,16 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
   {
       rtems_rtl_obj_sym*  osym = &obj->global_table[sym];
       rtems_rtl_obj_sect* symsect;
-      symsect = rtems_rtl_obj_find_section_by_index (obj, osym->data);
+      symsect = rtems_rtl_obj_find_section_by_index (obj, osym->data & 0xffffu);
       if (symsect)
       {
         osym->value += (intptr_t) symsect->base;
 #ifdef __CHERI_PURE_CAPABILITY__
         Elf_Sym *capsym = (Elf_Sym *) osym->capability;
+        void *cap = NULL;
 
         if (ELF_ST_TYPE(capsym->st_info) == STT_OBJECT) {
-          osym->capability = cheri_build_data_cap((ptraddr_t) osym->value,
+          cap = cheri_build_data_cap((ptraddr_t) osym->value,
           capsym->st_size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
@@ -1307,7 +1309,7 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
           __CHERI_CAP_PERMISSION_PERMIT_STORE__ | \
            __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
         } else if (ELF_ST_TYPE(capsym->st_info) == STT_FUNC) {
-          osym->capability = cheri_build_code_cap((ptraddr_t) osym->value,
+          cap = cheri_build_code_cap((ptraddr_t) osym->value,
           capsym->st_size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \

@@ -187,6 +187,25 @@ rtl_freertos_global_symbols_add(rtems_rtl_obj* obj) {
 }
 
 #ifdef __CHERI_PURE_CAPABILITY__
+bool
+rtl_cherifreertos_compartment_set_captable(rtems_rtl_obj* obj) {
+  void** cap_table = NULL;
+
+  if (!obj->captable) {
+    rtems_rtl_set_error (EINVAL, "Cap table hasn't been set yet");
+    return false;
+  }
+
+  comp_list[obj->comp_id].captable = obj->captable;
+
+  return true;
+}
+
+void **
+rtl_cherifreertos_compartment_get_captable(size_t comp_id) {
+  return comp_list[comp_id].captable;
+}
+
 static bool
 rtl_cherifreertos_captable_copy(void **dest_captable, void **src_captable, size_t caps_count) {
   void** cap_table = NULL;
@@ -226,6 +245,9 @@ rtl_cherifreertos_captable_realloc(rtems_rtl_obj* obj, size_t new_caps_count) {
 
   obj->captable = cap_table;
   obj->caps_count = new_caps_count;
+
+  if (!rtl_cherifreertos_compartment_set_captable(obj))
+    return false;
 
   return true;
 }
@@ -309,6 +331,9 @@ rtl_cherifreertos_captable_alloc(rtems_rtl_obj* obj, size_t caps_count) {
 
   obj->captable = cap_table;
   obj->caps_count = caps_count;
+
+  if (!rtl_cherifreertos_compartment_set_captable(obj))
+    return false;
 
   return true;
 }

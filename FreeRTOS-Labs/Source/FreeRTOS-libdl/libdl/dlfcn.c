@@ -125,7 +125,7 @@ dlsym (void* handle, const char *symbol)
     symval = sym->value;
 
 #ifdef __CHERI_PURE_CAPABILITY__
-    symval = *sym->capability;
+    symval = cheri_seal_cap(*sym->capability, obj->comp_id);
 #else
     symval = sym->value;
 #endif

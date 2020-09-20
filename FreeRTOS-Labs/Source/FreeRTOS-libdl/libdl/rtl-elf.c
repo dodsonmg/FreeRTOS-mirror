@@ -1867,6 +1867,7 @@ rtems_rtl_elf_file_load (rtems_rtl_obj* obj, int fd)
 
 #ifdef __CHERI_PURE_CAPABILITY__
   obj->captable = NULL;
+  obj->comp_id  = fd;
   // Allocate a new captable for this object. The captable is going to be holding
   // caps to local, caps to global, caps to an interface (which is going to be the
   // same size as globals if the table is created in RTL_INTERFACE_SYMBOL_ALL_GLOBALS

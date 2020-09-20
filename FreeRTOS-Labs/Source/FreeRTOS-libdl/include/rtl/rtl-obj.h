@@ -252,6 +252,7 @@ struct rtems_rtl_obj
 #ifdef __CHERI_PURE_CAPABILITY__
   void**              captable;     /* Capability table per object */
   size_t              caps_count;   /* The number of capabilities */
+  size_t              comp_id;      /* ID of an object compartment */
 #endif
 };
 

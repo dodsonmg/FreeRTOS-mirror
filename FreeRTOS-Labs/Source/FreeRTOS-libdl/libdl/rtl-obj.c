@@ -35,6 +35,10 @@
 #include <FreeRTOS.h>
 #include "list.h"
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <cheri/cheri-utility.h>
+#endif
+
 #define RTEMS_RTL_ELF_LOADER 1
 
 #if RTEMS_RTL_ELF_LOADER
@@ -904,9 +908,16 @@ rtems_rtl_obj_sect_sync_handler (ListItem_t* node, void* data)
 bool
 rtems_rtl_obj_post_resolve_reloc (rtems_rtl_obj* obj)
 {
-  return rtems_rtl_obj_relocate (obj,
+  if (!rtems_rtl_obj_relocate (obj,
                                 rtl_freertos_compartment_open(obj->oname),
-                                rtems_rtl_elf_relocs_lo12_locator, NULL);
+                                rtems_rtl_elf_relocs_lo12_locator, NULL))
+       return false;
+
+#ifdef __CHERI_PURE_CAPABILITY__
+  obj->captable =  cheri_seal_cap(obj->captable, obj->comp_id);
+#endif
+
+  return true;
 }
 
 void

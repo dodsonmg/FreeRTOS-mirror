@@ -33,6 +33,7 @@ extern "C" {
  */
 enum rtems_rtl_alloc_tags {
   RTEMS_RTL_ALLOC_OBJECT,     /**< A generic memory object. */
+  RTEMS_RTL_ALLOC_CAPTAB,     /**< A captable object. */
   RTEMS_RTL_ALLOC_SYMBOL,     /**< Memory used for symbols. */
   RTEMS_RTL_ALLOC_EXTERNAL,   /**< Memory used for external symbols. */
   RTEMS_RTL_ALLOC_READ,       /**< The memory is read only. */

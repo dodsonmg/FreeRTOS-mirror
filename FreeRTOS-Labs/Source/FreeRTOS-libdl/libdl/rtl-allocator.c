@@ -24,9 +24,10 @@
  * Tags as symbols for tracing.
  */
 #if RTEMS_RTL_TRACE
-static const char* tag_labels[6] =
+static const char* tag_labels[7] =
 {
   "OBJECT",
+  "CAPTAB",
   "SYMBOL",
   "EXTERNAL",
   "READ",

@@ -229,7 +229,7 @@ rtl_cherifreertos_captable_realloc(rtems_rtl_obj* obj, size_t new_caps_count) {
     return false;
   }
 
-  cap_table = (void **) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT,
+  cap_table = (void **) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_CAPTAB,
                                    new_caps_count * sizeof(void *), true);
   if (cap_table) {
     rtems_rtl_set_error (ENOMEM, "no memory to re-create a new captable");
@@ -241,7 +241,7 @@ rtl_cherifreertos_captable_realloc(rtems_rtl_obj* obj, size_t new_caps_count) {
   }
 
   memset(obj->captable, 0, obj->caps_count * sizeof(void *));
-  rtems_rtl_alloc_del(RTEMS_RTL_ALLOC_OBJECT, obj->captable);
+  rtems_rtl_alloc_del(RTEMS_RTL_ALLOC_CAPTAB, obj->captable);
 
   obj->captable = cap_table;
   obj->caps_count = new_caps_count;
@@ -322,7 +322,7 @@ rtl_cherifreertos_captable_alloc(rtems_rtl_obj* obj, size_t caps_count) {
     return false;
   }
 
-  cap_table = (void **) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT,
+  cap_table = (void **) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_CAPTAB,
                                    caps_count * sizeof(void *), true);
   if (!cap_table) {
     rtems_rtl_set_error (ENOMEM, "no memory to create a new captable");

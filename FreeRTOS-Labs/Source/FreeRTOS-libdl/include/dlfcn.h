@@ -55,7 +55,7 @@ void	*dlsym(void * __restrict, const char * __restrict);
 int	dladdr(void * __restrict, Dl_info * __restrict);
 int	dlctl(void *, int, void *);
 #endif
-int	dlinfo(void *, int, void *);
+int	dlinfo(void *, int, void **);
 const char *dlerror(void);
 __END_DECLS
 
@@ -95,6 +95,7 @@ __END_DECLS
  * From Solaris: http://docs.sun.com/app/docs/doc/816-5168/dlinfo-3c?a=view
  */
 #define RTLD_DI_UNRESOLVED 	10
+#define RTLD_DI_CHERI_CAPTABLE 	11
 #if defined(_NETBSD_SOURCE)
 #define RTLD_DI_LINKMAP		3
 #if 0

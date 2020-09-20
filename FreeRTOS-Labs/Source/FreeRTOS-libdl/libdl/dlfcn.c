@@ -19,6 +19,10 @@
 #include <dlfcn.h>
 #include <rtl/rtl.h>
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <cheri/cheri-utility.h>
+#endif
+
 static rtems_rtl_obj*
 dl_get_obj_from_handle (void* handle)
 {
@@ -143,7 +147,7 @@ dlerror (void)
 }
 
 int
-dlinfo (void* handle, int request, void* p)
+dlinfo (void* handle, int request, void** p)
 {
   rtems_rtl_obj* obj;
   int            rc = -1;
@@ -160,6 +164,12 @@ dlinfo (void* handle, int request, void* p)
         *((int*) p) = rtems_rtl_obj_unresolved (obj) ? 1 : 0;
         rc = 0;
         break;
+#ifdef __CHERI_PURE_CAPABILITY__
+      case RTLD_DI_CHERI_CAPTABLE:
+        *p = (void *) obj->captable;
+        rc = 0;
+        break;
+#endif
       default:
         break;
     }

@@ -474,14 +474,18 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   // Allocate a new cap slot in the interface captable and install it
   // For now, just copy the same copy, but we may want to version/ID them for
   // each different object compartment.
+  cheri_print_cap(src_obj);
   esym->capability = rtl_cherifreertos_captable_install_new_cap(dest_obj, *sym->capability);
   if (!esym->capability) {
     rtems_rtl_set_error (ENOMEM, "Could not mint a new cap to the dest obj");
     return NULL;
   }
 
-  // TODO: We may need to bookkeep the owner of that object (src_obj) in the
-  // symbol struct (e.g., capability).
+  // Seal a minted cap to an external with its owners/src_obj type
+  if (src_obj) {
+    *(esym->capability) = cheri_seal_cap(*(esym->capability), src_obj->comp_id);
+  }
+
   // Add the symbol to the dest_obj extenals list
   vListInitialiseItem(&esym->node);
   vListInsertEnd(&dest_obj->externals_list, &esym->node);

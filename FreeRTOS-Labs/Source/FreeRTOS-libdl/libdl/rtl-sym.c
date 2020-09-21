@@ -26,7 +26,13 @@
 #include <rtl/rtl.h>
 #include "rtl-error.h"
 #include <rtl/rtl-sym.h>
+#include <rtl/rtl-obj.h>
 #include <rtl/rtl-trace.h>
+#include <rtl/rtl-freertos-compartments.h>
+
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <cheri/cheri-utility.h>
+#endif
 
 /**
  * The single symbol forced into the global symbol table that is used to load a
@@ -303,6 +309,16 @@ rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
     if (match != NULL)
       return match;
   }
+
+  /*
+   * If the symbol is found in the public global list (FreeRTOS/libc) mint it to
+   * the obj cap table.
+   */
+  match = rtems_rtl_symbol_global_find (name);
+  if (match) {
+    return rtems_rtl_isymbol_obj_mint(NULL, obj, match->name);
+  }
+
 #if 0
     rtems_rtl_obj_sym* match;
     rtems_rtl_obj_sym  key = { 0 };
@@ -325,11 +341,7 @@ rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
 #endif
 
 
-  /*
-   * This is the public global list (currently FreeRTOS kernel and libc)
-   * FIXME This may beed to be changed/refined later.
-   */
-  return rtems_rtl_symbol_global_find (name);
+  return NULL;
 }
 
 rtems_rtl_obj_sym*
@@ -425,12 +437,23 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   char *estring = NULL;
   size_t slen = 0;
   rtems_rtl_obj_sym *esym = NULL;
+  rtems_rtl_obj_sym *sym = NULL;
 
-  // Seach the interface list of the src_obj to check if it does own that symbol
-  // TODO: check of dest_obj is allowed to call src_obj:name
-  rtems_rtl_obj_sym* sym = rtems_rtl_isymbol_obj_find(src_obj, name);
-  if (!sym) {
-    return NULL;
+  // If src_obj is NULL, search the global symbol table (FreeRTOS/libc) as they
+  // do not have an allocated object.
+  if (src_obj == NULL) {
+    sym = rtems_rtl_symbol_global_find (name);
+    if (!sym) {
+      rtems_rtl_set_error (ENOMEM, "Could not find %s in the global symbol table", name);
+      return NULL;
+    }
+  } else {
+    // Seach the interface list of the src_obj to check if it does own that symbol
+    // TODO: check of dest_obj is allowed to call src_obj:name
+    sym = rtems_rtl_isymbol_obj_find(src_obj, name);
+    if (!sym) {
+      return NULL;
+    }
   }
 
   slen = strlen(name) + 1;
@@ -453,7 +476,7 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   // each different object compartment.
   esym->capability = rtl_cherifreertos_captable_install_new_cap(dest_obj, *sym->capability);
   if (!esym->capability) {
-    rtems_rtl_set_error (ENOMEM, "Could not ming a new cap to the dest obj");
+    rtems_rtl_set_error (ENOMEM, "Could not mint a new cap to the dest obj");
     return NULL;
   }
 

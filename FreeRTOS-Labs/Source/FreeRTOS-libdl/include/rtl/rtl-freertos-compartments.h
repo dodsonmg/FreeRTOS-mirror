@@ -7,6 +7,7 @@
 
 typedef struct compartment {
   void*       cap;
+  void*       obj;
   void**      captable;
   char*       name;
   size_t      size;
@@ -20,9 +21,39 @@ ssize_t rtl_freertos_compartment_read(int fd, void *buffer, UBaseType_t offset, 
 size_t rtl_freertos_compartment_getsize(int fd);
 size_t rtl_freertos_global_symbols_add(rtems_rtl_obj* obj);
 
+/**
+ * Set the obj cap this compartment points to.
+ *
+ * @param obj The object compartment to set.
+ * @retval true If set successfully
+ */
+bool
+rtl_cherifreertos_compartment_set_obj(rtems_rtl_obj* obj);
+
+/**
+ * Get the object pointer this comp_id/otype refers to.
+ *
+ * @param comp_id The compartment ID (held in the otype of the cap)
+ * @retval NULL if failed, or a pointer to the obj if found.
+ */
+rtems_rtl_obj *
+rtl_cherifreertos_compartment_get_obj(size_t comp_id);
+
+/**
+ * Set the obj captable for a compartment.
+ *
+ * @param obj The object compartment to set the captable for.
+ * @retval true If set successfully
+ */
 bool
 rtl_cherifreertos_compartment_set_captable(rtems_rtl_obj* obj);
 
+/**
+ * Get the object's captable this comp_id/otype refers to.
+ *
+ * @param comp_id The compartment ID (held in the otype of the cap)
+ * @retval NULL if failed, or a pointer to the object's captable if found.
+ */
 void **
 rtl_cherifreertos_compartment_get_captable(size_t comp_id);
 

@@ -189,20 +189,51 @@ rtl_freertos_global_symbols_add(rtems_rtl_obj* obj) {
 #ifdef __CHERI_PURE_CAPABILITY__
 bool
 rtl_cherifreertos_compartment_set_captable(rtems_rtl_obj* obj) {
-  void** cap_table = NULL;
 
   if (!obj->captable) {
     rtems_rtl_set_error (EINVAL, "Cap table hasn't been set yet");
     return false;
   }
 
+  if (obj->comp_id >= configCOMPARTMENTS_NUM)
+    return false;
+
   comp_list[obj->comp_id].captable = obj->captable;
 
   return true;
 }
 
+bool
+rtl_cherifreertos_compartment_set_obj(rtems_rtl_obj* obj) {
+
+  if (!obj) {
+    rtems_rtl_set_error (EINVAL, "Invalid object to set for a compartment");
+    return false;
+  }
+
+  if (obj->comp_id >= configCOMPARTMENTS_NUM)
+    return false;
+
+  comp_list[obj->comp_id].obj = obj;
+
+  return true;
+}
+
+rtems_rtl_obj *
+rtl_cherifreertos_compartment_get_obj(size_t comp_id) {
+
+  if (comp_id >= configCOMPARTMENTS_NUM)
+    return NULL;
+
+  return (rtems_rtl_obj *) comp_list[comp_id].obj;
+}
+
 void **
 rtl_cherifreertos_compartment_get_captable(size_t comp_id) {
+
+  if (comp_id >= configCOMPARTMENTS_NUM)
+    return NULL;
+
   return comp_list[comp_id].captable;
 }
 

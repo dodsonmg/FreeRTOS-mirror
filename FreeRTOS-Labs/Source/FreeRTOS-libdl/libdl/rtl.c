@@ -490,7 +490,7 @@ rtems_rtl_find_obj_with_symbol (const rtems_rtl_obj_sym* sym)
     while (listGET_END_MARKER (&rtl->objects) != node)
     {
       rtems_rtl_obj* obj = (rtems_rtl_obj*) node;
-      if (rtems_rtl_symbol_obj_find (obj, sym))
+      if (rtems_rtl_gsymbol_obj_find (obj, sym))
         return obj;
       node = listGET_NEXT (node);
     }
@@ -498,7 +498,7 @@ rtems_rtl_find_obj_with_symbol (const rtems_rtl_obj_sym* sym)
     while (listGET_END_MARKER (&rtl->pending) != node)
     {
       rtems_rtl_obj* obj = (rtems_rtl_obj*) node;
-      if (rtems_rtl_symbol_obj_find (obj, sym))
+      if (rtems_rtl_gsymbol_obj_find (obj, sym))
         return obj;
       node = listGET_NEXT (node);
     }

@@ -27,6 +27,7 @@
 #include "rtl-error.h"
 #include <rtl/rtl-unresolved.h>
 #include <rtl/rtl-trace.h>
+#include <rtl/rtl-sym.h>
 #include "rtl-trampoline.h"
 
 static rtems_rtl_unresolv_block*

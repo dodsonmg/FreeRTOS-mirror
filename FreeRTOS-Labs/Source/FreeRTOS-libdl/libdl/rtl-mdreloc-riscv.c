@@ -52,6 +52,8 @@
 #include <FreeRTOS.h>
 #include "list.h"
 
+#include <rtl/rtl-freertos-compartments.h>
+
 #ifdef __CHERI_PURE_CAPABILITY__
 #include <cheri/cheri-utility.h>
 #endif
@@ -515,49 +517,56 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
   case R_TYPE(CHERI_CAPTAB_PCREL_HI20): {
     rtems_rtl_obj_sym *rtl_sym;
 
-#if 0
     // Check if that is an external symbol that has already been resolved
     rtl_sym = rtems_rtl_esymbol_obj_find(obj, symname);
-    if (rtems_rtl_esymbol_obj_find(obj, symname)) {
+    if (rtl_sym) {
+
       Elf_Byte st_info = ELF_ST_TYPE(syminfo >> 16);
+
       if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI)) {
-        printf("cheri-riscv:sym Detected a relocation to an external symbol -> %s!!!\n", symname);
+        printf("cheri-riscv:sym Detected a relocation to an external symbol -> %s\n", symname);
         printf("cheri-riscv:sym syminfo = %d\n", ELF_ST_TYPE(st_info));
       }
 
+      // Check if it's reloction to a function (to cjalr to)
+      if (ELF_ST_TYPE(st_info) == STT_FUNC) {
+
         // Hack to try to find the next cjalr and patch it
-        Elf_Byte *mem = (Elf_Byte *) where;
+        // FIXME: Replace that hack with a proper relocation in the compiler
+        // as there are not currently relocations for calls (cjalrs) in purecap
+        uint32_t *mem = (uint32_t *) where;
 
         uint32_t *cjalr_addr = NULL;
         uint32_t ccall_inst = (0x7e << 25) | (0x0 << 12) | (0x1 << 7) | 0x5b;
-        Elf_Byte cjalr_cs1 = 0;
+        Elf_Byte cjalr_cs1 = 0; //codecap - to be set from cjalr args
+        Elf_Byte cjalr_cs2 = 4; //datacap - captable in $ctp
 
+        // limit the number of instructions to lookahead for a cjalr instruction
         size_t max_reach = __builtin_cheri_base_get(where) + __builtin_cheri_length_get(where) - __builtin_cheri_address_get(where);
-        max_reach = max_reach > 1000 ? 1000 : max_reach;
+        max_reach = max_reach > 1000 ? 1000 : max_reach / 4;
 
-        if (ELF_ST_TYPE(st_info) == STT_FUNC) {
-          for (int i = 0; i < max_reach; i++) {
-            if ((*(mem + i) & 0x7f) == 0x5b) {
-              cjalr_addr = mem + i;
-              cheri_print_cap(cjalr_addr);
-              cjalr_addr = cheri_build_data_cap(cjalr_addr, 4, 0xff);
-              cheri_print_cap(cjalr_addr);
-              cjalr_cs1 = (*cjalr_addr >> 15) & 0x1f;
-              break;
-            }
+        for (int i = 0; i < max_reach; i++) {
+          // cjalr opcode?
+          if ((*(mem + i) & ((0x7f << 25) | (0 << 7) | 0x7f)) == ((0x7f << 25) | 0x5b)) {
+            cjalr_addr = mem + i;
+            // Get the codecap reg# to the external from the cjalr instruction
+            cjalr_cs1 = (*cjalr_addr >> 15) & 0x1f;
+            break;
           }
+        }
 
-          if (cjalr_addr) {
-            if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI))
-              printf("cheri-riscv:sym cjalr (0x%lx) found @ %p calling %d reg \n", *cjalr_addr, cjalr_addr, cjalr_cs1);
-            cheri_print_cap(rtl_sym->capability);
-            ccall_inst |= (cjalr_cs1 << 15);
-            *cjalr_addr = ccall_inst;
-          }
+        // Found the cjalr, now patch it to a ccall instead
+        if (cjalr_addr) {
+
+          if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI))
+            printf("cheri-riscv:sym cjalr (0x%lx) found @ %p calling %d reg \n", *cjalr_addr, cjalr_addr, cjalr_cs1);
+
+          // insert the code and data cap regs
+          ccall_inst |= (cjalr_cs2 << 20) | (cjalr_cs1 << 15);
+          *cjalr_addr = ccall_inst;
         }
       }
     }
-#endif
 
     rtl_sym = rtems_rtl_symbol_obj_find_namevalue(obj, symname, symvalue);
     if (rtl_sym == NULL) {

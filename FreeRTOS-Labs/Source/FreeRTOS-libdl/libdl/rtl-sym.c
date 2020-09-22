@@ -481,9 +481,33 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
     return NULL;
   }
 
-  // Seal a minted cap to an external with its owners/src_obj type
+  // if src_obj is NULL, it's a global symbol in FreeRTOS/libc and currently
+  // doesn't need to be sealed.
   if (src_obj) {
+    // Seal a minted cap to an external with its owners/src_obj type
     *(esym->capability) = cheri_seal_cap(*(esym->capability), src_obj->comp_id);
+
+    // Get the captable of the sealed cap's owner to be used as a data cap
+    // during ccalls. This will be installed into the next slot to the
+    // external cap and used during reloction fixups
+    // FIXME: The current assumption is that there's only one instance of
+    // each compartment, and having a cap to one compartment means
+    // it can be entirely accessed (using a ccall with a sealed function cap and
+    // the cap table). This will need to be refined in the future to:
+    // 1) Allow multiple instances of a compartment by creating a custom captable
+    // with new state data/globals and caps referring to them.
+    // 2) Grant only a subset of the caps a compartment can access (instead of
+    // using a single/same captable) based on a policy defined by the system
+    // desinger.
+    void **captable = rtl_cherifreertos_compartment_get_captable(src_obj->comp_id);
+    void **minted_captable = rtl_cherifreertos_captable_install_new_cap(dest_obj, captable);
+
+    if (!minted_captable) {
+      rtems_rtl_set_error (ENOMEM, "Failed to mint a captable cap");
+      return NULL;
+    }
+
+    *minted_captable = cheri_seal_cap(*minted_captable, src_obj->comp_id);
   }
 
   // Add the symbol to the dest_obj extenals list

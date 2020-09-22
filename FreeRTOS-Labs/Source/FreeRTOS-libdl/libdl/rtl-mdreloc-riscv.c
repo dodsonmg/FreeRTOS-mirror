@@ -566,6 +566,31 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
           *cjalr_addr = ccall_inst;
         }
       }
+
+      // Replace AUIPCC to do a $cgp load of the datacap  (global table) into $ctp
+      size_t gp_rel_val = ((Elf_Word) (rtl_sym->capability)) + sizeof(void *) - ((Elf_Word) obj->captable);
+
+      if (gp_rel_val >= 0x1000) {
+        if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC))
+          printf("cheri:riscv:sym minted captable cap for %s is too far to fit in a 4K lc instruction \n", symname);
+
+        return rtems_rtl_elf_rel_failure;
+      }
+
+      int64_t hi = (gp_rel_val + 0x800) >> 12;
+      int64_t lo = gp_rel_val - (hi << 12);
+      // FIXME: This only works for RV64
+#if __riscv_xlen == 64
+      uint32_t lc_inst = (0x2 << 12) | 0xf;
+#else
+#error "RV32 libdl isn't supported yet"
+#endif
+      lc_inst |= (0x3 << 15);
+      lc_inst |= (0x4 << 7);
+      write32le(where, (lc_inst & 0xFFFFF) | (lo & 0xFFF) << 20);
+    } else {
+      // nop, do nothing if it's not an external
+      write32le(where, 0x13);
     }
 
     rtl_sym = rtems_rtl_symbol_obj_find_namevalue(obj, symname, symvalue);
@@ -583,9 +608,11 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
       }
     }
 
+#if 0
     pcrel_val = ((Elf_Word) (rtl_sym->capability)) - ((Elf_Word) where);
     int64_t hi = SignExtend64(pcrel_val + 0x800, bits); //pcrel_val + 0x800;
     write32le(where, (read32le(where) & 0xFFF) | (hi & 0xFFFFF000));
+#endif
 
     if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC)) {
       printf("riscv:sym %s - hi20 pc = %p\n", symname, where);

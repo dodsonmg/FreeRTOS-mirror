@@ -278,7 +278,29 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
         pcrel_val = return_sym - ((Elf_Word) hi20_rela_pc);
   #ifdef __CHERI_PURE_CAPABILITY__
         if (ret_reloc->is_cap) {
+#if 0
           pcrel_val = ret_reloc->cap_addr - ((Elf_Word) hi20_rela_pc);
+#endif
+          size_t gp_rel_val = ((Elf_Word) ret_reloc->cap_addr) - ((Elf_Word) obj->captable);
+          uint32_t lc_inst = read32le(where);
+
+          if (gp_rel_val >= 0x1000) {
+            if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC))
+              printf("cheri:riscv:sym cap for %s is too far to fit in a 4K lc instruction \n", symname);
+
+            return rtems_rtl_elf_rel_failure;
+          }
+
+          hi = (gp_rel_val + 0x800) >> 12;
+          lo = gp_rel_val - (hi << 12);
+          lc_inst &= ~((0x1f) << 15);
+          lc_inst |= (3 << 15); // rs1 -> $cgp
+
+          write32le(where, (lc_inst & 0xFFFFF) | ((lo & 0xFFF) << 20));
+
+          rtems_rtl_elf_relocate_riscv_hi20_del(ret_reloc);
+
+          return rtems_rtl_elf_rel_no_error;
          }
   #endif
       }

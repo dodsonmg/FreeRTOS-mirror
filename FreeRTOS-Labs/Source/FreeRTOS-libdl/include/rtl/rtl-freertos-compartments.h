@@ -69,6 +69,17 @@ bool
 rtl_cherifreertos_captable_alloc(rtems_rtl_obj* obj, size_t caps_count);
 
 /**
+ * Allocate a separate stack for each compartment object
+ *
+ * @param obj The object compartment to allocate a stack for.
+ * @param stack_depths The depth (multiple of cap size) of the stack.
+ * @retval true If allocated successfully
+ * @retval false If couldn't be allocated. The RTL error has the error.
+ */
+bool
+rtl_cherifreertos_capstack_alloc(rtems_rtl_obj* obj, size_t stack_depth);
+
+/**
  * Install a new capability in the first free slot in the captable of an object.
  * If the table is full, it will try to re-alloc a new captable to increase the
  * size and fit in the new cap.

@@ -290,7 +290,8 @@ rtl_cherifreertos_captable_get_free_slot(rtems_rtl_obj* obj) {
   }
 
   // Try to find the first NULL-cap entry as a free slot
-  for (int i = 0; i < obj->caps_count; i++) {
+  // Slot 0 is the stack for this object, skip it
+  for (int i = 1; i < obj->caps_count; i++) {
     if (*(obj->captable + i) == NULL) {
       return obj->captable + i;
     }
@@ -363,6 +364,36 @@ rtl_cherifreertos_captable_alloc(rtems_rtl_obj* obj, size_t caps_count) {
 
   if (!rtl_cherifreertos_compartment_set_captable(obj))
     return false;
+
+  return true;
+}
+
+bool
+rtl_cherifreertos_capstack_alloc(rtems_rtl_obj* obj, size_t stack_depth) {
+  void* stack = NULL;
+  size_t stacks_bytes = stack_depth * sizeof(void *);
+
+  if (!obj->captable) {
+    rtems_rtl_set_error (ENOTEMPTY, "There is no captable for this object");
+    return false;
+  }
+
+  if (*obj->captable) {
+    rtems_rtl_set_error (ENOTEMPTY, "There is already an installed stack for this object");
+    return false;
+  }
+
+  stack = (void *) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT,
+                                   stacks_bytes, true);
+
+  stack = __builtin_cheri_offset_set(stack, stacks_bytes - sizeof(void *));
+
+  if (!stack) {
+    rtems_rtl_set_error (ENOMEM, "Failed to allocate a stack for this object");
+    return false;
+  }
+
+  *obj->captable = stack;
 
   return true;
 }

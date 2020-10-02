@@ -1869,8 +1869,15 @@ rtems_rtl_elf_file_load (rtems_rtl_obj* obj, int fd)
   // Allocate a new captable for this object. The captable is going to be holding
   // caps to local, caps to global, caps to an interface (which is going to be the
   // same size as globals if the table is created in RTL_INTERFACE_SYMBOL_ALL_GLOBALS
-  // mode).
-  if (!rtl_cherifreertos_captable_alloc(obj, obj->local_syms + obj->global_syms * 2))
+  // mode). +1 for the stack that gets installed in the first entry.
+  if (!rtl_cherifreertos_captable_alloc(obj, obj->local_syms + (obj->global_syms * 2) + 1))
+  {
+    return false;
+  }
+
+  // Allocate a stack per compartment object.
+  // TODO This decision needs to get reconsidered once we need reentrant compartments.
+  if (!rtl_cherifreertos_capstack_alloc(obj, configMINIMAL_STACK_SIZE))
   {
     return false;
   }

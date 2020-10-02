@@ -172,7 +172,6 @@ rtl_freertos_global_symbols_add(rtems_rtl_obj* obj) {
 #endif
       sym->value = symtab_start[i].st_value;
 
-      if (rtems_rtl_trace (RTEMS_RTL_TRACE_GLOBAL_SYM))
       if (rtems_rtl_symbol_global_find (sym->name) == NULL) {
         rtems_rtl_symbol_global_insert (symbols, sym);
         ++sym;

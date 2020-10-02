@@ -1268,8 +1268,6 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
           __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
         }
 
-        printf("Trying to install: "); cheri_print_cap(cap);
-
         osym->capability = rtl_cherifreertos_captable_install_new_cap(obj, cap);
         if (!osym->capability) {
           printf("Failed to install a new cap\n");

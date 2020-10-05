@@ -471,6 +471,7 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   memcpy(esym, sym, sizeof(rtems_rtl_obj_sym));
   memcpy(estring, name, slen);
 
+#ifdef __CHERI_PURE_CAPABILITY__
   // Allocate a new cap slot in the interface captable and install it
   // For now, just copy the same copy, but we may want to version/ID them for
   // each different object compartment.
@@ -509,6 +510,7 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
 
     *minted_captable = cheri_seal_cap(*minted_captable, src_obj->comp_id);
   }
+#endif
 
   // Add the symbol to the dest_obj extenals list
   vListInitialiseItem(&esym->node);

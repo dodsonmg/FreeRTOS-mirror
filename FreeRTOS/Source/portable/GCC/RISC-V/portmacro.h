@@ -175,7 +175,8 @@ definition is found. */
 
 
 #ifdef __CHERI_PURE_CAPABILITY__
-#define portHAS_SANDBOX 1
+#define portHAS_SANDBOX 0
+#define portHAS_COMPARTMENT 1
 typedef struct {
   BaseType_t a0;
   BaseType_t a1;
@@ -196,6 +197,22 @@ typedef struct {
 	uintcap_t ca6;
 	uintcap_t ca7;
 } xSANDBOX_ARGS;
+
+typedef struct {
+  BaseType_t a0;
+  BaseType_t a1;
+} xCOMPARTMENT_RET;
+
+typedef struct {
+	uintcap_t ca0;
+	uintcap_t ca1;
+	uintcap_t ca2;
+	uintcap_t ca3;
+	uintcap_t ca4;
+	uintcap_t ca5;
+	uintcap_t ca6;
+	uintcap_t ca7;
+} xCOMPARTMENT_ARGS;
 #endif
 
 /*

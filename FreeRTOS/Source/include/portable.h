@@ -196,6 +196,10 @@ void vPortEndScheduler( void ) PRIVILEGED_FUNCTION;
 	xSANDBOX_RET xPortSandboxEnter( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs, xSANDBOX_CONTEXT *pxSandboxContext ) PRIVILEGED_FUNCTION;
 #endif
 
+#if ( portHAS_COMPARTMENT == 1 )
+	xCOMPARTMENT_RET xPortCompartmentEnter( BaseType_t ( * pxFunction ) ( void ), void *pxData, xCOMPARTMENT_ARGS *pxArgs, BaseType_t xCompID ) PRIVILEGED_FUNCTION;
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -119,7 +119,7 @@ void *pvAlmightyDataCap;
 void *pvAlmightyCodeCap;
 
 #define SANDBOX_RETURN_OTYPE 0
-//#define SENTRY_OTYPE -2
+#define COMPARTMENT_RETURN_OTYPE 4095
 #define SENTRY_OTYPE -2
 #endif
 
@@ -204,23 +204,44 @@ task stack, not the ISR stack). */
 /*-----------------------------------------------------------*/
 
 #ifdef __CHERI_PURE_CAPABILITY__
-void ( * pxPortSandboxReturnTrampoline ) ( void );
-void ( * pxPortSandboxReturnFunc ) ( BaseType_t xReturn );
-BaseType_t *pxPortSandboxReturnData;
+	#if ( portHAS_SANDBOX == 1 )
+	void ( * pxPortSandboxReturnTrampoline ) ( void );
+	void ( * pxPortSandboxReturnFunc ) ( BaseType_t xReturn );
+	BaseType_t *pxPortSandboxReturnData;
 
-static void vPortSandboxSetup( void )
-{
-extern void ( * pxPortSandboxGetReturnTrampoline( void ) ) ( void );
-extern void xPortSandboxReturn( BaseType_t xReturn );
-void *pvReturnSealer;
+	static void vPortSandboxSetup( void )
+	{
+	extern void ( * pxPortSandboxGetReturnTrampoline( void ) ) ( void );
+	extern void xPortSandboxReturn( BaseType_t xReturn );
+	void *pvReturnSealer;
 
-	pxPortSandboxReturnTrampoline = pxPortSandboxGetReturnTrampoline();
+		pxPortSandboxReturnTrampoline = pxPortSandboxGetReturnTrampoline();
 
-	pvReturnSealer = cheri_setaddress( pvAlmightyDataCap, SANDBOX_RETURN_OTYPE );
-	pxPortSandboxReturnFunc = cheri_setaddress( pvAlmightyCodeCap, ( ptraddr_t )  xPortSandboxReturn );
-	pxPortSandboxReturnFunc = cheri_seal( pxPortSandboxReturnFunc, pvReturnSealer );
-	pxPortSandboxReturnData = cheri_seal( pvAlmightyDataCap, pvReturnSealer );
-}
+		pvReturnSealer = cheri_setaddress( pvAlmightyDataCap, SANDBOX_RETURN_OTYPE );
+		pxPortSandboxReturnFunc = cheri_setaddress( pvAlmightyCodeCap, ( ptraddr_t )  xPortSandboxReturn );
+		pxPortSandboxReturnFunc = cheri_seal( pxPortSandboxReturnFunc, pvReturnSealer );
+		pxPortSandboxReturnData = cheri_seal( pvAlmightyDataCap, pvReturnSealer );
+	}
+	#endif
+	#if ( portHAS_COMPARTMENT == 1 )
+	void ( * pxPortCompartmentReturnTrampoline ) ( void );
+	void ( * pxPortCompartmentReturnFunc ) ( BaseType_t xReturn );
+	BaseType_t *pxPortCompartmentReturnData;
+
+	static void vPortCompartmentSetup( void )
+	{
+	extern void ( * pxPortCompartmentGetReturnTrampoline( void ) ) ( void );
+	extern void xPortCompartmentReturn( BaseType_t xReturn );
+	void *pvReturnSealer;
+
+		pxPortCompartmentReturnTrampoline = pxPortCompartmentGetReturnTrampoline();
+
+		pvReturnSealer = cheri_setaddress( pvAlmightyDataCap, COMPARTMENT_RETURN_OTYPE );
+		pxPortCompartmentReturnFunc = cheri_setaddress( pvAlmightyCodeCap, ( ptraddr_t )  xPortCompartmentReturn );
+		pxPortCompartmentReturnFunc = cheri_seal( pxPortCompartmentReturnFunc, pvReturnSealer );
+		pxPortCompartmentReturnData = cheri_seal( pvAlmightyDataCap, pvReturnSealer );
+	}
+	#endif
 #endif
 
 BaseType_t xPortStartScheduler( void )
@@ -269,7 +290,13 @@ extern void xPortStartFirstTask( void );
 	#endif /* ( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIMECMP_BASE_ADDRESS != 0 ) */
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	vPortSandboxSetup();
+	#if ( portHAS_SANDBOX == 1 )
+		vPortSandboxSetup();
+	#endif
+
+	#if ( portHAS_COMPARTMENT == 1 )
+		vPortCompartmentSetup();
+	#endif
 #endif
 
 	xPortStartFirstTask();

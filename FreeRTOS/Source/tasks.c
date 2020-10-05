@@ -5443,4 +5443,13 @@ when performing module tests). */
 
 		return xPortSandboxEnter( pxFunction, pxData, pxArgs, pxSandboxContext );
 	}
+
+#endif
+
+#if ( portHAS_COMPARTMENT == 1 )
+	xCOMPARTMENT_RET xTaskRunCompartment( BaseType_t ( * pxFunction ) ( void ), void *pxData, xCOMPARTMENT_ARGS *pxArgs, BaseType_t xCompID )
+	{
+		// TODO: We might want to allocate the stack here then free/zero it on return
+		return xPortCompartmentEnter( pxFunction, pxData, pxArgs, xCompID );
+	}
 #endif

@@ -2566,6 +2566,9 @@ void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNC
 	xSANDBOX_RET xTaskRunSandboxed( BaseType_t ( * pxFunction ) ( void ), void *pxData, xSANDBOX_ARGS *pxArgs ) PRIVILEGED_FUNCTION;
 #endif
 
+#if ( portHAS_COMPARTMENT == 1 )
+	xCOMPARTMENT_RET xTaskRunCompartment( BaseType_t ( * pxFunction ) ( void ), void *pxData, xCOMPARTMENT_ARGS *pxArgs, BaseType_t xCompID ) PRIVILEGED_FUNCTION;
+#endif
 
 #ifdef __cplusplus
 }

@@ -473,8 +473,6 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
 
 #ifdef __CHERI_PURE_CAPABILITY__
   // Allocate a new cap slot in the interface captable and install it
-  // For now, just copy the same copy, but we may want to version/ID them for
-  // each different object compartment.
   cheri_print_cap(src_obj);
   esym->capability = rtl_cherifreertos_captable_install_new_cap(dest_obj, *sym->capability);
   if (!esym->capability) {

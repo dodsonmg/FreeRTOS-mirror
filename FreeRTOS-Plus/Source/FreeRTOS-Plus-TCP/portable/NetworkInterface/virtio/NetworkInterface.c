@@ -57,6 +57,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /* Standard includes. */
 #include <stdint.h>
+#include <stdbool.h>
 
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
@@ -64,40 +65,208 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "queue.h"
 #include "semphr.h"
 
-#include "FreeRTOS_IP.h"
-
 /* FreeRTOS+TCP includes. */
+#include "FreeRTOS_IP.h"
+#include "FreeRTOS_IP_Private.h"
 #include "FreeRTOS_UDP_IP.h"
 #include "FreeRTOS_Sockets.h"
 #include "NetworkBufferManagement.h"
-
-/* FreeRTOS+TCP includes. */
 #include "NetworkInterface.h"
 
 /* Board specific includes */
+#include <virtio-net.h>
+#include <plic_driver.h>
+#include <bsp.h>
+
+static struct virtio_device *global_dev = NULL;
+static struct virtio_net *global_vnet = NULL;
+
+static TaskHandle_t EthTaskHandler;
+
+static void prvTxRxHandlerTask( void *pvParameter )
+{
+NetworkBufferDescriptor_t *pxBufferDescriptor;
+struct virtio_net *vnet = (struct virtio_net *) pvParameter;
+size_t xBytesReceived;
+/* Used to indicate that xSendEventStructToIPTask() is being called because
+of an Ethernet receive event. */
+IPStackEvent_t xRxEvent;
+
+    for( ;; )
+    {
+        /* Wait for the Ethernet MAC interrupt to indicate that another packet
+        has been received.  The task notification is used in a similar way to a
+        counting semaphore to count Rx events, but is a lot more efficient than
+        a semaphore. */
+
+        // Uncomment when the driver is interrupt-based
+        //ulTaskNotifyTake( pdFALSE, portMAX_DELAY );
+
+        /* See how much data was received. */
+        xBytesReceived = virtionet_receive_check(vnet);
+
+        if( xBytesReceived > 0 )
+        {
+            /* Allocate a network buffer descriptor that points to a buffer
+            large enough to hold the received frame.  As this is the simple
+            rather than efficient example the received data will just be copied
+            into this buffer. */
+            pxBufferDescriptor = pxGetNetworkBufferWithDescriptor( xBytesReceived, 0 );
+
+            if( pxBufferDescriptor != NULL )
+            {
+                /* pxBufferDescriptor->pucEthernetBuffer now points to an Ethernet
+                buffer large enough to hold the received data.  Copy the
+                received data into pcNetworkBuffer->pucEthernetBuffer.
+                Remember! While is is a simple robust technique –
+                it is not efficient. */
+                virtionet_read( vnet, (char *) pxBufferDescriptor->pucEthernetBuffer, xBytesReceived );
+                pxBufferDescriptor->xDataLength = xBytesReceived;
+
+                /* See if the data contained in the received Ethernet frame needs
+                to be processed.  NOTE! It is preferable to do this in
+                the interrupt service routine itself, which would remove the need
+                to unblock this task for packets that don’t need processing. */
+                if( eConsiderFrameForProcessing( pxBufferDescriptor->pucEthernetBuffer )
+                                                                      == eProcessBuffer )
+                {
+                    /* The event about to be sent to the TCP/IP is an Rx event. */
+                    xRxEvent.eEventType = eNetworkRxEvent;
+
+                    /* pvData is used to point to the network buffer descriptor that
+                    now references the received data. */
+                    xRxEvent.pvData = ( void * ) pxBufferDescriptor;
+
+                    /* Send the data to the TCP/IP stack. */
+                    if( xSendEventStructToIPTask( &xRxEvent, 0 ) == pdFALSE )
+                    {
+                        /* The buffer could not be sent to the IP task so the buffer
+                        must be released. */
+                        vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
+
+                        /* Make a call to the standard trace macro to log the
+                        occurrence. */
+                        iptraceETHERNET_RX_EVENT_LOST();
+                    }
+                    else
+                    {
+                        /* The message was successfully sent to the TCP/IP stack.
+                        Call the standard trace macro to log the occurrence. */
+                        iptraceNETWORK_INTERFACE_RECEIVE();
+                    }
+                }
+                else
+                {
+                    /* The Ethernet frame can be dropped, but the Ethernet buffer
+                    must be released. */
+                    vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
+                }
+            }
+            else
+            {
+                /* The event was lost because a network buffer was not available.
+                Call the standard trace macro to log the occurrence. */
+                iptraceETHERNET_RX_EVENT_LOST();
+            }
+        } else {
+                /* Check/poll for packets every 50 ms. This is to be removed if/when
+                   the driver is interrupt-based */
+                vTaskDelay(pdMS_TO_TICKS( 50 ));
+        }
+    }
+}
+/*-----------------------------------------------------------*/
+
+static int prvNetworkInterfaceInterruptHandler( void* CallBackRef ) {
+bool pxHigherPriorityTaskWoken = false;
+struct virtio_net *vnet = (struct virtio_net *) CallBackRef;
+
+    if ( !vnet || !vnet->driver.running ) {
+        FreeRTOS_debug_printf( ("Eth driver isn't functional yet\n") );
+        return 0;
+    }
+
+    virtionet_handle_interrupt(vnet);
+
+    // Uncomment if/when the driver is interrupt-based
+    //vTaskNotifyGiveFromISR(EthTaskHandler, &pxHigherPriorityTaskWoken);
+
+    return pxHigherPriorityTaskWoken;
+}
+/*-----------------------------------------------------------*/
 
 BaseType_t xNetworkInterfaceInitialise( void )
 {
+void *virtio_mmio_base = (void *) QEMU_VIRT_NET_MMIO_ADDRESS;
+struct virtio_net *vnet = NULL;
+
+    #ifdef CHERI_PURE_CAPABILITY__
+    // TODO
+    #endif
+
+    global_dev = virtio_setup_vd(virtio_mmio_base);
+
+    if (!global_dev)
+        return pdFAIL;
+
+    vnet = virtionet_open(global_dev);
+    if (!vnet)
+        return pdFAIL;
+
+    global_vnet = vnet;
+
+    /*
+     * Initialize the interrupt controller and connect the ISR
+     */
+    PLIC_set_priority(&Plic, QEMU_VIRT_NET_PLIC_INTERRUPT_ID, QEMU_VIRT_NET_PLIC_INTERRUPT_PRIO);
+
+    if(!PLIC_register_interrupt_handler(&Plic, QEMU_VIRT_NET_PLIC_INTERRUPT_ID,
+                                        &prvNetworkInterfaceInterruptHandler,
+                                        vnet))
+        return pdFAIL;
+
+    /* Create a task to handle receive events */
+    xTaskCreate(prvTxRxHandlerTask,
+                "TxRxHandler",
+                configMINIMAL_STACK_SIZE * 2U,
+                vnet,
+                configMAX_PRIORITIES,
+                &EthTaskHandler);
+
 	return pdPASS;
 }
 /*-----------------------------------------------------------*/
 
-BaseType_t xNetworkInterfaceDestroy( void )
+static BaseType_t xNetworkInterfaceDestroy( void )
 {
-	FreeRTOS_debug_printf( ("xNetworkInterfaceDestroy\r\n") );
-	return pdPASS;
+    FreeRTOS_debug_printf( ("xNetworkInterfaceDestroy\r\n") );
+
+    virtionet_close(global_vnet);
+
+    return pdPASS;
 }
 /*-----------------------------------------------------------*/
 
 BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxNetworkBuffer, BaseType_t xReleaseAfterSend )
 {
-	FreeRTOS_debug_printf( ("xNetworkInterfaceOutput\r\n") );
-	return pdPASS;
+    FreeRTOS_debug_printf( ("xNetworkInterfaceOutput\r\n") );
+
+    if (!virtionet_write(global_vnet, (char *) pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength))
+    {
+        return pdFAIL;
+    }
+
+    if ( xReleaseAfterSend != pdFALSE )
+    {
+        vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
+    }
+
+    return pdPASS;
 }
 /*-----------------------------------------------------------*/
 
 BaseType_t xGetPhyLinkStatus( void )
 {
-	return pdPASS;
+    return pdPASS;
 }
 /*-----------------------------------------------------------*/

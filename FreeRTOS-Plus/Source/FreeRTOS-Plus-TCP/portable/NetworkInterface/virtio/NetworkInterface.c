@@ -78,6 +78,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <plic_driver.h>
 #include <bsp.h>
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <cheri/cheri-utility.h>
+#endif
+
 static struct virtio_device *global_dev = NULL;
 static struct virtio_net *global_vnet = NULL;
 
@@ -200,8 +204,12 @@ BaseType_t xNetworkInterfaceInitialise( void )
 void *virtio_mmio_base = (void *) QEMU_VIRT_NET_MMIO_ADDRESS;
 struct virtio_net *vnet = NULL;
 
-    #ifdef CHERI_PURE_CAPABILITY__
-    // TODO
+    #ifdef __CHERI_PURE_CAPABILITY__
+        virtio_mmio_base = cheri_build_data_cap((ptraddr_t) virtio_mmio_base,
+                                            QEMU_VIRT_NET_MMIO_SIZE,
+                                            __CHERI_CAP_PERMISSION_GLOBAL__ |
+                                            __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
+                                            __CHERI_CAP_PERMISSION_PERMIT_STORE__);
     #endif
 
     global_dev = virtio_setup_vd(virtio_mmio_base);

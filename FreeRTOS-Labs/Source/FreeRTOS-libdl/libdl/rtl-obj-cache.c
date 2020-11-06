@@ -18,6 +18,11 @@
 #include "config.h"
 #endif
 
+#ifdef ipconfigUSE_FAT_LIBDL
+#include "ff_headers.h"
+#include "ff_stdio.h"
+#endif
+
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -72,7 +77,7 @@ rtems_rtl_obj_cache_flush (rtems_rtl_obj_cache* cache)
 
 bool
 rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
-                          int                  fd,
+                          void*                fd,
                           UBaseType_t          offset,
                           void**               buffer,
                           size_t*              length)
@@ -191,6 +196,14 @@ rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
       rtems_rtl_set_error (errno, "file seek failed");
       return false;
     }
+#elif __freertos__
+#ifdef ipconfigUSE_FAT_LIBDL
+    if (ff_fseek (fd, offset + buffer_offset, FF_SEEK_SET) < 0)
+    {
+      rtems_rtl_set_error (errno, "section load seek failed");
+      return false;
+    }
+#endif
 #endif
 
     /*
@@ -259,7 +272,7 @@ rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
 
 bool
 rtems_rtl_obj_cache_read_byval (rtems_rtl_obj_cache* cache,
-                                int                  fd,
+                                void*                fd,
                                 UBaseType_t          offset,
                                 void*                buffer,
                                 size_t               length)

@@ -17,6 +17,11 @@
 #include "config.h"
 #endif
 
+#ifdef ipconfigUSE_FAT_LIBDL
+#include "ff_headers.h"
+#include "ff_stdio.h"
+#endif
+
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -41,14 +46,25 @@ rtems_rtl_find_file (const char*  name,
                      const char** file_name,
                      size_t*      size)
 {
+#ifdef ipconfigUSE_FAT_LIBDL
+  FF_Stat_t sb;
+#else
   struct stat sb;
+#endif
 
   *file_name = NULL;
   *size = 0;
 
-  if (rtems_filesystem_is_delimiter (name[0]) || (name[0] == '.'))
+  //if (rtems_filesystem_is_delimiter (name[0]) || (name[0] == '.'))
+
+  // Always search the file system
+  if (true)
   {
+#ifdef ipconfigUSE_FAT_LIBDL
+    if (ff_stat (name, &sb) == 0)
+#else
     if (stat (name, &sb) == 0)
+#endif
       *file_name = rtems_rtl_strdup (name);
   }
   else if (paths)

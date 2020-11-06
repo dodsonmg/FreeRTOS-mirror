@@ -1,3 +1,8 @@
+#ifdef ipconfigUSE_FAT_LIBDL
+#include "ff_headers.h"
+#include "ff_stdio.h"
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,8 +38,19 @@ extern char*  __strtab_end;
 
 compartment_t comp_list[configCOMPARTMENTS_NUM];
 
-int rtl_freertos_compartment_open(const char *name)
+void* rtl_freertos_compartment_open(const char *name)
 {
+#ifdef ipconfigUSE_FAT_LIBDL
+  FF_FILE *file = ff_fopen( name, "r" );
+
+  if (file == NULL) {
+    rtems_rtl_set_error (EBADF, "Failed to open the file");
+    return -1;
+  }
+
+  return file;
+
+#else
   const char* comp_name = NULL;
   char name_buff[configMAXLEN_COMPNAME];
 
@@ -58,10 +74,14 @@ int rtl_freertos_compartment_open(const char *name)
   }
 
   return -1;
+#endif
 }
 
-ssize_t rtl_freertos_compartment_read(int fd, void *buffer, UBaseType_t offset, size_t count)
+ssize_t rtl_freertos_compartment_read(void* fd, void *buffer, UBaseType_t offset, size_t count)
 {
+#ifdef ipconfigUSE_FAT_LIBDL
+  return ff_fread( buffer, 1, count, (FF_FILE *) fd );
+#else
   if (fd < 0 || fd >= configCOMPARTMENTS_NUM) {
     rtems_rtl_set_error (EBADF, "Invalid compartment/fd number");
     return -1;
@@ -78,10 +98,15 @@ ssize_t rtl_freertos_compartment_read(int fd, void *buffer, UBaseType_t offset, 
   }
 
   return -1;
+#endif
 }
 
-size_t rtl_freertos_compartment_getsize(int fd) {
+size_t rtl_freertos_compartment_getsize(void *fd) {
+#ifdef ipconfigUSE_FAT_LIBDL
+  return ((FF_FILE *) fd)->ulFileSize;
+#else
   return comp_list[fd].size;
+#endif
 }
 
 void

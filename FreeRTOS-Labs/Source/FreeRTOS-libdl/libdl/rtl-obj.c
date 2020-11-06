@@ -17,6 +17,11 @@
 #include "config.h"
 #endif
 
+#ifdef ipconfigUSE_FAT_LIBDL
+#include "ff_headers.h"
+#include "ff_stdio.h"
+#endif
+
 #include <errno.h>
 #include <inttypes.h>
 #include <stdlib.h>
@@ -365,7 +370,7 @@ rtems_rtl_obj_section_alignment (const rtems_rtl_obj* obj, uint32_t mask)
 static bool
 rtems_rtl_obj_section_handler (uint32_t                   mask,
                                rtems_rtl_obj*             obj,
-                               int                        fd,
+                               void*                      fd,
                                rtems_rtl_obj_sect_handler handler,
                                void*                      data)
 {
@@ -411,16 +416,12 @@ rtems_rtl_obj_find_file (rtems_rtl_obj* obj, const char* name)
 
   rtl = rtems_rtl_lock ();
 
-#if __freertos__
-  obj->fname = name;
-#endif
-
-  /*if (!rtems_rtl_find_file (pname, rtl->paths, &obj->fname, &obj->fsize))
+  if (!rtems_rtl_find_file (pname, rtl->paths, &obj->fname, &obj->fsize))
   {
     rtems_rtl_set_error (ENOENT, "file not found");
     rtems_rtl_unlock ();
     return false;
-  }*/
+  }
 
   rtems_rtl_unlock ();
 
@@ -849,7 +850,7 @@ rtems_rtl_obj_bss_alignment (const rtems_rtl_obj* obj)
 
 bool
 rtems_rtl_obj_relocate (rtems_rtl_obj*             obj,
-                        int                        fd,
+                        void*                      fd,
                         rtems_rtl_obj_sect_handler handler,
                         void*                      data)
 {
@@ -957,7 +958,7 @@ rtems_rtl_obj_synchronize_cache (rtems_rtl_obj* obj)
 
 bool
 rtems_rtl_obj_load_symbols (rtems_rtl_obj*             obj,
-                            int                        fd,
+                            void*                      fd,
                             rtems_rtl_obj_sect_handler handler,
                             void*                      data)
 {
@@ -1100,7 +1101,7 @@ rtems_rtl_obj_sections_locate (uint32_t            mask,
 
 bool
 rtems_rtl_obj_alloc_sections (rtems_rtl_obj*             obj,
-                              int                        fd,
+                              void*                      fd,
                               rtems_rtl_obj_sect_handler handler,
                               void*                      data)
 {
@@ -1208,7 +1209,7 @@ static bool
 rtems_rtl_obj_sections_loader (uint32_t                   mask,
                                rtems_rtl_alloc_tag        tag,
                                rtems_rtl_obj*             obj,
-                               int                        fd,
+                               void*                      fd,
                                uint8_t*                   base,
                                rtems_rtl_obj_sect_handler handler,
                                void*                      data)
@@ -1274,7 +1275,7 @@ rtems_rtl_obj_sections_loader (uint32_t                   mask,
 
 bool
 rtems_rtl_obj_load_sections (rtems_rtl_obj*             obj,
-                             int                        fd,
+                             void*                      fd,
                              rtems_rtl_obj_sect_handler handler,
                              void*                      data)
 {
@@ -1367,7 +1368,7 @@ rtems_rtl_obj_run_dtors (rtems_rtl_obj* obj)
 }
 
 static bool
-rtems_rtl_obj_file_load (rtems_rtl_obj* obj, int fd)
+rtems_rtl_obj_file_load (rtems_rtl_obj* obj, void* fd)
 {
   int l;
 
@@ -1420,7 +1421,7 @@ rtems_rtl_obj_orphaned (rtems_rtl_obj* obj)
 bool
 rtems_rtl_obj_load (rtems_rtl_obj* obj)
 {
-  int fd;
+  void* fd;
 
   if (!rtems_rtl_obj_fname_valid (obj))
   {
@@ -1439,6 +1440,7 @@ rtems_rtl_obj_load (rtems_rtl_obj* obj)
   if (!rtems_rtl_obj_file_load (obj, fd))
   {
     rtems_rtl_set_error (errno, "couldn't find object compartment");
+    ff_fclose (fd);
     return false;
   }
 

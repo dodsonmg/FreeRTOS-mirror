@@ -52,7 +52,7 @@ extern "C" {
  */
 typedef struct rtems_rtl_obj_cache
 {
-  int      fd;        /**< The file descriptor of the data in the cache. */
+  void*    fd;        /**< The file descriptor of the data in the cache. */
   size_t   file_size; /**< The size of the file. */
   UBaseType_t    offset;    /**< The base offset of the buffer. */
   size_t   size;      /**< The size of the cache. */
@@ -103,7 +103,7 @@ void rtems_rtl_obj_cache_flush (rtems_rtl_obj_cache* cache);
  * @retval false The read failed and the RTL error has been set.
  */
 bool rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
-                               int                  fd,
+                               void*                fd,
                                UBaseType_t          offset,
                                void**               buffer,
                                size_t*              length);
@@ -120,7 +120,7 @@ bool rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
  * @retval false The read failed and the RTL error has been set.
  */
 bool rtems_rtl_obj_cache_read_byval (rtems_rtl_obj_cache* cache,
-                                     int                  fd,
+                                     void*                fd,
                                      UBaseType_t          offset,
                                      void*                buffer,
                                      size_t               length);

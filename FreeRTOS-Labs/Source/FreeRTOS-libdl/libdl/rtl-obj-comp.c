@@ -66,7 +66,7 @@ rtems_rtl_obj_comp_close (rtems_rtl_obj_comp* comp)
 void
 rtems_rtl_obj_comp_set (rtems_rtl_obj_comp*  comp,
                         rtems_rtl_obj_cache* cache,
-                        int                  fd,
+                        void*                fd,
                         int                  compression,
                         UBaseType_t          offset)
 {

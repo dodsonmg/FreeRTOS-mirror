@@ -47,7 +47,7 @@ typedef struct rtems_rtl_obj_cpmp
 {
   rtems_rtl_obj_cache* cache;       /**< The cache provides the input
                                        *   buffer. */
-  int                  fd;          /**< The file descriptor. */
+  void*                fd;          /**< The file descriptor. */
   int                  compression; /**< The type of compression. */
   UBaseType_t          offset;      /**< The base offset of the buffer. */
   size_t               size;        /**< The size of the output buffer. */
@@ -93,7 +93,7 @@ void rtems_rtl_obj_comp_close (rtems_rtl_obj_comp* comp);
  */
 void rtems_rtl_obj_comp_set (rtems_rtl_obj_comp*  comp,
                              rtems_rtl_obj_cache* cache,
-                             int                  fd,
+                             void*                fd,
                              int                  compression,
                              UBaseType_t          offset);
 

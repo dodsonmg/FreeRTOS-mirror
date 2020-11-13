@@ -395,6 +395,11 @@ rtems_rtl_isymbol_create (rtems_rtl_obj* obj, isymbol_table_mode_t mode)
   // simplest and most straightforward policy, following standard C static
   // linking behavior.
   if (mode == RTL_INTERFACE_SYMBOL_ALL_GLOBALS) {
+
+    // Return if that object does not have globals
+    if (obj->global_size == 0)
+      return true;
+
     obj->interface_table = rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_SYMBOL,
                                             obj->global_size, true);
     if (!obj->interface_table) {

@@ -182,7 +182,7 @@ rtems_rtl_archive_search rtems_rtl_archive_obj_load (rtems_rtl_archives* archive
  * @retval true The file was found in the archive.
  * @retval false The file was not found.
  */
-bool rtems_rtl_obj_archive_find_obj (int                     fd,
+bool rtems_rtl_obj_archive_find_obj (void*                   fd,
                                      size_t                  fsize,
                                      const char**            name,
                                      UBaseType_t*            offset,

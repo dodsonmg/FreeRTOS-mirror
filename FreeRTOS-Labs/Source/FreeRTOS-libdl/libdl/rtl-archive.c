@@ -1319,7 +1319,19 @@ rtems_rtl_obj_archive_find_obj (void*                   fd,
            * SVR4/GNU Symbols table. Nothing more to do.
            */
           *ooffset += RTEMS_RTL_AR_FHDR_SIZE;
-          return true;
+
+          /* Only return if the caller wants the symbol table, otherwise continue
+           * scanning for the required object
+           */
+          if (*name[0] == '/')
+            return true;
+
+          /* The caller wants to find a filename, skip the symbol table entry
+           * and continue searching with the next file
+           */
+          *ooffset += *osize;
+          continue;
+
         case '/':
           /*
            * Extended file names table. Remember. If asked to find this file
@@ -1331,7 +1343,13 @@ rtems_rtl_obj_archive_find_obj (void*                   fd,
             *ooffset = *ooffset + RTEMS_RTL_AR_FHDR_SIZE;
             return true;
           }
+
+          /* Keep searching for the file name and don't return */
+          *ooffset += RTEMS_RTL_AR_FHDR_SIZE + *osize;
+          continue;
+
           break;
+
         case '0':
         case '1':
         case '2':

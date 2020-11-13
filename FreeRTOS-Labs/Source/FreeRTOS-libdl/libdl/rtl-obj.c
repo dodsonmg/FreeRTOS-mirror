@@ -909,8 +909,10 @@ rtems_rtl_obj_sect_sync_handler (ListItem_t* node, void* data)
 bool
 rtems_rtl_obj_post_resolve_reloc (rtems_rtl_obj* obj)
 {
+  const char* name = rtems_rtl_obj_aname_valid(obj->aname)? obj->aname : obj->oname;
+
   if (!rtems_rtl_obj_relocate (obj,
-                                rtl_freertos_compartment_open(obj->oname),
+                                rtl_freertos_compartment_open(name),
                                 rtems_rtl_elf_relocs_lo12_locator, NULL))
        return false;
 
@@ -1437,6 +1439,29 @@ rtems_rtl_obj_load (rtems_rtl_obj* obj)
     return false;
   }
 
+  /*
+   * Find the object file in the archive if it is an archive that
+   * has been opened.
+   */
+  if (rtems_rtl_obj_aname_valid (obj))
+  {
+    UBaseType_t enames = 0;
+    if (!rtems_rtl_obj_archive_find_obj (fd,
+                                         obj->fsize,
+                                         &obj->oname,
+                                         &obj->ooffset,
+                                         &obj->fsize,
+                                         &enames,
+                                         rtems_rtl_obj_set_error))
+    {
+      ff_fclose (fd);
+      return false;
+    }
+  }
+
+  /*
+   * Call the format specific loader.
+   */
   if (!rtems_rtl_obj_file_load (obj, fd))
   {
     rtems_rtl_set_error (errno, "couldn't find object compartment");
@@ -1451,6 +1476,8 @@ rtems_rtl_obj_load (rtems_rtl_obj* obj)
     return false;
   }
 #endif
+
+  ff_fclose (fd);
 
 #else
   fd = open (rtems_rtl_obj_fname (obj), O_RDONLY);

@@ -234,6 +234,7 @@ rtems_rtl_data_init (void)
       /*
        * Need to malloc the memory so the free does not complain.
        */
+      rtl->base->aname = rtems_rtl_strdup ("freertos-kernel");
       rtl->base->oname = rtems_rtl_strdup ("freertos-kernel");
 
       /*
@@ -463,7 +464,7 @@ rtems_rtl_find_obj (const char* name)
   {
     rtems_rtl_obj* obj = (rtems_rtl_obj*) node;
     if ((aname == NULL && strcmp (obj->oname, oname) == 0) ||
-        (aname != NULL &&
+        (aname != NULL && obj->aname[0] != 0 &&
          strcmp (obj->aname, aname) == 0 && strcmp (obj->oname, oname) == 0))
     {
       found = obj;

@@ -82,7 +82,11 @@ rtems_rtl_obj_cache_read (rtems_rtl_obj_cache* cache,
                           void**               buffer,
                           size_t*              length)
 {
+#ifdef ipconfigUSE_FAT_LIBDL
+  FF_Stat_t sb;
+#else
   struct stat sb;
+#endif
 
   if (rtems_rtl_trace (RTEMS_RTL_TRACE_CACHE))
     printf ("rtl: cache: %2d: fd=%d offset=%" PRIdoff_t "length=%zu area=[%"

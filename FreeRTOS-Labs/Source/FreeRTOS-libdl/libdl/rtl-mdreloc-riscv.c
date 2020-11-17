@@ -69,6 +69,7 @@ typedef struct rela_hi20_table {
 } hi20_reloc_t;
 
 static List_t hi20_relocs;
+static int hi20_init = 0;
 
 static void
 rtems_rtl_elf_relocate_riscv_hi20_add (Elf_Word symvalue, Elf_Word *pc, bool is_cap, Elf_Word cap_addr) {
@@ -142,7 +143,10 @@ rtems_rtl_elf_arch_parse_section (const rtems_rtl_obj* obj,
   (void) shdr;
 
   if ((flags & RTEMS_RTL_OBJ_SECT_RELA) == RTEMS_RTL_OBJ_SECT_RELA) {
-    vListInitialise (&hi20_relocs);
+    if (!hi20_init) {
+      vListInitialise (&hi20_relocs);
+      hi20_init = 1;
+    }
   }
 
   return flags;

@@ -288,7 +288,8 @@ rtems_rtl_archive_obj_finder (rtems_rtl_archive* archive, void* data)
      * Perform a linear search if there is no sorted symbol table.
      */
     rtems_rtl_archive_obj_data* search = (rtems_rtl_archive_obj_data*) data;
-    if (symbols->symbols == NULL)
+    //if (symbols->symbols == NULL)
+    if (true)
     {
       const char* symbol = symbols->names;
       size_t      entry;
@@ -306,6 +307,7 @@ rtems_rtl_archive_obj_finder (rtems_rtl_archive* archive, void* data)
     }
     else
     {
+#if 0
       rtems_rtl_archive_symbol*      match;
       const rtems_rtl_archive_symbol key = {
         .entry = -1,
@@ -323,6 +325,7 @@ rtems_rtl_archive_obj_finder (rtems_rtl_archive* archive, void* data)
             rtems_rtl_archive_read_32 (symbols->base + (match->entry * 4));
           return false;
       }
+#endif
     }
   }
 

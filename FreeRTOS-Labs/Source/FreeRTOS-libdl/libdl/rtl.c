@@ -595,10 +595,6 @@ rtems_rtl_load (const char* name, int mode)
 
     rtems_rtl_unresolved_resolve ();
 
-    if (!rtems_rtl_obj_post_resolve_reloc (obj)) {
-      return NULL;
-    }
-
     /*
      * Iterator over the pending list of object files that have been loaded.
      */
@@ -614,6 +610,8 @@ rtems_rtl_load (const char* name, int mode)
       node = listGET_NEXT (&pobj->link);
       uxListRemove (&pobj->link);
       vListInsertEnd (&rtl->objects, &pobj->link);
+
+      rtems_rtl_obj_post_resolve_reloc (pobj);
 
       /*
        * Make sure the object file and cache is synchronized.
@@ -636,6 +634,10 @@ rtems_rtl_load (const char* name, int mode)
       }
     }
   }
+
+    if (!rtems_rtl_obj_post_resolve_reloc (obj)) {
+      return NULL;
+    }
 
   return obj;
 }

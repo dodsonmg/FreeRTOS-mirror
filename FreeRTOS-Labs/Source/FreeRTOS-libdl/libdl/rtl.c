@@ -146,7 +146,7 @@ rtems_rtl_data_init (void)
       /*
        * Open the archives.
        */
-      rtems_rtl_archives_open (&rtl->archives, "/ram/libdl.conf");
+      rtems_rtl_archives_open (&rtl->archives, "/etc/libdl.conf");
 
       /*
        * Open the unresolved table.

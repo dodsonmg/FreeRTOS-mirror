@@ -238,7 +238,7 @@ struct virtio_net *vnet = NULL;
                 "TxRxHandler",
                 configMINIMAL_STACK_SIZE * 2U,
                 vnet,
-                configMAX_PRIORITIES,
+                configMAX_PRIORITIES - 1,
                 &EthTaskHandler);
 
 	return pdPASS;

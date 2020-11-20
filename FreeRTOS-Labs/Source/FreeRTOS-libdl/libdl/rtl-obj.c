@@ -909,7 +909,7 @@ rtems_rtl_obj_sect_sync_handler (ListItem_t* node, void* data)
 bool
 rtems_rtl_obj_post_resolve_reloc (rtems_rtl_obj* obj)
 {
-  const char* name = rtems_rtl_obj_aname_valid(obj->aname)? obj->aname : obj->oname;
+  const char* name = rtems_rtl_obj_aname_valid(obj)? obj->aname : obj->oname;
 
   if (!rtems_rtl_obj_relocate (obj,
                                 rtl_freertos_compartment_open(name),

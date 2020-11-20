@@ -424,12 +424,14 @@ rtems_rtl_archive_get (rtems_rtl_archives* archives,
           archive = find_archive;
         }
         archive->flags &= ~RTEMS_RTL_ARCHIVE_REMOVE;
+#if ffconfigTIME_SUPPORT == 1
         if (archive->mtime != sb.st_mtime)
         {
           archive->flags |= RTEMS_RTL_ARCHIVE_LOAD;
           archive->size = sb.st_size;
           archive->mtime = sb.st_mtime;
         }
+#endif
       }
     }
   }

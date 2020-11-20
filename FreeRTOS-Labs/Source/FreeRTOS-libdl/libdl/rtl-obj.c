@@ -1522,13 +1522,13 @@ rtems_rtl_obj_load (rtems_rtl_obj* obj)
    /*
     * For GDB
     */
-  /*if (!_rtld_linkmap_add (obj))
+  if (!_rtld_linkmap_add (obj))
   {
-    close (fd);
+    ff_fclose (fd);
     return false;
-  }*/
+  }
 
-  close (fd);
+  ff_fclose (fd);
 
   return true;
 }
@@ -1539,7 +1539,7 @@ rtems_rtl_obj_unload (rtems_rtl_obj* obj)
   bool ok = false;
   if (obj->format >= 0 && obj->format < RTEMS_RTL_LOADERS)
   {
-    //_rtld_linkmap_delete(obj);
+    _rtld_linkmap_delete(obj);
     ok = loaders[obj->format].unload (obj);
   }
   else

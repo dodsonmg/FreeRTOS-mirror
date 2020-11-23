@@ -123,11 +123,12 @@ dlsym (void* handle, const char *symbol)
 
   if (sym)
     symval = sym->value;
+  else {
+    return NULL;
+  }
 
 #ifdef __CHERI_PURE_CAPABILITY__
     symval = cheri_seal_cap(*sym->capability, obj->comp_id);
-#else
-    symval = sym->value;
 #endif
 
   rtems_rtl_unlock ();

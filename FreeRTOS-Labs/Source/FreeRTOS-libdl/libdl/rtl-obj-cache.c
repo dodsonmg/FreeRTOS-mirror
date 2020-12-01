@@ -35,6 +35,10 @@
 #include "rtl-error.h"
 #include <rtl/rtl-trace.h>
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <rtl/rtl-freertos-compartments.h>
+#endif
+
 bool
 rtems_rtl_obj_cache_open (rtems_rtl_obj_cache* cache, size_t size)
 {

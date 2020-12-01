@@ -128,7 +128,7 @@ dlsym (void* handle, const char *symbol)
   }
 
 #ifdef __CHERI_PURE_CAPABILITY__
-    symval = cheri_seal_cap(*sym->capability, obj->comp_id);
+    symval = cheri_seal_cap(*(obj->captable + sym->capability), obj->comp_id);
 #endif
 
   rtems_rtl_unlock ();

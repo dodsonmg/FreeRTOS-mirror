@@ -1204,20 +1204,7 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
         osym->value = (uint8_t*) value;
         osym->data = symbol.st_shndx;
         osym->data |= (symbol.st_info << 16);
-
-#ifdef __CHERI_PURE_CAPABILITY__
-      /*if(strlen(string)) {
-        osym->name = cheri_build_data_cap((ptraddr_t) string, strlen(string) + 1, 0xff);
-        printf("Created a cap-name for osym->name -> %s\n", osym->name);
-      }*/
-
-      /* Pass an intermediate cap to the Elf_Sym that will be used later when
-       * locating the symbols to create a final cap
-       */
-      Elf_Sym *symbol_cap = (Elf_Sym *) rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_SYMBOL, sizeof (symbol), true);
-      memcpy(symbol_cap, &symbol, sizeof(symbol));
-      osym->capability = symbol_cap;
-#endif
+        osym->size = symbol.st_size;
 
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL))
           printf ("rtl: sym:add:%-4d name:%-4d: %-20s: bind:%-2d " \
@@ -1251,20 +1238,19 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
       {
         osym->value += (intptr_t) symsect->base;
 #ifdef __CHERI_PURE_CAPABILITY__
-        Elf_Sym *capsym = (Elf_Sym *) osym->capability;
         void *cap = NULL;
 
-        if (ELF_ST_TYPE(capsym->st_info) == STT_OBJECT) {
+        if (ELF_ST_TYPE(osym->data >> 16) == STT_OBJECT) {
           cap = cheri_build_data_cap((ptraddr_t) osym->value,
-          capsym->st_size,
+          osym->size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__ | \
           __CHERI_CAP_PERMISSION_PERMIT_STORE__ | \
           __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
-        } else if (ELF_ST_TYPE(capsym->st_info) == STT_FUNC) {
+        } else if (ELF_ST_TYPE(osym->data >> 16) == STT_FUNC) {
           cap = cheri_build_code_cap((ptraddr_t) osym->value,
-          capsym->st_size,
+          osym->size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
@@ -1281,8 +1267,8 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
 
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL)) {
           printf("rtl :sym:locate:cheri: Created a local cap for %s @ rtl_sym %p @ %p ",
-          osym->name, osym, osym->capability);
-          cheri_print_cap(*(osym->capability));
+          osym->name, osym, (obj->captable + osym->capability));
+          cheri_print_cap(obj->captable + osym->capability);
         }
 #endif
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL))
@@ -1301,20 +1287,19 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
       {
         osym->value += (intptr_t) symsect->base;
 #ifdef __CHERI_PURE_CAPABILITY__
-        Elf_Sym *capsym = (Elf_Sym *) osym->capability;
         void *cap = NULL;
 
-        if (ELF_ST_TYPE(capsym->st_info) == STT_OBJECT) {
+        if (ELF_ST_TYPE(osym->data >> 16) == STT_OBJECT) {
           cap = cheri_build_data_cap((ptraddr_t) osym->value,
-          capsym->st_size,
+          osym->size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__ | \
           __CHERI_CAP_PERMISSION_PERMIT_STORE__ | \
            __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__);
-        } else if (ELF_ST_TYPE(capsym->st_info) == STT_FUNC) {
+        } else if (ELF_ST_TYPE(osym->data >> 16) == STT_FUNC) {
           cap = cheri_build_code_cap((ptraddr_t) osym->value,
-          capsym->st_size,
+          osym->size,
           __CHERI_CAP_PERMISSION_GLOBAL__ | \
           __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ | \
           __CHERI_CAP_PERMISSION_PERMIT_LOAD__ | \
@@ -1331,8 +1316,8 @@ rtems_rtl_elf_symbols_locate (rtems_rtl_obj*      obj,
 
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL)) {
           printf("rtl :sym:locate:cheri: Created a global cap for %s @ rtl_sym %p @ %p ",
-                 osym->name, osym, osym->capability);
-          cheri_print_cap(*(osym->capability));
+                 osym->name, osym, (obj->captable + osym->capability));
+          cheri_print_cap(*(obj->captable + osym->capability));
         }
 #endif
         if (rtems_rtl_trace (RTEMS_RTL_TRACE_SYMBOL))
@@ -1878,7 +1863,7 @@ rtems_rtl_elf_file_load (rtems_rtl_obj* obj, void* fd)
 
 #ifdef __CHERI_PURE_CAPABILITY__
   obj->captable = NULL;
-  obj->comp_id  = ((size_t) fd) % configCOMPARTMENTS_NUM;
+  obj->comp_id  = ((size_t) obj) % configCOMPARTMENTS_NUM;
   // Allocate a new captable for this object. The captable is going to be holding
   // caps to local, caps to global, caps to an interface (which is going to be the
   // same size as globals if the table is created in RTL_INTERFACE_SYMBOL_ALL_GLOBALS

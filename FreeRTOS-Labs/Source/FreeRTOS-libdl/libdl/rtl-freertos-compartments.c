@@ -306,7 +306,7 @@ rtl_cherifreertos_captable_realloc(rtems_rtl_obj* obj, size_t new_caps_count) {
   return true;
 }
 
-static void **
+static uint32_t
 rtl_cherifreertos_captable_get_free_slot(rtems_rtl_obj* obj) {
 
   if (!obj->captable) {
@@ -318,16 +318,16 @@ rtl_cherifreertos_captable_get_free_slot(rtems_rtl_obj* obj) {
   // Slot 0 is the stack for this object, skip it
   for (int i = 1; i < obj->caps_count; i++) {
     if (*(obj->captable + i) == NULL) {
-      return obj->captable + i;
+      return i;
     }
   }
 
-  return NULL;
+  return 0;
 }
 
-void **
+uint32_t
 rtl_cherifreertos_captable_install_new_cap(rtems_rtl_obj* obj, void* new_cap) {
-  void **free_slot;
+  uint32_t free_slot;
 
   if (!obj->captable) {
     rtems_rtl_set_error (EINVAL, "There is no cap table for this object");
@@ -363,7 +363,7 @@ rtl_cherifreertos_captable_install_new_cap(rtems_rtl_obj* obj, void* new_cap) {
     printf("rtl:captable: Installing a new cap: "); cheri_print_cap(new_cap);
   }
 
-  *free_slot = new_cap;
+  *(obj->captable + free_slot) = new_cap;
 
   return free_slot;
 }

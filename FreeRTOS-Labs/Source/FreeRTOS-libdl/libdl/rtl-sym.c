@@ -448,6 +448,7 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   // do not have an allocated object.
   if (src_obj == NULL) {
     sym = rtems_rtl_symbol_global_find (name);
+    src_obj = rtems_rtl_baseimage();
     if (!sym) {
       rtems_rtl_set_error (ENOMEM, "Could not find %s in the global symbol table", name);
       return NULL;
@@ -478,8 +479,7 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
 
 #ifdef __CHERI_PURE_CAPABILITY__
   // Allocate a new cap slot in the interface captable and install it
-  cheri_print_cap(src_obj);
-  esym->capability = rtl_cherifreertos_captable_install_new_cap(dest_obj, *sym->capability);
+  esym->capability = rtl_cherifreertos_captable_install_new_cap(dest_obj, *(src_obj->captable + sym->capability));
   if (!esym->capability) {
     rtems_rtl_set_error (ENOMEM, "Could not mint a new cap to the dest obj");
     return NULL;
@@ -489,7 +489,7 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   // doesn't need to be sealed.
   if (src_obj) {
     // Seal a minted cap to an external with its owners/src_obj type
-    *(esym->capability) = cheri_seal_cap(*(esym->capability), src_obj->comp_id);
+    *(dest_obj->captable + esym->capability) = cheri_seal_cap(*(dest_obj->captable + esym->capability), src_obj->comp_id);
 
     // Get the captable of the sealed cap's owner to be used as a data cap
     // during ccalls. This will be installed into the next slot to the
@@ -504,14 +504,14 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
     // using a single/same captable) based on a policy defined by the system
     // desinger.
     void **captable = rtl_cherifreertos_compartment_get_captable(src_obj->comp_id);
-    void **minted_captable = rtl_cherifreertos_captable_install_new_cap(dest_obj, captable);
+    uint32_t minted_captable_capidx = rtl_cherifreertos_captable_install_new_cap(dest_obj, captable);
 
-    if (!minted_captable) {
+    if (!minted_captable_capidx) {
       rtems_rtl_set_error (ENOMEM, "Failed to mint a captable cap");
       return NULL;
     }
 
-    *minted_captable = cheri_seal_cap(*minted_captable, src_obj->comp_id);
+    *(dest_obj->captable + minted_captable_capidx) = cheri_seal_cap(*(dest_obj->captable + minted_captable_capidx), src_obj->comp_id);
   }
 #endif
 

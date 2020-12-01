@@ -87,8 +87,8 @@ rtl_cherifreertos_capstack_alloc(rtems_rtl_obj* obj, size_t stack_depth);
  * @param obj The object compartment to allocate a captable for.
  * @param new_cap The content of the capability to install in the table.
  * @retval A pointer to the slot in the captable the new_cap got installed into
- * returns NULL if failed and The RTL error has the error.
+ * returns 0 if failed and The RTL error has the error.
  */
-void**
+uint32_t
 rtl_cherifreertos_captable_install_new_cap(rtems_rtl_obj* obj, void* new_cap);
 #endif

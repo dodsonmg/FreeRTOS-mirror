@@ -32,9 +32,10 @@ typedef struct rtems_rtl_obj_sym
   ListItem_t       node;    /**< The node's link in the chain. */
   const char*      name;    /**< The symbol's name. */
   void*            value;   /**< The value of the symbol. */
+  size_t           size;    /**< The size of the symbol. */
   uint32_t         data;    /**< Format specific data. */
 #ifdef __CHERI_PURE_CAPABILITY__
-  void**           capability;  /**< A potential cap for that symbol */
+  uint32_t         capability;  /**< A potential cap index for that symbol */
 #endif
 } rtems_rtl_obj_sym;
 

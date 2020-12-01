@@ -105,7 +105,11 @@ rtems_rtl_find_file (const char*  name,
       if (rtems_rtl_trace (RTEMS_RTL_TRACE_LOAD))
         printf ("rtl: find-file: path: %s\n", fname);
 
+#ifdef ipconfigUSE_FAT_LIBDL
+      if (ff_stat (name, &sb) == 0)
+#else
       if (stat (fname, &sb) < 0)
+#endif
         rtems_rtl_alloc_del (RTEMS_RTL_ALLOC_OBJECT, fname);
       else
         *file_name = fname;

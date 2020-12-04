@@ -70,6 +70,12 @@
 
 /*-----------------------------------------------------------*/
 
+extern const int modbus_port;
+extern const int modbus_port_mapped;
+extern const char *localhost_ip;
+
+/*-----------------------------------------------------------*/
+
 /*
  * Called by the server connetion task.  Queues data for critical section task
  */
@@ -84,6 +90,15 @@ static void prvCriticalSectionTask(void *pvParameters);
  * Task for opening a socket and waiting for a connection from a client.
  */
 static void prvOpenTCPServerSocketTask(void *pvParameters);
+
+/*
+ * Task to verify server is able to accept connections before any client
+ * attempts to connect.
+ *
+ * NOTE: This deals with what appears to be a QEMU issue where FreeRTOS_accept()
+ * will hang for about 5 seconds unless an outbound message is sent.
+ */
+static void prvTestClientTask(void *pvParameters);
 
 /*-----------------------------------------------------------*/
 
@@ -228,6 +243,14 @@ void vServerTask(void *pvParameters)
     /* Create the task prvOpenTCPServerSocketTask */
     xTaskCreate( prvOpenTCPServerSocketTask,
             "connect_socket",
+            configMINIMAL_STACK_SIZE * 2U,
+            NULL,
+            modbusSERVER_TASK_PRIORITY,
+            NULL);
+
+    /* Create the task prvTestClientTask */
+    xTaskCreate( prvTestClientTask,
+            "test_client",
             configMINIMAL_STACK_SIZE * 2U,
             NULL,
             modbusSERVER_TASK_PRIORITY,
@@ -440,3 +463,63 @@ static void prvCriticalSectionTask(void *pvParameters)
 
 /*-----------------------------------------------------------*/
 
+/**
+ * This function performs a single loopback with the Server task, reading a single
+ * coil and then returning 0 if it succeeds and -1 if it does not.
+ *
+ * This function helps overcome what appears to be a QEMU issue causing FreeRTOS_accept()
+ * to hang for about 5 seconds unless the server attempts an outbound connection.  By
+ * executing this function immediately after the Server task starts, we hopefully will
+ * bypass that hang and allow an external client to connect.
+ */
+static void prvTestClientTask(void *pvParameters)
+{
+    TickType_t xNextWakeTime;
+    int rc;
+    int nb_points;
+    modbus_t *stx;
+    uint8_t *tab_rp_bits;
+
+    /* Allocate and initialize the memory to store the bits */
+    nb_points = (UT_BITS_NB > UT_INPUT_BITS_NB) ? UT_BITS_NB : UT_INPUT_BITS_NB;
+    tab_rp_bits = (uint8_t *)pvPortMalloc(nb_points * sizeof(uint8_t));
+    memset(tab_rp_bits, 0, nb_points * sizeof(uint8_t));
+
+    /* initialise the connection */
+    stx = modbus_new_tcp(localhost_ip, modbus_port_mapped);
+    if (stx == NULL)
+    {
+        fprintf(stderr, "Failed to allocate stx\n");
+        _exit(-1);
+    }
+
+    /* Connect to the modbus server */
+    if(modbus_connect(stx) == -1) {
+        fprintf(stderr, "Connection failed\n");
+        _exit(-1);
+    }
+
+    /* READ_SINGLE_COIL */
+#ifndef NDEBUG
+    print_shim_info("modbus_test_client", __FUNCTION__);
+    printf("\nREAD_SINGLE_COIL\n");
+#endif
+
+#if defined(MODBUS_NETWORK_CAPS)
+    rc = modbus_read_bits_network_caps(stx, UT_BITS_ADDRESS, 1, tab_rp_bits);
+#else
+    rc = modbus_read_bits(stx, UT_BITS_ADDRESS, 1, tab_rp_bits);
+#endif
+
+    /* close the connection to the server */
+    modbus_close(stx);
+
+    /* free the stx */
+    modbus_free(stx);
+
+    /* free allocated memory */
+    vPortFree(tab_rp_bits);
+
+    /* kill this task */
+    vTaskDelete(NULL);
+}

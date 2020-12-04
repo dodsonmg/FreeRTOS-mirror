@@ -43,7 +43,6 @@
 /* Demo includes */
 #include "modbus_demo.h"
 #include "modbus_server.h"
-#include "modbus_client.h"
 
 /*-----------------------------------------------------------*/
 
@@ -63,7 +62,7 @@ configNETWORK_INTERFACE_TO_USE definition for information on how to configure
 the real network connection to use. */
 static const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2, configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5 };
 
-/* The default modbus server port is 502; however, the client and server
+/* The default modbus server port is 502; however, if the client and server
  * are running as two tasks on the same instance of FreeRTOS running
  * on QEMU.  The client and server communicate via the loopback interface
  * on the host.  Currently, the QEMU port 502 is mapped to port 1502 on the
@@ -104,26 +103,13 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 		created. */
 		if( xTasksAlreadyCreated == pdFALSE )
 		{
-            /* Initialise the server and client */
-            FreeRTOS_debug_printf( ( "vServerInitialization\r\n" ) );
+            /* Initialise the server */
+            FreeRTOS_debug_printf( ( "vServerInitialization\n" ) );
             vServerInitialization(localhost_ip, modbus_port);
-            FreeRTOS_debug_printf( ( "vClientInitialization\r\n" ) );
-#if defined(PLATFORM_FETT)
-            vClientInitialization(localhost_ip, modbus_port);
-#else
-            vClientInitialization(localhost_ip, modbus_port_mapped);
-#endif
 
             /*
-            * Start the client and server tasks
+            * Start the server tasks
             */
-            xTaskCreate(vClientTask,                 /* The function that implements the task. */
-                      "Client",                      /* The text name assigned to the task - for debug only as it is not used by the kernel. */
-                      configMINIMAL_STACK_SIZE * 2U, /* The size of the stack to allocate to the task. */
-                      NULL,                          /* The parameter passed to the task - not used in this case. */
-                      modbusCLIENT_TASK_PRIORITY,      /* The priority assigned to the task. */
-                      NULL);                         /* The task handle is not required, so NULL is passed. */
-
             xTaskCreate(vServerTask,                 /* The function that implements the task. */
                       "Server",                      /* The text name assigned to the task - for debug only as it is not used by the kernel. */
                       configMINIMAL_STACK_SIZE * 2U, /* The size of the stack to allocate to the task. */

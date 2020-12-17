@@ -50,6 +50,8 @@ _rtld_linkmap_add (rtems_rtl_obj* obj)
   uint32_t         obj_num = obj->obj_num;
   int              i;
 
+  printf("rtld: gdb: %s 0x%xlu\n", obj->oname, obj->text_base);
+
   if (rtems_rtl_trace (RTEMS_RTL_TRACE_DETAIL))
     printf ("rtl: linkmap_add\n");
 

@@ -250,9 +250,10 @@ struct rtems_rtl_obj
   void*               loader;       /**< The file details specific to a
                                      *   loader. */
 #ifdef __CHERI_PURE_CAPABILITY__
-  void**              captable;     /* Capability table per object */
-  size_t              caps_count;   /* The number of capabilities */
-  size_t              comp_id;      /* ID of an object compartment */
+  void**              captable;           /* Capability table per object */
+  size_t              captable_free_slot; /* The next free slot in cap table */
+  size_t              caps_count;         /* The number of capabilities */
+  size_t              comp_id;            /* ID of an object compartment */
 #endif
 };
 

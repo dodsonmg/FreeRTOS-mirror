@@ -319,20 +319,11 @@ rtl_cherifreertos_captable_realloc(rtems_rtl_obj* obj, size_t new_caps_count) {
 static uint32_t
 rtl_cherifreertos_captable_get_free_slot(rtems_rtl_obj* obj) {
 
-  if (!obj->captable) {
-    rtems_rtl_set_error (EINVAL, "There is no cap table for this object");
-    return NULL;
+  if (obj->captable_free_slot >= obj->caps_count) {
+    return 0;
   }
 
-  // Try to find the first NULL-cap entry as a free slot
-  // Slot 0 is the stack for this object, skip it
-  for (int i = 1; i < obj->caps_count; i++) {
-    if (*(obj->captable + i) == NULL) {
-      return i;
-    }
-  }
-
-  return 0;
+  return obj->captable_free_slot++;
 }
 
 uint32_t

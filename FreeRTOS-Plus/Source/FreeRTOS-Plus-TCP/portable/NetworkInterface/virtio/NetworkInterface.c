@@ -223,6 +223,8 @@ struct virtio_net *vnet = NULL;
 
     global_vnet = vnet;
 
+  // Bring back when an interrupt-based driver is supported/used
+#if 0
     /*
      * Initialize the interrupt controller and connect the ISR
      */
@@ -232,6 +234,7 @@ struct virtio_net *vnet = NULL;
                                         &prvNetworkInterfaceInterruptHandler,
                                         vnet))
         return pdFAIL;
+#endif
 
     /* Create a task to handle receive events */
     xTaskCreate(prvTxRxHandlerTask,

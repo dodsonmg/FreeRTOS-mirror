@@ -119,7 +119,7 @@ void *pvAlmightyDataCap;
 void *pvAlmightyCodeCap;
 
 #define SANDBOX_RETURN_OTYPE 0
-#define COMPARTMENT_RETURN_OTYPE 4095
+#define COMPARTMENT_RETURN_OTYPE (configCOMPARTMENTS_NUM - 1)
 #define SENTRY_OTYPE -2
 #endif
 

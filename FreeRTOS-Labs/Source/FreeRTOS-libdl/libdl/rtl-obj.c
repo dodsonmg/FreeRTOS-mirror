@@ -90,6 +90,9 @@ rtems_rtl_obj_alloc (void)
      */
     vListInitialiseItem (&obj->link);
 
+#if __CHERI_PURE_CAPABILITY__
+    obj->captable_free_slot = 1;
+#endif
     /*
      * No valid format.
      */

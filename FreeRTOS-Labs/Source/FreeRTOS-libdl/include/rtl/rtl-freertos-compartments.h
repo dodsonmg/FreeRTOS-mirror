@@ -17,7 +17,7 @@ extern compartment_t comp_list[configCOMPARTMENTS_NUM];
 extern char comp_strtab[configCOMPARTMENTS_NUM][configMAXLEN_COMPNAME];
 
 void *rtl_freertos_compartment_open(const char *name);
-ssize_t rtl_freertos_compartment_read(void* fd, void *buffer, UBaseType_t offset, size_t count);
+size_t rtl_freertos_compartment_read(void* fd, void *buffer, UBaseType_t offset, size_t count);
 size_t rtl_freertos_compartment_getsize(void* fd);
 size_t rtl_freertos_global_symbols_add(rtems_rtl_obj* obj);
 

@@ -77,7 +77,7 @@ void* rtl_freertos_compartment_open(const char *name)
 #endif
 }
 
-ssize_t rtl_freertos_compartment_read(void* fd, void *buffer, UBaseType_t offset, size_t count)
+size_t rtl_freertos_compartment_read(void* fd, void *buffer, UBaseType_t offset, size_t count)
 {
 #ifdef ipconfigUSE_FAT_LIBDL
   return ff_fread( buffer, 1, count, (FF_FILE *) fd );

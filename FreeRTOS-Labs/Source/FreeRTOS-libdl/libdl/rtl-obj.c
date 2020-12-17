@@ -919,10 +919,6 @@ rtems_rtl_obj_post_resolve_reloc (rtems_rtl_obj* obj)
                                 rtems_rtl_elf_relocs_lo12_locator, NULL))
        return false;
 
-#ifdef __CHERI_PURE_CAPABILITY__
-  obj->captable =  cheri_seal_cap(obj->captable, obj->comp_id);
-#endif
-
   return true;
 }
 

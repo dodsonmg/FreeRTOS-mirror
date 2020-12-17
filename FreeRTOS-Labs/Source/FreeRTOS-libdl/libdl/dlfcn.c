@@ -167,7 +167,7 @@ dlinfo (void* handle, int request, void** p)
         break;
 #ifdef __CHERI_PURE_CAPABILITY__
       case RTLD_DI_CHERI_CAPTABLE:
-        *p = (void *) obj->captable;
+        *p = cheri_seal_cap((void *) obj->captable, obj->comp_id);
         rc = 0;
         break;
 #endif

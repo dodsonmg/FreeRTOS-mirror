@@ -199,8 +199,7 @@ typedef struct {
 } xSANDBOX_ARGS;
 
 typedef struct {
-  BaseType_t a0;
-  BaseType_t a1;
+  uintcap_t ca0;
 } xCOMPARTMENT_RET;
 
 typedef struct {

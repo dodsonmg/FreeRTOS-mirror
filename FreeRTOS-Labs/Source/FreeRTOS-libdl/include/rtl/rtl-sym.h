@@ -16,6 +16,7 @@
 #if !defined (_RTEMS_RTL_SYM_H_)
 #define _RTEMS_RTL_SYM_H_
 
+#include <stdbool.h>
 #include <FreeRTOS.h>
 #include "list.h"
 #include "rtl-obj-fwd.h"

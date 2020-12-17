@@ -91,4 +91,10 @@ rtl_cherifreertos_capstack_alloc(rtems_rtl_obj* obj, size_t stack_depth);
  */
 uint32_t
 rtl_cherifreertos_captable_install_new_cap(rtems_rtl_obj* obj, void* new_cap);
+
+/**
+ * Get a new compartment ID value to set a newly loaded compartment with
+ */
+uint32_t
+rtl_cherifreertos_compartment_get_free_compid(void);
 #endif

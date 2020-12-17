@@ -37,6 +37,7 @@ extern char*  __strtab_start;
 extern char*  __strtab_end;
 
 compartment_t comp_list[configCOMPARTMENTS_NUM];
+static uint32_t comp_id_free = 0;
 
 void* rtl_freertos_compartment_open(const char *name)
 {
@@ -207,6 +208,15 @@ rtl_freertos_global_symbols_add(rtems_rtl_obj* obj) {
   obj->global_syms = globals_count;
 
   return globals_count;
+}
+
+uint32_t rtl_cherifreertos_compartment_get_free_compid(void) {
+
+  if (comp_id_free >= configCOMPARTMENTS_NUM) {
+    printf("Too many compartments, only %d are supported\n", configCOMPARTMENTS_NUM);
+  }
+
+  return comp_id_free++;
 }
 
 #ifdef __CHERI_PURE_CAPABILITY__

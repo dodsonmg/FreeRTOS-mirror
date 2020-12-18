@@ -923,7 +923,7 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
   {
     Elf_Sym     symbol;
     UBaseType_t off;
-    const char* name;
+    const char* name = NULL;
     size_t      len;
 
     off = obj->ooffset + sect->offset + (sym * sizeof (symbol));
@@ -937,6 +937,12 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
 
     if (!rtems_rtl_obj_cache_read (strings, fd, off, (void**) &name, &len))
       return false;
+
+    /*
+     * Skip symbols with no valid names
+     */
+    if (!rtems_rtl_symbol_name_valid(name))
+      continue;
 
     /*
      * Only keep the functions and global or weak symbols so place them in a
@@ -1122,6 +1128,12 @@ rtems_rtl_elf_symbols_load (rtems_rtl_obj*      obj,
 
         if (!rtems_rtl_obj_cache_read (strings, fd, off, (void**) &name, &len))
           return false;
+
+        /*
+         * Skip symbols with no valid names
+         */
+        if (!rtems_rtl_symbol_name_valid(name))
+          continue;
 
         /*
          * If a duplicate forget it.

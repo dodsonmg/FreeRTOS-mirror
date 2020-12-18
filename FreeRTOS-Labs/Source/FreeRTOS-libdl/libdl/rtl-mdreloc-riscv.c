@@ -58,21 +58,90 @@
 #include <cheri/cheri-utility.h>
 #endif
 
-typedef struct rela_hi20_table {
+#define RTL_RISCV_HI20_HASHTABLE_BUCKETS 32
+
+typedef struct rela_hi20 {
   ListItem_t  node;
   Elf_Word    symvalue;
   Elf_Word    *hi20_pc;
-#ifdef __CHERI_PURE_CAPABILITY__
-  bool        is_cap;
-  Elf_Word    cap_addr;
-#endif
 } hi20_reloc_t;
 
 static List_t hi20_relocs;
 static int hi20_init = 0;
 
+typedef struct rela_hi20_table {
+  List_t      *buckets;
+  size_t      nbuckets;
+} hi20_relocs_t;
+
+static hi20_relocs_t hi20_relocs_table;
+
+static uint_fast32_t
+rtems_hi20_hash (const Elf_Word *hi20_pc)
+{
+  return ((uint_fast32_t) hi20_pc) & 0xffffffff;
+}
+
 static void
-rtems_rtl_elf_relocate_riscv_hi20_add (Elf_Word symvalue, Elf_Word *pc, bool is_cap, Elf_Word cap_addr) {
+rtems_rtl_hi20_insert (hi20_relocs_t*     relocs,
+                       hi20_reloc_t*      reloc)
+{
+  uint_fast32_t hash = rtems_hi20_hash (reloc->hi20_pc);
+  vListInsertEnd (&relocs->buckets[hash % relocs->nbuckets],
+               &reloc->node);
+}
+
+static hi20_reloc_t*
+rtems_rtl_hi20_find (Elf_Word hi20_pc)
+{
+  hi20_relocs_t*       relocs;
+  uint_fast32_t        hash;
+  List_t*              bucket;
+  ListItem_t*          node;
+
+  relocs = &hi20_relocs_table;
+
+  hash = rtems_hi20_hash (hi20_pc);
+  bucket = &relocs->buckets[hash % relocs->nbuckets];
+  node = listGET_HEAD_ENTRY (bucket);
+
+  while (listGET_END_MARKER (bucket) != node)
+  {
+    hi20_reloc_t* reloc = (hi20_reloc_t*) node;
+
+    if (reloc->hi20_pc == hi20_pc) {
+      return reloc;
+    }
+
+    node = listGET_NEXT (node);
+  }
+
+  return NULL;
+}
+
+static bool
+rtems_rtl_hi20_table_open (hi20_relocs_t      *relocs,
+                           size_t             buckets)
+{
+  relocs->buckets = rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_SYMBOL,
+                                          buckets * sizeof (List_t),
+                                          true);
+  if (!relocs->buckets)
+  {
+    rtems_rtl_set_error (ENOMEM, "no memory for hi20 relocs table");
+    return false;
+  }
+  relocs->nbuckets = buckets;
+
+  for (buckets = 0; buckets < relocs->nbuckets; ++buckets)
+    vListInitialise (&relocs->buckets[buckets]);
+
+  return true;
+}
+
+#if 0
+static void
+rtems_rtl_elf_relocate_riscv_hi20_add (Elf_Word symvalue, Elf_Word *pc, bool is_cap, Elf_Word cap_addr, bool is_func) {
   hi20_reloc_t *hi20_reloc =  rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT, sizeof(hi20_reloc_t), true);
   vListInitialiseItem(&hi20_reloc->node);
 
@@ -124,6 +193,7 @@ rtems_rtl_elf_relocate_riscv_hi20_table_free (void) {
     node = listGET_NEXT (node);
   }
 }
+#endif
 
 uint32_t
 rtems_rtl_elf_section_flags (const rtems_rtl_obj* obj,
@@ -144,7 +214,8 @@ rtems_rtl_elf_arch_parse_section (const rtems_rtl_obj* obj,
 
   if ((flags & RTEMS_RTL_OBJ_SECT_RELA) == RTEMS_RTL_OBJ_SECT_RELA) {
     if (!hi20_init) {
-      vListInitialise (&hi20_relocs);
+      rtems_rtl_hi20_table_open(&hi20_relocs_table, RTL_RISCV_HI20_HASHTABLE_BUCKETS);
+      //vListInitialise (&hi20_relocs);
       hi20_init = 1;
     }
   }
@@ -272,47 +343,21 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
       Elf_Word return_sym;
       Elf_Addr hi20_rela_pc =  ((Elf_Word) where) + pcrel_val;
 
-      if (!rtems_rtl_elf_relocate_riscv_hi20_find(hi20_rela_pc, &ret_reloc)) {
+      ret_reloc = rtems_rtl_hi20_find(hi20_rela_pc);
+      if (!ret_reloc) {
         rtems_rtl_set_error (EINVAL,
                            "%s: Failed to find HI20 relocation for type %ld",
                            sect->name, (uint32_t) ELF_R_TYPE(rela->r_info));
         return rtems_rtl_elf_rel_failure;
+          return rtems_rtl_elf_rel_no_error;
       } else {
         return_sym = ret_reloc->symvalue;
         pcrel_val = return_sym - ((Elf_Word) hi20_rela_pc);
-  #ifdef __CHERI_PURE_CAPABILITY__
-        if (ret_reloc->is_cap) {
-#if 0
-          pcrel_val = ret_reloc->cap_addr - ((Elf_Word) hi20_rela_pc);
-#endif
-          size_t gp_rel_val = ((Elf_Word) ret_reloc->cap_addr) - ((Elf_Word) obj->captable);
-          uint32_t lc_inst = read32le(where);
-
-          if (gp_rel_val >= 0x1000) {
-            if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC))
-              printf("cheri:riscv:sym cap for %s is too far to fit in a 4K lc instruction \n", symname);
-
-            return rtems_rtl_elf_rel_failure;
-          }
-
-          hi = (gp_rel_val + 0x800) >> 12;
-          lo = gp_rel_val - (hi << 12);
-          lc_inst &= ~((0x1f) << 15);
-          lc_inst |= (3 << 15); // rs1 -> $cgp
-
-          write32le(where, (lc_inst & 0xFFFFF) | ((lo & 0xFFF) << 20));
-
-          rtems_rtl_elf_relocate_riscv_hi20_del(ret_reloc);
-
-          return rtems_rtl_elf_rel_no_error;
-         }
-  #endif
       }
+
       hi = (pcrel_val + 0x800) >> 12;
       lo = pcrel_val - (hi << 12);
       write32le(where, (read32le(where) & 0xFFFFF) | ((lo & 0xFFF) << 20));
-
-      rtems_rtl_elf_relocate_riscv_hi20_del(ret_reloc);
 
       return rtems_rtl_elf_rel_no_error;
     } else if (ELF_R_TYPE(rela->r_info) == R_TYPE(PCREL_LO12_S)) {
@@ -322,7 +367,8 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
       Elf_Word return_sym;
       Elf_Addr hi20_rela_pc =  ((Elf_Word) where) + pcrel_val;
 
-      if (!rtems_rtl_elf_relocate_riscv_hi20_find(hi20_rela_pc, &ret_reloc)) {
+      ret_reloc = rtems_rtl_hi20_find(hi20_rela_pc);
+      if (!ret_reloc) {
         rtems_rtl_set_error (EINVAL,
                            "%s: Failed to find HI20 relocation for type %ld",
                            sect->name, (uint32_t) ELF_R_TYPE(rela->r_info));
@@ -330,11 +376,6 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
       } else {
         return_sym = ret_reloc->symvalue;
         pcrel_val = return_sym - ((Elf_Word) hi20_rela_pc);
-  #ifdef __CHERI_PURE_CAPABILITY__
-        if (ret_reloc->is_cap) {
-          pcrel_val = ret_reloc->cap_addr - ((Elf_Word) hi20_rela_pc);
-         }
-  #endif
       }
 
       hi = (pcrel_val + 0x800) >> 12;
@@ -343,8 +384,6 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
       uint32_t imm11_5 = extractBits(lo, 11, 5) << 25;
       uint32_t imm4_0 = extractBits(lo, 4, 0) << 7;
       write32le(where, (read32le(where) & 0x1FFF07F) | imm11_5 | imm4_0);
-
-      rtems_rtl_elf_relocate_riscv_hi20_del(ret_reloc);
 
       return rtems_rtl_elf_rel_no_error;
     } else {
@@ -486,7 +525,13 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
     int64_t hi = SignExtend64(pcrel_val + 0x800, bits); //pcrel_val + 0x800;
     write32le(where, (read32le(where) & 0xFFF) | (hi & 0xFFFFF000));
 
-    rtems_rtl_elf_relocate_riscv_hi20_add(symvalue,  where, false, 0);
+    hi20_reloc_t *hi20_reloc =  rtems_rtl_alloc_new (RTEMS_RTL_ALLOC_OBJECT, sizeof(hi20_reloc_t), true);
+    vListInitialiseItem(&hi20_reloc->node);
+
+    hi20_reloc->symvalue = symvalue;
+    hi20_reloc->hi20_pc = where;
+
+    rtems_rtl_hi20_insert(&hi20_relocs_table, hi20_reloc);
 
   }
   break;
@@ -540,115 +585,62 @@ rtems_rtl_elf_reloc_rela (rtems_rtl_obj*            obj,
   break;
 
 #ifdef __CHERI_PURE_CAPABILITY__
+  case R_TYPE(CHERI_CAPABILITY): {
+    rtems_rtl_obj_sym *rtl_sym = rtems_rtl_symbol_obj_find(obj, symname);
+
+    if (rtl_sym) {
+       *((__uintcap_t *) where) = *(obj->captable + rtl_sym->capability);
+       return rtems_rtl_elf_rel_no_error;
+    } else {
+      rtems_rtl_set_error (EINVAL, "Couldn't find the symbol with CHERI_CAPABILITY reloc\n");
+      return rtems_rtl_elf_rel_failure;
+    }
+  }
+  break;
+
   case R_TYPE(CHERI_CAPTAB_PCREL_HI20): {
+    rtems_rtl_set_error (EINVAL, "CheriFreeRTOS compartment is invalid, re-compile with gprel ABI flag\n");
+    return rtems_rtl_elf_rel_failure;
+  }
+
+  case R_TYPE(CHERI_CAPTAB_FREERTOS_GPREL): {
     rtems_rtl_obj_sym *rtl_sym;
 
-    // Check if that is an external symbol that has already been resolved
-    rtl_sym = rtems_rtl_esymbol_obj_find(obj, symname);
+    rtl_sym = rtems_rtl_symbol_obj_find(obj, symname);
     if (rtl_sym) {
 
-      Elf_Byte st_info = ELF_ST_TYPE(syminfo >> 16);
-
-      if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI)) {
-        printf("cheri-riscv:sym Detected a relocation to an external symbol -> %s\n", symname);
-        printf("cheri-riscv:sym syminfo = %d\n", ELF_ST_TYPE(st_info));
-      }
-
-      // Check if it's reloction to a function (to cjalr to)
-      if (ELF_ST_TYPE(st_info) == STT_FUNC) {
-
-        // Hack to try to find the next cjalr and patch it
-        // FIXME: Replace that hack with a proper relocation in the compiler
-        // as there are not currently relocations for calls (cjalrs) in purecap
-        uint32_t *mem = (uint32_t *) where;
-
-        uint32_t *cjalr_addr = NULL;
-        uint32_t ccall_inst = (0x7e << 25) | (0x0 << 12) | (0x1 << 7) | 0x5b;
-        Elf_Byte cjalr_cs1 = 0; //codecap - to be set from cjalr args
-        Elf_Byte cjalr_cs2 = 4; //datacap - captable in $ctp
-
-        // limit the number of instructions to lookahead for a cjalr instruction
-        size_t max_reach = __builtin_cheri_base_get(where) + __builtin_cheri_length_get(where) - __builtin_cheri_address_get(where);
-        max_reach = max_reach > 1000 ? 1000 : max_reach / 4;
-
-        for (int i = 0; i < max_reach; i++) {
-          // cjalr opcode?
-          if ((*(mem + i) & ((0x7f << 25) | (0 << 7) | 0x7f)) == ((0x7f << 25) | 0x5b)) {
-            cjalr_addr = mem + i;
-            // Get the codecap reg# to the external from the cjalr instruction
-            cjalr_cs1 = (*cjalr_addr >> 15) & 0x1f;
-            break;
-          }
-        }
-
-        // Found the cjalr, now patch it to a ccall instead
-        if (cjalr_addr) {
-
-          if (rtems_rtl_trace (RTEMS_RTL_TRACE_CHERI))
-            printf("cheri-riscv:sym cjalr (0x%lx) found @ %p calling %d reg \n", *cjalr_addr, cjalr_addr, cjalr_cs1);
-
-          // insert the code and data cap regs
-          ccall_inst |= (cjalr_cs2 << 20) | (cjalr_cs1 << 15);
-          *cjalr_addr = ccall_inst;
-        }
-      }
-
-      // Replace AUIPCC to do a $cgp load of the datacap  (global table) into $ctp
-      size_t gp_rel_val = ((Elf_Word) (rtl_sym->capability)) + sizeof(void *) - ((Elf_Word) obj->captable);
-
-      if (gp_rel_val >= 0x1000) {
-        if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC))
-          printf("cheri:riscv:sym minted captable cap for %s is too far to fit in a 4K lc instruction \n", symname);
-
-        return rtems_rtl_elf_rel_failure;
-      }
+      size_t gp_rel_val = (size_t) ((Elf_Word) rtl_sym->capability) * sizeof(void *);
 
       int64_t hi = (gp_rel_val + 0x800) >> 12;
-      int64_t lo = gp_rel_val - (hi << 12);
-      // FIXME: This only works for RV64
+      int64_t lo = (gp_rel_val - (hi << 12)) & 0xFFF;
+
+      short tmpreg = (*where & 0xf80) >> 7;
+      uint32_t cincoff = *(where + 1);
+      cincoff &= ~((0x1f << 7) | (0x1f << 20));
+
+      // lui tmpreg, #hi20(cap_addr)
+      write32le(where, (hi << 12) | (tmpreg << 7) | *where);
+
+      // cincoffset ctmpreg, cgp, tmpreg
+      write32le((where + 1), (tmpreg << 20) | (tmpreg << 7) | cincoff);
+
 #if __riscv_xlen == 64
       uint32_t lc_inst = (0x2 << 12) | 0xf;
 #else
 #error "RV32 libdl isn't supported yet"
 #endif
-      lc_inst |= (0x3 << 15);
-      lc_inst |= (0x4 << 7);
-      write32le(where, (lc_inst & 0xFFFFF) | (lo & 0xFFF) << 20);
+
+      lc_inst |= (tmpreg << 7);
+      lc_inst |= (tmpreg << 15);
+
+      // lc ctmpreg, #lo12(cap_addr)(ctmpreg)
+      write32le((where + 2), (lo << 20) | (lc_inst));
+
+      return rtems_rtl_elf_rel_no_error;
     } else {
-      // nop, do nothing if it's not an external
-      write32le(where, 0x13);
+      rtems_rtl_set_error (EINVAL, "Couldn't find the %s symbol for FREERTOS_GPREL reloc\n");
+      return rtems_rtl_elf_rel_failure;
     }
-
-    rtl_sym = rtems_rtl_symbol_obj_find_namevalue(obj, symname, symvalue);
-    if (rtl_sym == NULL) {
-      /* Not found in the local table, search the global one.
-       * TODO: Check that this obj has a capability to that global
-       */
-      rtl_sym = rtems_rtl_symbol_obj_find(obj, symname);
-
-      if (rtl_sym == NULL) {
-        rtems_rtl_set_error (EINVAL,
-                           "%s: Failed to find symbol %s of type %ld",
-                           sect->name, symname, (uint32_t) ELF_R_TYPE(rela->r_info));
-        return rtems_rtl_elf_rel_failure;
-      }
-    }
-
-#if 0
-    pcrel_val = ((Elf_Word) (rtl_sym->capability)) - ((Elf_Word) where);
-    int64_t hi = SignExtend64(pcrel_val + 0x800, bits); //pcrel_val + 0x800;
-    write32le(where, (read32le(where) & 0xFFF) | (hi & 0xFFFFF000));
-#endif
-
-    if (rtems_rtl_trace (RTEMS_RTL_TRACE_RELOC)) {
-      printf("riscv:sym %s - hi20 pc = %p\n", symname, where);
-      printf("riscv:sym %s - adding a cap reloc at address = %p\n", symname, (rtl_sym->capability));
-      printf("riscv:sym :%s - hi20_cap pcrel_val = %d\n", symname, pcrel_val);
-    }
-
-
-    /* Add a hi20 reloc to the table to be searched later for lo12 relocs */
-    rtems_rtl_elf_relocate_riscv_hi20_add(symvalue,  where, true, (Elf_Word) (rtl_sym->capability));
   }
   break;
 

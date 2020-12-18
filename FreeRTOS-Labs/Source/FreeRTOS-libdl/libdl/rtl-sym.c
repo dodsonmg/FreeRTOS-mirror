@@ -509,6 +509,11 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
   size_t slen = 0;
   rtems_rtl_obj_sym *esym = NULL;
   rtems_rtl_obj_sym *sym = NULL;
+  bool is_func = false;
+
+  if (!rtems_rtl_symbol_name_valid(name)) {
+    return NULL;
+  }
 
   // If src_obj is NULL, search the global symbol table (FreeRTOS/libc) as they
   // do not have an allocated object.
@@ -527,6 +532,9 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
       return NULL;
     }
   }
+
+  if (ELF_ST_TYPE(sym->data >> 16) == STT_FUNC)
+    is_func = true;
 
   slen = strlen(name) + 1;
 
@@ -551,34 +559,11 @@ rtems_rtl_isymbol_obj_mint (rtems_rtl_obj* src_obj, rtems_rtl_obj* dest_obj, con
     return NULL;
   }
 
-  // if src_obj is NULL, it's a global symbol in FreeRTOS/libc and currently
-  // doesn't need to be sealed.
-  if (src_obj) {
     // Seal a minted cap to an external with its owners/src_obj type
+  if (is_func)
     *(dest_obj->captable + esym->capability) = cheri_seal_cap(*(dest_obj->captable + esym->capability), src_obj->comp_id);
-
-    // Get the captable of the sealed cap's owner to be used as a data cap
-    // during ccalls. This will be installed into the next slot to the
-    // external cap and used during reloction fixups
-    // FIXME: The current assumption is that there's only one instance of
-    // each compartment, and having a cap to one compartment means
-    // it can be entirely accessed (using a ccall with a sealed function cap and
-    // the cap table). This will need to be refined in the future to:
-    // 1) Allow multiple instances of a compartment by creating a custom captable
-    // with new state data/globals and caps referring to them.
-    // 2) Grant only a subset of the caps a compartment can access (instead of
-    // using a single/same captable) based on a policy defined by the system
-    // desinger.
-    void **captable = rtl_cherifreertos_compartment_get_captable(src_obj->comp_id);
-    uint32_t minted_captable_capidx = rtl_cherifreertos_captable_install_new_cap(dest_obj, captable);
-
-    if (!minted_captable_capidx) {
-      rtems_rtl_set_error (ENOMEM, "Failed to mint a captable cap");
-      return NULL;
-    }
-
-    *(dest_obj->captable + minted_captable_capidx) = cheri_seal_cap(*(dest_obj->captable + minted_captable_capidx), src_obj->comp_id);
-  }
+  else
+    *(dest_obj->captable + esym->capability) = *(dest_obj->captable + esym->capability);
 #endif
 
   // Add the symbol to the dest_obj extenals list

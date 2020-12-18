@@ -236,7 +236,10 @@ rtems_rtl_data_init (void)
        */
       rtl->base->aname = rtems_rtl_strdup ("freertos-kernel");
       rtl->base->oname = rtems_rtl_strdup ("freertos-kernel");
+
+#if __CHERI_PURE_CAPABILITY
       rtl->base->comp_id = configCOMPARTMENTS_NUM - 1;
+#endif
 
       /*
        * Lock the base image and flag it as the base image.

@@ -25,6 +25,7 @@
 
 #include <rtl/rtl.h>
 #include "rtl-error.h"
+#include "rtl-elf.h"
 #include <rtl/rtl-sym.h>
 #include <rtl/rtl-obj.h>
 #include <rtl/rtl-trace.h>
@@ -219,7 +220,6 @@ rtems_rtl_symbol_obj_compare (const void* a, const void* b)
 void
 rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj)
 {
-/*
   qsort (obj->local_table,
          obj->local_syms,
          sizeof (rtems_rtl_obj_sym),
@@ -228,7 +228,10 @@ rtems_rtl_symbol_obj_sort (rtems_rtl_obj* obj)
          obj->global_syms,
          sizeof (rtems_rtl_obj_sym),
          rtems_rtl_symbol_obj_compare);
-*/
+  qsort (obj->interface_table,
+         obj->interface_syms,
+         sizeof (rtems_rtl_obj_sym),
+         rtems_rtl_symbol_obj_compare);
 }
 
 static rtems_rtl_obj_sym*
@@ -253,24 +256,83 @@ rtems_rtl_symbol_list_find (List_t* list, const char* name)
 rtems_rtl_obj_sym*
 rtems_rtl_lsymbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {
+#if 0
   return rtems_rtl_symbol_list_find(&obj->locals_list, name);
+#else
+  rtems_rtl_obj_sym* match = NULL;
+  rtems_rtl_obj_sym  key = { 0 };
+
+  if (!rtems_rtl_symbol_name_valid(name)) {
+    return NULL;
+  }
+
+  key.name = name;
+  match = bsearch (&key, obj->local_table,
+                   obj->local_syms,
+                   sizeof (rtems_rtl_obj_sym),
+                   rtems_rtl_symbol_obj_compare);
+
+  return match;
+#endif
 }
 
 rtems_rtl_obj_sym*
 rtems_rtl_gsymbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {
+#if 0
   return rtems_rtl_symbol_list_find(&obj->globals_list, name);
+#else
+
+  if (obj == rtems_rtl_baseimage())
+    return NULL;
+
+  rtems_rtl_obj_sym* match = NULL;
+  rtems_rtl_obj_sym  key = { 0 };
+
+  if (!rtems_rtl_symbol_name_valid(name)) {
+    return NULL;
+  }
+
+  key.name = name;
+  match = bsearch (&key, obj->global_table,
+                   obj->global_syms,
+                   sizeof (rtems_rtl_obj_sym),
+                   rtems_rtl_symbol_obj_compare);
+
+  return match;
+#endif
 }
 
 rtems_rtl_obj_sym*
 rtems_rtl_isymbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {
+#if 0
   return rtems_rtl_symbol_list_find(&obj->interface_list, name);
+#else
+  rtems_rtl_obj_sym* match = NULL;
+  rtems_rtl_obj_sym  key = { 0 };
+
+  if (!rtems_rtl_symbol_name_valid(name)) {
+    return NULL;
+  }
+
+  key.name = name;
+  match = bsearch (&key, obj->interface_table,
+                   obj->interface_syms,
+                   sizeof (rtems_rtl_obj_sym),
+                   rtems_rtl_symbol_obj_compare);
+
+  return match;
+#endif
 }
 
 rtems_rtl_obj_sym*
 rtems_rtl_esymbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {
+  if (!rtems_rtl_symbol_name_valid(name)) {
+    return NULL;
+  }
+
   return rtems_rtl_symbol_list_find(&obj->externals_list, name);
 }
 
@@ -278,10 +340,19 @@ rtems_rtl_obj_sym*
 rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
 {
   rtems_rtl_obj_sym* match = NULL;
+  rtems_rtl_obj_sym  key = { 0 };
+
+  if (!rtems_rtl_symbol_name_valid(name)) {
+    return NULL;
+  }
+
+  key.name = name;
   /*
    * Check the object file's symbols first. If not found search the
    * global symbol table.
    */
+
+#if 0
   if (obj->local_syms)
   {
     match = rtems_rtl_lsymbol_obj_find (obj, name);
@@ -296,12 +367,15 @@ rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
       return match;
   }
 
-  if (obj->interface_syms)
-  {
-    match = rtems_rtl_isymbol_obj_find (obj, name);
-    if (match != NULL)
-      return match;
-  }
+#else
+  match = rtems_rtl_lsymbol_obj_find(obj, name);
+  if (match != NULL)
+    return match;
+
+  match = rtems_rtl_gsymbol_obj_find(obj, name);
+  if (match != NULL)
+    return match;
+#endif
 
   if (obj->externals_syms)
   {
@@ -319,34 +393,13 @@ rtems_rtl_symbol_obj_find (rtems_rtl_obj* obj, const char* name)
     return rtems_rtl_isymbol_obj_mint(NULL, obj, match->name);
   }
 
-#if 0
-    rtems_rtl_obj_sym* match;
-    rtems_rtl_obj_sym  key = { 0 };
-    key.name = name;
-    match = bsearch (&key, obj->local_table,
-                     obj->local_syms,
-                     sizeof (rtems_rtl_obj_sym),
-                     rtems_rtl_symbol_obj_compare);
-    if (match != NULL)
-      return match;
-    rtems_rtl_obj_sym* match;
-    rtems_rtl_obj_sym  key = { 0 };
-    key.name = name;
-    match = bsearch (&key, obj->global_table,
-                     obj->global_syms,
-                     sizeof (rtems_rtl_obj_sym),
-                     rtems_rtl_symbol_obj_compare);
-    if (match != NULL)
-      return match;
-#endif
-
-
   return NULL;
 }
 
 rtems_rtl_obj_sym*
 rtems_rtl_symbol_obj_find_namevalue (rtems_rtl_obj* obj, const char* name, UBaseType_t value)
 {
+#if 0
   ListItem_t *node = listGET_HEAD_ENTRY (&obj->locals_list);
 
   while (listGET_END_MARKER (&obj->locals_list) != node)
@@ -361,11 +414,15 @@ rtems_rtl_symbol_obj_find_namevalue (rtems_rtl_obj* obj, const char* name, UBase
   }
 
   return NULL;
+#else
+  return rtems_rtl_lsymbol_obj_find(obj, name);
+#endif
 }
 
 rtems_rtl_obj_sym*
 rtems_rtl_symbol_obj_extract (rtems_rtl_obj* obj, const char* name)
 {
+#if 0
   ListItem_t *node = listGET_HEAD_ENTRY (&obj->locals_list);
 
   while (listGET_END_MARKER (&obj->locals_list) != node)
@@ -381,6 +438,15 @@ rtems_rtl_symbol_obj_extract (rtems_rtl_obj* obj, const char* name)
   }
 
   return NULL;
+#else
+  rtems_rtl_obj_sym* match = NULL;
+  match = rtems_rtl_lsymbol_obj_find(obj, name);
+
+  if (match)
+    uxListRemove((ListItem_t *) match);
+
+  return match;
+#endif
 }
 
 bool

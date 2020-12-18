@@ -55,6 +55,10 @@ typedef enum interface_symbol_type {
   RTL_INTERFACE_SYMBOL_SUBSET_GLOBALS
 } isymbol_table_mode_t;
 
+static inline bool rtems_rtl_symbol_name_valid (const char* name) {
+  return ((name != NULL) && name[0]);
+}
+
 /**
  * Open a symbol table with the specified number of buckets.
  *

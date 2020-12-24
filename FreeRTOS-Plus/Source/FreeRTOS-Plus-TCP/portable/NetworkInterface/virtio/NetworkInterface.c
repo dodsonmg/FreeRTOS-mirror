@@ -201,12 +201,12 @@ struct virtio_net *vnet = (struct virtio_net *) CallBackRef;
 
 BaseType_t xNetworkInterfaceInitialise( void )
 {
-void *virtio_mmio_base = (void *) QEMU_VIRT_NET_MMIO_ADDRESS;
+void *virtio_mmio_base = (void *) VIRTIO_NET_MMIO_ADDRESS;
 struct virtio_net *vnet = NULL;
 
     #ifdef __CHERI_PURE_CAPABILITY__
         virtio_mmio_base = cheri_build_data_cap((ptraddr_t) virtio_mmio_base,
-                                            QEMU_VIRT_NET_MMIO_SIZE,
+                                            VIRTIO_NET_MMIO_SIZE,
                                             __CHERI_CAP_PERMISSION_GLOBAL__ |
                                             __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
                                             __CHERI_CAP_PERMISSION_PERMIT_STORE__);
@@ -228,9 +228,9 @@ struct virtio_net *vnet = NULL;
     /*
      * Initialize the interrupt controller and connect the ISR
      */
-    PLIC_set_priority(&Plic, QEMU_VIRT_NET_PLIC_INTERRUPT_ID, QEMU_VIRT_NET_PLIC_INTERRUPT_PRIO);
+    PLIC_set_priority(&Plic, VIRTIO_NET_PLIC_INTERRUPT_ID, VIRTIO_NET_PLIC_INTERRUPT_PRIO);
 
-    if(!PLIC_register_interrupt_handler(&Plic, QEMU_VIRT_NET_PLIC_INTERRUPT_ID,
+    if(!PLIC_register_interrupt_handler(&Plic, VIRTIONET_PLIC_INTERRUPT_ID,
                                         &prvNetworkInterfaceInterruptHandler,
                                         vnet))
         return pdFAIL;

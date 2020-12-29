@@ -85,7 +85,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 static struct virtio_device *global_dev = NULL;
 static struct virtio_net *global_vnet = NULL;
 
-static TaskHandle_t EthTaskHandler;
+static TaskHandle_t EthTaskHandler = NULL;
 
 static void prvTxRxHandlerTask( void *pvParameter )
 {
@@ -103,13 +103,12 @@ IPStackEvent_t xRxEvent;
         counting semaphore to count Rx events, but is a lot more efficient than
         a semaphore. */
 
-        // Uncomment when the driver is interrupt-based
-        //ulTaskNotifyTake( pdFALSE, portMAX_DELAY );
+        ulTaskNotifyTake( pdFALSE, portMAX_DELAY );
 
         /* See how much data was received. */
         xBytesReceived = virtionet_receive_check(vnet);
 
-        if( xBytesReceived > 0 )
+        while (xBytesReceived > 0)
         {
             /* Allocate a network buffer descriptor that points to a buffer
             large enough to hold the received frame.  As this is the simple
@@ -172,17 +171,16 @@ IPStackEvent_t xRxEvent;
                 Call the standard trace macro to log the occurrence. */
                 iptraceETHERNET_RX_EVENT_LOST();
             }
-        } else {
-                /* Check/poll for packets every 50 ms. This is to be removed if/when
-                   the driver is interrupt-based */
-                vTaskDelay(pdMS_TO_TICKS( 50 ));
+
+            // Check if new data got received while we were processing the previous one
+            xBytesReceived = virtionet_receive_check(vnet);
         }
     }
 }
 /*-----------------------------------------------------------*/
 
 static int prvNetworkInterfaceInterruptHandler( void* CallBackRef ) {
-bool pxHigherPriorityTaskWoken = false;
+BaseType_t  pxHigherPriorityTaskWoken = 0;
 struct virtio_net *vnet = (struct virtio_net *) CallBackRef;
 
     if ( !vnet || !vnet->driver.running ) {
@@ -192,8 +190,12 @@ struct virtio_net *vnet = (struct virtio_net *) CallBackRef;
 
     virtionet_handle_interrupt(vnet);
 
+    if (EthTaskHandler == NULL) {
+      return pxHigherPriorityTaskWoken;
+    }
+
     // Uncomment if/when the driver is interrupt-based
-    //vTaskNotifyGiveFromISR(EthTaskHandler, &pxHigherPriorityTaskWoken);
+    vTaskNotifyGiveFromISR(EthTaskHandler, &pxHigherPriorityTaskWoken);
 
     return pxHigherPriorityTaskWoken;
 }
@@ -203,6 +205,7 @@ BaseType_t xNetworkInterfaceInitialise( void )
 {
 void *virtio_mmio_base = (void *) VIRTIO_NET_MMIO_ADDRESS;
 struct virtio_net *vnet = NULL;
+extern plic_instance_t Plic;
 
     #ifdef __CHERI_PURE_CAPABILITY__
         virtio_mmio_base = cheri_build_data_cap((ptraddr_t) virtio_mmio_base,
@@ -224,13 +227,13 @@ struct virtio_net *vnet = NULL;
     global_vnet = vnet;
 
   // Bring back when an interrupt-based driver is supported/used
-#if 0
+#if 1
     /*
      * Initialize the interrupt controller and connect the ISR
      */
     PLIC_set_priority(&Plic, VIRTIO_NET_PLIC_INTERRUPT_ID, VIRTIO_NET_PLIC_INTERRUPT_PRIO);
 
-    if(!PLIC_register_interrupt_handler(&Plic, VIRTIONET_PLIC_INTERRUPT_ID,
+    if(!PLIC_register_interrupt_handler(&Plic, VIRTIO_NET_PLIC_INTERRUPT_ID,
                                         &prvNetworkInterfaceInterruptHandler,
                                         vnet))
         return pdFAIL;

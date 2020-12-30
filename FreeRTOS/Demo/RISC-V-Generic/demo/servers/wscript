@@ -39,6 +39,7 @@ def configure(ctx):
         ctx.path.abspath() + "/DemoTasks/include",
         ctx.path.abspath() + "/Common/FreeRTOS_Plus_TCP_Demos/include",
         ctx.path.abspath() + "/Common/FreeRTOS_Plus_CLI_Demos/include",
+        ctx.path.abspath() + "/Common/FreeRTOS_Modbus_Demos/include",
         ctx.path.abspath() + "/Common/Utilities/include",
         ctx.path.abspath() + "/Common/Demo_IP_Protocols/include"
     ])
@@ -101,6 +102,7 @@ def build(bld):
             'Common/FreeRTOS_Plus_CLI_Demos/TCPCommandConsole.c',
             'Common/FreeRTOS_Plus_CLI_Demos/UDPCommandConsole.c',
             'Common/FreeRTOS_Plus_CLI_Demos/File-related-CLI-commands.c',
+            'Common/FreeRTOS_Modbus_Demos/ModbusServer.c',
             'Common/Demo_IP_Protocols/FTP/FreeRTOS_FTP_server.c',
             'Common/Demo_IP_Protocols/FTP/FreeRTOS_FTP_commands.c',
             'Common/FreeRTOS_Plus_TCP_Demos/TFTPServer.c',

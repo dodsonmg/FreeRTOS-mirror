@@ -127,6 +127,10 @@ though this is not implementing a real telnet server. */
 #define mainTCP_CLI_TASK_PRIORITY						( tskIDLE_PRIORITY )
 #define mainTCP_CLI_PORT_NUMBER							( 23UL )
 
+/* Modbus TCP  server task parameters.  The standard Modbus port is used. */
+#define mainMODBUS_SERVER_TASK_PRIORITY					( tskIDLE_PRIORITY )
+#define mainMODBUS_SERVER_PORT_NUMBER					( 502UL )
+
 /* Simple UDP client and server task parameters. */
 #define mainSIMPLE_UDP_CLIENT_SERVER_TASK_PRIORITY		( tskIDLE_PRIORITY )
 #define mainSIMPLE_UDP_CLIENT_SERVER_PORT				( 5005UL )
@@ -189,6 +193,12 @@ for input and output is created using FreeRTOS+CLI.  The port number used is set
 by the mainTCP_CLI_PORT_NUMBER constant above.  A dumb UDP terminal such as YAT
 can be used to connect.
 
+mainCREATE_MODBUS_SERVER_TASKS:  When set to 1 a Modbus server is created that
+uses a TCP port for input and output.  The port is set by the constant
+mainMODBUS_SERVER_PORT_NUMBER constant above.  The server is based on libmodbus
+and a libmodbus client can be used to connect.
+libmodbus: https://github.com/stephane/libmodbus
+
 mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS:  When set to 1 two UDP client tasks
 and two UDP server tasks are created.  The clients talk to the servers.  One set
 of tasks use the standard sockets interface, and the other the zero copy sockets
@@ -237,6 +247,7 @@ See http://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/TCP_Echo_Server.html
 */
 #define mainCREATE_UDP_CLI_TASKS					1
 #define mainCREATE_TCP_CLI_TASKS					1
+#define mainCREATE_MODBUS_SERVER_TASKS              1
 #define mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS	0
 #define mainCREATE_SELECT_UDP_SERVER_TASKS			0 /* _RB_ Requires retest. */
 #define mainCREATE_UDP_ECHO_TASKS					0
@@ -650,6 +661,13 @@ static BaseType_t xTasksAlreadyCreated = pdFALSE;
 				vStartTCPCommandInterpreterTask( configMINIMAL_STACK_SIZE, mainTCP_CLI_PORT_NUMBER, mainTCP_CLI_TASK_PRIORITY );
 			}
 			#endif /* mainCREATE_TCPP_CLI_TASKS */
+
+			#if( mainCREATE_MODBUS_SERVER_TASKS == 1 )
+			{
+                /* Modbus TCP server on port specified by mainMODBUS_SERVER_PORT_NUMBER */
+				vStartModbusServerTask( configMINIMAL_STACK_SIZE, mainMODBUS_SERVER_PORT_NUMBER, mainMODBUS_SERVER_TASK_PRIORITY );
+			}
+			#endif /* mainCREATE_MODBUS_SERVER_TASKS */
 
 			#if( mainCREATE_SIMPLE_TCP_ECHO_SERVER == 1 )
 			{

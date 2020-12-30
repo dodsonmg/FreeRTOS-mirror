@@ -86,6 +86,11 @@
 
 /* Demo app includes. */
 #include "ModbusServer.h"
+#include "ModbusDemoConstants.h"
+
+/* Modbus includes. */
+#include <modbus/modbus.h>
+#include <modbus/modbus-helpers.h>
 
 /* Dimensions the buffer into which input characters are placed. */
 #define cmdMAX_INPUT_SIZE	1024
@@ -102,10 +107,17 @@
 /* The maximum time to wait for a closing socket to close. */
 #define cmdSHUTDOWN_DELAY	( pdMS_TO_TICKS( 5000 ) )
 
+/*-----------------------------------------------------------*/
+
 /*
  * The task that runs the Modbus server.
  */
 static void prvModbusServerTask( void *pvParameters );
+
+/*
+ * Initialise the Modbus server (e.g., state and context).
+ */
+static void prvModbusServerInitialization( uint16_t usPort );
 
 /*
  * Open and configure the TCP socket.
@@ -116,9 +128,16 @@ static Socket_t prvOpenTCPServerSocket( uint16_t usPort );
  * A connected socket is being closed.  Ensure the socket is closed at both ends
  * properly.
  */
-static void prvGracefulShutdown( Socket_t xSocket );
+static void prvGracefulShutdown( void );
 
 /*-----------------------------------------------------------*/
+
+/* Structure to hold queue messages (requests and responses). */
+typedef struct _queue_msg_t
+{
+    int msg_length;
+    uint8_t *msg;
+} queue_msg_t;
 
 /*
  * Various buffers used by the command lin interpreter.
@@ -130,6 +149,12 @@ static char cInputString[ cmdMAX_INPUT_SIZE ], cLastInputString[ cmdMAX_INPUT_SI
 static const char * const pcWelcomeMessage = "FreeRTOS command server.\r\nType help to view a list of registered commands.\r\nType quit to end a session.\r\n\r\n>";
 static const char * const pcEndOfOutputMessage = "\r\n[Press ENTER to execute the previous command again]\r\n>";
 static const char * const pcNewLine = "\r\n";
+
+/* The structure holding Modbus state information. */
+static modbus_mapping_t *mb_mapping = NULL;
+
+/* The structure holding Modbus context. */
+static modbus_t *ctx = NULL;
 
 /*-----------------------------------------------------------*/
 
@@ -147,18 +172,26 @@ BaseType_t xMoreDataToFollow;
 struct freertos_sockaddr xClient;
 Socket_t xListeningSocket, xConnectedSocket;
 socklen_t xSize = sizeof( xClient );
+/* The strange casting is to remove compiler warnings on 32-bit machines. */
+uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
+BaseType_t xReturned;
+
+/* buffers for comms with libmodbus */
+uint8_t *req = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
+int req_length = 0;
+uint8_t *rsp = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
+int rsp_length = 0;
+
+    /* Initialise the Modbus server state and context */
+    prvModbusServerInitialization( usPort );
 
 	memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
 
 	for( ;; )
 	{
 		/* Attempt to open the socket.  The port number is passed in the task
-		parameter.  The strange casting is to remove compiler warnings on 32-bit
-		machines.  NOTE:  The FREERTOS_SO_REUSE_LISTEN_SOCKET option is used,
-		so the listening and connecting socket are the same - meaning only one
-		connection will be accepted at a time, and that xListeningSocket must
-		be created on each iteration. */
-		xListeningSocket = prvOpenTCPServerSocket( ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL );
+		parameter. */
+		xListeningSocket = prvOpenTCPServerSocket( usPort );
 
 		/* Nothing for this task to do if the socket cannot be created. */
 		if( xListeningSocket == FREERTOS_INVALID_SOCKET )
@@ -167,160 +200,35 @@ socklen_t xSize = sizeof( xClient );
 		}
 
 		/* Wait for an incoming connection. */
-		xConnectedSocket = FreeRTOS_accept( xListeningSocket, &xClient, &xSize );
+		xConnectedSocket = modbus_tcp_accept( ctx, &xListeningSocket );
+        configASSERT( xConnectedSocket != NULL && xConnectedSocket != FREERTOS_INVALID_SOCKET );
 
-		/* The FREERTOS_SO_REUSE_LISTEN_SOCKET option is set, so the
-		connected and listening socket should be the same socket. */
-		configASSERT( xConnectedSocket == xListeningSocket );
-
-		/* Send the welcome message. */
-		lSent = FreeRTOS_send( xConnectedSocket,  ( void * ) pcWelcomeMessage,  strlen( pcWelcomeMessage ), 0 );
+        /* Receive a request from the Modbus client. */
+        req_length = modbus_receive( ctx, req );
 
 		/* Process the socket as long as it remains connected. */
-		while( lSent >= 0 )
+		while( req_length >= 0 )
 		{
-			/* Receive data on the socket. */
-			lBytes = FreeRTOS_recv( xConnectedSocket, cLocalBuffer, sizeof( cLocalBuffer ), 0 );
+            xReturned = modbus_process_request( ctx, req, req_length, rsp, &rsp_length,
+                    mb_mapping );
+            configASSERT( xReturned != -1 );
 
-			if( lBytes >= 0 )
-			{
-				/* Process each received byte in turn. */
-				lByte = 0;
-				while( lByte < lBytes )
-				{
-					/* The next character in the input buffer. */
-					cRxedChar = cLocalBuffer[ lByte ];
-					lByte++;
+            xReturned = modbus_reply( ctx, rsp, rsp_length );
+            configASSERT( xReturned != -1 );
 
-					/* Newline characters are taken as the end of the command
-					string. */
-					if( cRxedChar == '\n' )
-					{
-						/* Just to space the output from the input. */
-						FreeRTOS_send( xConnectedSocket, pcNewLine,  strlen( pcNewLine ), 0 );
-
-						/* See if the command is empty, indicating that the last
-						command is to be executed again. */
-						if( cInputIndex == 0 )
-						{
-							/* Copy the last command back into the input string. */
-							strcpy( cInputString, cLastInputString );
-						}
-
-						/* If the command was "quit" then close the console. */
-						if( strcasecmp( cInputString, "quit" ) == 0 )
-						{
-							/* Fake an error code so the outer loop exits on the
-							assumption there was an error on the socket.  The
-							socket will then be shut down gracefully. */
-							lSent = -1;
-							break;
-						}
-
-						/* Process the input string received prior to the
-						newline. */
-						do
-						{
-							/* Pass the string to FreeRTOS+CLI. */
-							cOutputString[ 0 ] = 0x00;
-							xMoreDataToFollow = FreeRTOS_CLIProcessCommand( cInputString, cOutputString, cmdMAX_OUTPUT_SIZE );
-
-							/* Send the output generated by the command's
-							implementation. */
-							lSent = FreeRTOS_send( xConnectedSocket, cOutputString,  strlen( ( const char * ) cOutputString ), 0 );
-
-						  /* Until the command does not generate any more output. */
-						} while( ( xMoreDataToFollow != pdFALSE ) && ( lSent >= 0 ) );
-
-						if( lSent >= 0 )
-						{
-							/* All the strings generated by the command
-							processing have been sent.  Clear the input string
-							ready to receive the next command.  Remember the
-							previous command so it can be executed again by
-							pressing [ENTER]. */
-							strcpy( cLastInputString, cInputString );
-							cInputIndex = 0;
-							memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
-
-							/* Transmit a spacer to make the console easier to
-							read. */
-							lSent = FreeRTOS_send( xConnectedSocket, ( void * ) pcEndOfOutputMessage,  strlen( pcEndOfOutputMessage ), 0 );
-						}
-
-						if( lSent < 0 )
-						{
-							/* Socket closed? */
-							break;
-						}
-					}
-					else
-					{
-						if( cRxedChar == '\r' )
-						{
-							/* Ignore the character.  Newlines are used to
-							detect the end of the input string. */
-						}
-						else if( ( cRxedChar == '\b' ) || ( cRxedChar == cmdASCII_DEL ) )
-						{
-							/* Backspace was pressed.  Erase the last character
-							in the string - if any. */
-							if( cInputIndex > 0 )
-							{
-								cInputIndex--;
-								cInputString[ ( int ) cInputIndex ] = '\0';
-							}
-						}
-						else
-						{
-							/* A character was entered.  Add it to the string
-							entered so far.  When a \n is entered the complete
-							string will be passed to the command interpreter. */
-							if( cInputIndex < cmdMAX_INPUT_SIZE )
-							{
-								if( ( cRxedChar >= ' ' ) && ( cRxedChar <= '~' ) )
-								{
-									cInputString[ ( int ) cInputIndex ] = cRxedChar;
-									cInputIndex++;
-								}
-							}
-						}
-					}
-				}
-			}
-			else
-			{
-				/* Socket closed? */
-				break;
-			}
+            /* Receive a request from the Modbus client. */
+            req_length = modbus_receive( ctx, req );
 		}
 
 		/* Close the socket correctly. */
-		prvGracefulShutdown( xListeningSocket );
+		prvGracefulShutdown();
 	}
 }
 /*-----------------------------------------------------------*/
 
-static void prvGracefulShutdown( Socket_t xSocket )
+static void prvGracefulShutdown( void )
 {
-TickType_t xTimeOnShutdown;
-
-	/* Initiate a shutdown in case it has not already been initiated. */
-	FreeRTOS_shutdown( xSocket, FREERTOS_SHUT_RDWR );
-
-	/* Wait for the shutdown to take effect, indicated by FreeRTOS_recv()
-	returning an error. */
-	xTimeOnShutdown = xTaskGetTickCount();
-	do
-	{
-		if( FreeRTOS_recv( xSocket, cInputString, ipconfigTCP_MSS, 0 ) < 0 )
-		{
-			break;
-		}
-	} while( ( xTaskGetTickCount() - xTimeOnShutdown ) < cmdSHUTDOWN_DELAY );
-
-	/* Finished with the socket and the task. */
-	FreeRTOS_closesocket( xSocket );
+    modbus_close(ctx);
 }
 /*-----------------------------------------------------------*/
 
@@ -329,37 +237,97 @@ static Socket_t prvOpenTCPServerSocket( uint16_t usPort )
 struct freertos_sockaddr xBindAddress;
 Socket_t xSocket;
 static const TickType_t xReceiveTimeOut = portMAX_DELAY;
-const BaseType_t xBacklog = 20;
-BaseType_t xReuseSocket = pdTRUE;
+const BaseType_t xBacklog = 1;
 
 	/* Attempt to open the socket. */
-	xSocket = FreeRTOS_socket( FREERTOS_AF_INET, FREERTOS_SOCK_STREAM, FREERTOS_IPPROTO_TCP );
+    xSocket = modbus_tcp_listen( ctx, xBacklog);
 	configASSERT( xSocket != FREERTOS_INVALID_SOCKET );
-
-	/* Set a time out so accept() will just wait for a connection. */
-	FreeRTOS_setsockopt( xSocket, 0, FREERTOS_SO_RCVTIMEO, &xReceiveTimeOut, sizeof( xReceiveTimeOut ) );
-
-	/* Only one connection will be used at a time, so re-use the listening
-	socket as the connected socket.  See SimpleTCPEchoServer.c for an example
-	that accepts multiple connections. */
-	FreeRTOS_setsockopt( xSocket, 0, FREERTOS_SO_REUSE_LISTEN_SOCKET, &xReuseSocket, sizeof( xReuseSocket ) );
-
-	/* NOTE:  The CLI is a low bandwidth interface (typing characters is slow),
-	so the TCP window properties are left at their default.  See
-	SimpleTCPEchoServer.c for an example of a higher throughput TCP server that
-	uses are larger RX and TX buffer. */
-
-	/* Bind the socket to the port that the client task will send to, then
-	listen for incoming connections. */
-	xBindAddress.sin_port = usPort;
-	xBindAddress.sin_port = FreeRTOS_htons( xBindAddress.sin_port );
-	FreeRTOS_bind( xSocket, &xBindAddress, sizeof( xBindAddress ) );
-	FreeRTOS_listen( xSocket, xBacklog );
 
 	return xSocket;
 }
+
 /*-----------------------------------------------------------*/
 
+static void prvModbusServerInitialization( uint16_t port )
+{
+    /* Allocate and populate the ctx structure.  Pass NULL for the ip,
+     * since it isn't necessary for the server to know its own ip address. */
+    ctx = modbus_new_tcp( NULL, port );
+    if ( ctx == NULL )
+    {
+        fprintf( stderr, "Failed to allocate ctx: %s\r\n",
+                modbus_strerror( errno ) );
+        modbus_free( ctx );
+        _exit( 0 );
+    }
 
+#ifdef NDEBUG
+    modbus_set_debug( ctx, pdFALSE );
+#else
+    modbus_set_debug( ctx, pdTRUE );
+#endif
 
+    /* initialise state (mb_mapping) */
+#if defined(MODBUS_OBJECT_CAPS) && !defined(MODBUS_OBJECT_CAPS_STUB)
+    mb_mapping = modbus_mapping_new_start_address_object_caps(
+            ctx,
+            UT_BITS_ADDRESS, UT_BITS_NB,
+            UT_INPUT_BITS_ADDRESS, UT_INPUT_BITS_NB,
+            UT_REGISTERS_ADDRESS, UT_REGISTERS_NB_MAX,
+            UT_INPUT_REGISTERS_ADDRESS, UT_INPUT_REGISTERS_NB );
+#else
+    mb_mapping = modbus_mapping_new_start_address(
+            UT_BITS_ADDRESS, UT_BITS_NB,
+            UT_INPUT_BITS_ADDRESS, UT_INPUT_BITS_NB,
+            UT_REGISTERS_ADDRESS, UT_REGISTERS_NB_MAX,
+            UT_INPUT_REGISTERS_ADDRESS, UT_INPUT_REGISTERS_NB );
+#endif
 
+    /* check for successful initialisation of state */
+    if ( mb_mapping == NULL )
+    {
+        fprintf( stderr, "Failed to allocate the mapping: %s\r\n",
+                modbus_strerror( errno ) );
+        modbus_free( ctx );
+        _exit( 0 );
+    }
+
+    /* display the state if DEBUG */
+    if ( modbus_get_debug( ctx ) )
+    {
+        print_mb_mapping( mb_mapping );
+    }
+
+    /* Initialize coils */
+    modbus_set_bits_from_bytes( mb_mapping->tab_input_bits, 0, UT_INPUT_BITS_NB,
+            UT_INPUT_BITS_TAB );
+
+    /* Initialize discrete inputs */
+    for ( int i = 0; i < UT_INPUT_REGISTERS_NB; i++ )
+    {
+        mb_mapping->tab_input_registers[i] = UT_INPUT_REGISTERS_TAB[i];
+    }
+
+#if defined(MODBUS_NETWORK_CAPS)
+    /* Initialise Macaroon */
+    BaseType_t xReturned = 0;
+    char *key = "a bad secret";
+    char *id = "id for a bad secret";
+    char *location = "https://www.modbus.com/macaroons/";
+    xReturned = initialise_server_network_caps( ctx, location, key, id );
+    if (xReturned == -1) {
+        fprintf( stderr, "Failed to initialise server macaroon\r\n" );
+        modbus_free( ctx );
+        _exit( 0 );
+    }
+#endif
+
+    /* Initialise queues for comms with prvCriticalSectionTask */
+    /* xQueueRequest = xQueueCreate(modbusQUEUE_LENGTH, sizeof(queue_msg_t *)); */
+    /* configASSERT(xQueueRequest != NULL); */
+
+    /* xQueueResponse = xQueueCreate(modbusQUEUE_LENGTH, sizeof(queue_msg_t *)); */
+    /* configASSERT(xQueueResponse != NULL); */
+}
+
+/*-----------------------------------------------------------*/

@@ -67,9 +67,9 @@
     1 tab == 4 spaces!
 */
 
-#ifndef TCP_COMMAND_INTERPRETER_H
-#define TCP_COMMAND_INTERPRETER_H
+#ifndef MODBUS_SERVER_H
+#define MODBUS_SERVER_H
 
-void vStartTCPCommandInterpreterTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t uxPriority );
+void vStartModbusServerTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t uxPriority );
 
-#endif /* TCP_COMMAND_INTERPRETER_H */
+#endif /* MODBUS_SERVER_H */

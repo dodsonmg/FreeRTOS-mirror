@@ -78,6 +78,7 @@ def configure(ctx):
         'LIB_DEPS',
         ['freertos_tcpip', 'freertos_cli', 'freertos_libdl', 'freertos_fat', 'virtio'])
 
+    ctx.recurse('Common/FreeRTOS_Modbus_Demos/modcap')
 
 def build(bld):
     name = "main_servers"
@@ -88,6 +89,8 @@ def build(bld):
 
     if bld.env.COMPARTMENTALIZE:
         cflags = ['-cheri-cap-table-abi=gprel']
+
+    bld.recurse('Common/FreeRTOS_Modbus_Demos/modcap')
 
     bld.stlib(
         features=['c'],
@@ -113,6 +116,6 @@ def build(bld):
         ],
         use=[
             "freertos_core_headers", "freertos_bsp_headers", "freertos_tcpip_headers", "freertos_cli_headers",
-            "freertos_libdl_headers", "freertos_fat_headers", "virtio_headers", "cheri_headers"
+            "freertos_libdl_headers", "freertos_fat_headers", "virtio_headers", "cheri_headers", "modbus"
         ],
         target=name)

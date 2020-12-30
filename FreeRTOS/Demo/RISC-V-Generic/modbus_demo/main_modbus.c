@@ -70,7 +70,11 @@ static const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, con
  * be listening on localhost:502 */
 const int modbus_port = 502;
 const int modbus_port_mapped = 1502;
+#if defined(PLATFORM_FETT)
+const char *localhost_ip = "10.0.2.15";
+#else
 const char *localhost_ip = "127.0.0.1";
+#endif
 
 /*-----------------------------------------------------------*/
 

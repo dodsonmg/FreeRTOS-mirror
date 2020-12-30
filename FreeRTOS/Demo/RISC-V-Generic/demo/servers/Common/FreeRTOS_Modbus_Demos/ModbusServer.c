@@ -166,15 +166,10 @@ void vStartModbusServerTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t 
 
 void prvModbusServerTask( void *pvParameters )
 {
-int32_t lBytes, lByte, lSent;
-char cRxedChar, cInputIndex = 0;
-BaseType_t xMoreDataToFollow;
-struct freertos_sockaddr xClient;
+BaseType_t xReturned;
 Socket_t xListeningSocket, xConnectedSocket;
-socklen_t xSize = sizeof( xClient );
 /* The strange casting is to remove compiler warnings on 32-bit machines. */
 uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
-BaseType_t xReturned;
 
 /* buffers for comms with libmodbus */
 uint8_t *req = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
@@ -185,14 +180,12 @@ int rsp_length = 0;
     /* Initialise the Modbus server state and context */
     prvModbusServerInitialization( usPort );
 
-	memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
+    /* Attempt to open the socket.  The port number is passed in the task
+    parameter. */
+    xListeningSocket = prvOpenTCPServerSocket( usPort );
 
 	for( ;; )
 	{
-		/* Attempt to open the socket.  The port number is passed in the task
-		parameter. */
-		xListeningSocket = prvOpenTCPServerSocket( usPort );
-
 		/* Nothing for this task to do if the socket cannot be created. */
 		if( xListeningSocket == FREERTOS_INVALID_SOCKET )
 		{

@@ -1,70 +1,70 @@
 /*
-    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
-    All rights reserved
+   FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
+   All rights reserved
 
-    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+   VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
 
-    This file is part of the FreeRTOS distribution.
+   This file is part of the FreeRTOS distribution.
 
-    FreeRTOS is free software; you can redistribute it and/or modify it under
-    the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+   FreeRTOS is free software; you can redistribute it and/or modify it under
+   the terms of the GNU General Public License (version 2) as published by the
+   Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
-    ***************************************************************************
-    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
-    >>!   distribute a combined work that includes FreeRTOS without being   !<<
-    >>!   obliged to provide the source code for proprietary components     !<<
-    >>!   outside of the FreeRTOS kernel.                                   !<<
-    ***************************************************************************
+ ***************************************************************************
+ >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+ >>!   distribute a combined work that includes FreeRTOS without being   !<<
+ >>!   obliged to provide the source code for proprietary components     !<<
+ >>!   outside of the FreeRTOS kernel.                                   !<<
+ ***************************************************************************
 
-    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available on the following
-    link: http://www.freertos.org/a00114.html
+ FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE.  Full license text is available on the following
+link: http://www.freertos.org/a00114.html
 
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that is more than just the market leader, it     *
-     *    is the industry's de facto standard.                               *
-     *                                                                       *
-     *    Help yourself get started quickly while simultaneously helping     *
-     *    to support the FreeRTOS project by purchasing a FreeRTOS           *
-     *    tutorial book, reference manual, or both:                          *
-     *    http://www.FreeRTOS.org/Documentation                              *
-     *                                                                       *
-    ***************************************************************************
+ ***************************************************************************
+ *                                                                       *
+ *    FreeRTOS provides completely free yet professionally developed,    *
+ *    robust, strictly quality controlled, supported, and cross          *
+ *    platform software that is more than just the market leader, it     *
+ *    is the industry's de facto standard.                               *
+ *                                                                       *
+ *    Help yourself get started quickly while simultaneously helping     *
+ *    to support the FreeRTOS project by purchasing a FreeRTOS           *
+ *    tutorial book, reference manual, or both:                          *
+ *    http://www.FreeRTOS.org/Documentation                              *
+ *                                                                       *
+ ***************************************************************************
 
-    http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-    the FAQ page "My application does not run, what could be wrong?".  Have you
-    defined configASSERT()?
+http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
+the FAQ page "My application does not run, what could be wrong?".  Have you
+defined configASSERT()?
 
-    http://www.FreeRTOS.org/support - In return for receiving this top quality
-    embedded software for free we request you assist our global community by
-    participating in the support forum.
+http://www.FreeRTOS.org/support - In return for receiving this top quality
+embedded software for free we request you assist our global community by
+participating in the support forum.
 
-    http://www.FreeRTOS.org/training - Investing in training allows your team to
-    be as productive as possible as early as possible.  Now you can receive
-    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-    Ltd, and the world's leading authority on the world's leading RTOS.
+http://www.FreeRTOS.org/training - Investing in training allows your team to
+be as productive as possible as early as possible.  Now you can receive
+FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+Ltd, and the world's leading authority on the world's leading RTOS.
 
-    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
-    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
-    compatible FAT file system, and our tiny thread aware UDP/IP stack.
+http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
+including FreeRTOS+Trace - an indispensable productivity tool, a DOS
+compatible FAT file system, and our tiny thread aware UDP/IP stack.
 
-    http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
-    Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
+http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
+Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
 
-    http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
-    Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and commercial middleware.
+http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
+Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
+licenses offer ticketed support, indemnification and commercial middleware.
 
-    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
-    engineered and independently SIL3 certified version for use in safety and
-    mission critical applications that require provable dependability.
+http://www.SafeRTOS.com - High Integrity Systems also provide a safety
+engineered and independently SIL3 certified version for use in safety and
+mission critical applications that require provable dependability.
 
-    1 tab == 4 spaces!
+1 tab == 4 spaces!
 */
 
 /* Standard includes. */
@@ -91,6 +91,11 @@
 /* Modbus includes. */
 #include <modbus/modbus.h>
 #include <modbus/modbus-helpers.h>
+
+/* Microbenchmark includes */
+#if defined(MICROBENCHMARK)
+#include "microbenchmark.h"
+#endif
 
 /* Dimensions the buffer into which input characters are placed. */
 #define cmdMAX_INPUT_SIZE	1024
@@ -176,29 +181,35 @@ QueueHandle_t xQueueResponse;
 
 void vStartModbusServerTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t uxPriority )
 {
-	xTaskCreate( prvModbusServerTask, "ModbusServer", usStackSize, ( void * ) ulPort, uxPriority, NULL );
+    xTaskCreate( prvModbusServerTask, "ModbusServer", usStackSize, ( void * ) ulPort, uxPriority, NULL );
 }
 /*-----------------------------------------------------------*/
 
 void prvModbusServerTask( void *pvParameters )
 {
-BaseType_t xReturned;
-char *pcModbusFunctionName;
-Socket_t xListeningSocket, xConnectedSocket;
-/* The strange casting is to remove compiler warnings on 32-bit machines. */
-uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
+    BaseType_t xReturned;
+    char *pcModbusFunctionName;
+    uint32_t ulNumIterations;
+    Socket_t xListeningSocket, xConnectedSocket;
+    /* The strange casting is to remove compiler warnings on 32-bit machines. */
+    uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
 
-/* buffers for comms with libmodbus */
-uint8_t *req = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
-int req_length = 0;
-uint8_t *rsp = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
-int rsp_length = 0;
+    /* buffers for comms with libmodbus */
+    uint8_t *req = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
+    int req_length = 0;
+    uint8_t *rsp = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
+    int rsp_length = 0;
+
+#if defined(MICROBENCHMARK)
+    BaseType_t xIsWriteString;
+    BaseType_t xBenchmarkedWriteString;
+#endif
 
     /* Initialise the Modbus server state and context */
     prvModbusServerInitialization( usPort );
 
     /* Attempt to open the socket.  The port number is passed in the task
-    parameter. */
+       parameter. */
     xListeningSocket = prvOpenTCPServerSocket( usPort );
 
     /* Create the task prvModbusCrticalSectionTask with the same priority
@@ -210,76 +221,97 @@ int rsp_length = 0;
             uxTaskPriorityGet( NULL ),
             NULL );
 
-	for( ;; )
-	{
-		/* Nothing for this task to do if the socket cannot be created. */
-		if( xListeningSocket == FREERTOS_INVALID_SOCKET )
-		{
-			vTaskDelete( NULL );
-		}
+    for( ;; )
+    {
+        /* Nothing for this task to do if the socket cannot be created. */
+        if( xListeningSocket == FREERTOS_INVALID_SOCKET )
+        {
+            vTaskDelete( NULL );
+        }
 
-		/* Wait for an incoming connection. */
-		xConnectedSocket = modbus_tcp_accept( ctx, &xListeningSocket );
-        configASSERT( xConnectedSocket != NULL && xConnectedSocket != FREERTOS_INVALID_SOCKET );
+        /* Wait for an incoming connection. */
+        xConnectedSocket = modbus_tcp_accept( ctx, &xListeningSocket );
+        configASSERT( xConnectedSocket != NULL &&
+                xConnectedSocket != FREERTOS_INVALID_SOCKET );
 
         /* Receive a request from the Modbus client. */
         req_length = modbus_receive( ctx, req );
 
-		/* Process the socket as long as it remains connected. */
-		while( req_length >= 0 )
-		{
-                /* get the modbus function name from the request */
-                pcModbusFunctionName = modbus_get_function_name(ctx, req);
+        /* Process the socket as long as it remains connected. */
+        while( req_length >= 0 )
+        {
+            /* get the modbus function name from the request */
+            pcModbusFunctionName = modbus_get_function_name( ctx, req );
+
+            /* Process the request. */
+#if defined(MICROBENCHMARK)
+            /* Identify if this is a WRITE_STRING request, because we only
+             * want to benchmark it once. */
+            xIsWriteString = strncmp( pcModbusFunctionName,
+                    "MODBUS_FC_WRITE_STRING",
+                    MODBUS_MAX_FUNCTION_NAME_LEN ) == 0;
+
+            /* Determine the total number of benchmarking iterations to perform.
+             * We will discard a set number to ensure quiescence, then begin
+             * recording actual benchmarking runs.
+             *
+             * We only want to benchmark WRITE_STRING once, so if we've already
+             * benchmarked it, and this is a WRITE_STRING request, we'll
+             * set the number of iterations to 1. */
+            if ( !xIsWriteString || ( xIsWriteString && !xBenchmarkedWriteString ) ) {
+                /* This isn't a WRITE_STRING request, or it's the first one. */
+                ulNumIterations = MICROBENCHMARK_DISCARD + MICROBENCHMARK_ITERATIONS;
+
+                /* If this is a WRITE_STRING request, mark it as having
+                 * been benchmarked. */
+                if ( xIsWriteString ) {
+                    xBenchmarkedWriteString = pdTRUE;
+                }
+            } else {
+                /* We have already benchmarked the WRITE_STRING request. */
+                ulNumIterations = 1;
+            }
+#else
+            /* If we're not benchmarking, only process the request once. */
+            ulNumIterations = 1;
+#endif
+
+            while( ulNumIterations > 0 ) {
+                FreeRTOS_debug_printf( ( ". " ) );
+                xReturned = prvCriticalSectionWrapper( req, req_length, rsp, &rsp_length );
+                configASSERT( xReturned != -1 );
 
 #if defined(MICROBENCHMARK)
-                /* only benchmark the modbus_write_string() operation (the client sending a macaroon) the first time */
-                if(strncmp(pcModbusFunctionName, "MODBUS_FC_WRITE_STRING", MODBUS_MAX_FUNCTION_NAME_LEN) == 0 &&
-                        xBenchmarkedWriteString) {
-                    xReturned = prvCriticalSectionWrapper(req, req_length, rsp, &rsp_length);
-                    configASSERT(xReturned != -1);
+                /* Perform a benchmarking sample.  If we've burned through the
+                 * discard iterations, then record the result. */
+                if ( ulNumIterations <= MICROBENCHMARK_ITERATIONS ) {
+                    xMicrobenchmarkSample( pcModbusFunctionName, pdTRUE );
                 } else {
-                    /* discard MICROBENCHMARK_DISCARD runs to ensure quiescence */
-                    for (int i = 0; i < MICROBENCHMARK_DISCARD; ++i)
-                    {
-                        printf(". ");
-                        xReturned = prvCriticalSectionWrapper(req, req_length, rsp, &rsp_length);
-                        configASSERT(xReturned != -1);
-
-                        xMicrobenchmarkSample(pcModbusFunctionName, pdFALSE);
-                    }
-
-                    /* perform MICROBENCHMARK_ITERATIONS runs of the critical section */
-                    for (int i = 0; i < MICROBENCHMARK_ITERATIONS; ++i)
-                    {
-                        printf(". ");
-                        xReturned = prvCriticalSectionWrapper(req, req_length, rsp, &rsp_length);
-                        configASSERT(xReturned != -1);
-
-                        xMicrobenchmarkSample(pcModbusFunctionName, pdTRUE);
-                    }
-                    printf("\r\n");
-
-                    /* mark modbus_write_string() as having been benchmarked */
-                    if(strncmp(pcModbusFunctionName, "MODBUS_FC_WRITE_STRING", MODBUS_MAX_FUNCTION_NAME_LEN) == 0) {
-                        xBenchmarkedWriteString = pdTRUE;
-                    }
+                    xMicrobenchmarkSample( pcModbusFunctionName, pdFALSE );
                 }
-#else
-                xReturned = prvCriticalSectionWrapper(req, req_length, rsp, &rsp_length);
-                configASSERT(xReturned != -1);
 #endif
+                ulNumIterations -= 1;
+            }
+            FreeRTOS_debug_printf( ( "\r\n" ) );
 
             xReturned = modbus_reply( ctx, rsp, rsp_length );
             configASSERT( xReturned != -1 );
 
             /* Receive a request from the Modbus client. */
             req_length = modbus_receive( ctx, req );
-		}
+        }
 
-		/* Close the socket correctly. */
-		prvGracefulShutdown();
-	}
+        /* Close the socket correctly. */
+        prvGracefulShutdown();
+
+#if defined(MICROBENCHMARK)
+        /* Print microbenchmark samples to stdout and do not reopen the port */
+        vPrintMicrobenchmarkSamples();
+        _exit(0);
+#endif
+    }
 }
+
 /*-----------------------------------------------------------*/
 
 static void prvGracefulShutdown( void )
@@ -290,16 +322,16 @@ static void prvGracefulShutdown( void )
 
 static Socket_t prvOpenTCPServerSocket( uint16_t usPort )
 {
-struct freertos_sockaddr xBindAddress;
-Socket_t xSocket;
-static const TickType_t xReceiveTimeOut = portMAX_DELAY;
-const BaseType_t xBacklog = 1;
+    struct freertos_sockaddr xBindAddress;
+    Socket_t xSocket;
+    static const TickType_t xReceiveTimeOut = portMAX_DELAY;
+    const BaseType_t xBacklog = 1;
 
-	/* Attempt to open the socket. */
+    /* Attempt to open the socket. */
     xSocket = modbus_tcp_listen( ctx, xBacklog);
-	configASSERT( xSocket != FREERTOS_INVALID_SOCKET );
+    configASSERT( xSocket != FREERTOS_INVALID_SOCKET );
 
-	return xSocket;
+    return xSocket;
 }
 
 /*-----------------------------------------------------------*/

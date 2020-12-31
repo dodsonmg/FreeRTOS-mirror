@@ -109,6 +109,7 @@
 #include "TCPEchoClient_SeparateTasks.h"
 #include "UDPCommandConsole.h"
 #include "TCPCommandConsole.h"
+#include "ModbusServer.h"
 #include "UDPSelectServer.h"
 #include "SimpleTCPEchoServer.h"
 #include "TFTPServer.h"

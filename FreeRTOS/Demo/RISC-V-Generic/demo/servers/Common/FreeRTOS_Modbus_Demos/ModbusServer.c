@@ -97,6 +97,16 @@ mission critical applications that require provable dependability.
 #include "microbenchmark.h"
 #endif
 
+/* Modbus object capability includes */
+#if defined(MODBUS_OBJECT_CAPS) || defined(MODBUS_OBJECT_CAPS_STUBS)
+#include "modbus_object_caps.h"
+#endif
+
+/* Modbus network capability includes */
+#if defined(MODBUS_NETWORK_CAPS)
+#include "modbus_network_caps.h"
+#endif
+
 /* Dimensions the buffer into which input characters are placed. */
 #define cmdMAX_INPUT_SIZE	1024
 

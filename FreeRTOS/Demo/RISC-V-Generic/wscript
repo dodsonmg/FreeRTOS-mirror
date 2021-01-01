@@ -652,10 +652,27 @@ def options(ctx):
                    default=False,
                    help='Expermintal CHERI-based SW compartmentalization')
 
+    # Modbus options
     ctx.add_option('--modbus_benchmark',
                    action='store_true',
                    default=False,
                    help='Compile FreeRTOS Modbus server for benchmarking')
+
+    ctx.add_option('--modbus_object_caps',
+                   action='store_true',
+                   default=False,
+                   help='Compile FreeRTOS Modbus server to use local object capabilities')
+
+    ctx.add_option('--modbus_object_caps_stubs',
+                   action='store_true',
+                   default=False,
+                   help='Compile FreeRTOS Modbus server to call into, but not use, the local object capabilities layer.  Used to measure cost of the object capabilities shim layer.')
+
+    ctx.add_option('--modbus_network_caps',
+                   action='store_true',
+                   default=False,
+                   help='Compile FreeRTOS Modbus server to use network capabilities')
+
     # Run options
     ctx.add_option('--run',
                    action='store_true',
@@ -686,6 +703,9 @@ def configure(ctx):
     ctx.env.PROGRAM_ENTRY = ctx.env.PROG
     ctx.env.COMPARTMENTALIZE = ctx.options.compartmentalize
     ctx.env.MODBUS_BENCHMARK = ctx.options.modbus_benchmark
+    ctx.env.MODBUS_OBJECT_CAPS = ctx.options.modbus_object_caps
+    ctx.env.MODBUS_OBJECT_CAPS_STUBS = ctx.options.modbus_object_caps_stubs
+    ctx.env.MODBUS_NETWORK_CAPS = ctx.options.modbus_network_caps
 
     # Libs - Minimal libs required for any FreeRTOS Demo
     ctx.env.append_value('LIB', ['c'])

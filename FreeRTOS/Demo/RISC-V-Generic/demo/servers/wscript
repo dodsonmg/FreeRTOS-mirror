@@ -70,6 +70,21 @@ def configure(ctx):
             'MICROBENCHMARK                 =1',
             ])
 
+    if ctx.env.MODBUS_OBJECT_CAPS:
+        ctx.env.append_value('DEFINES', [
+            'MODBUS_OBJECT_CAPS             =1',
+            ])
+
+    if ctx.env.MODBUS_OBJECT_CAPS_STUBS:
+        ctx.env.append_value('DEFINES', [
+            'MODBUS_OBJECT_CAPS_STUBS       =1',
+            ])
+
+    if ctx.env.MODBUS_NETWORK_CAPS:
+        ctx.env.append_value('DEFINES', [
+            'MODBUS_NETWORK_CAPS            =1',
+            ])
+
     if ctx.env.COMPARTMENTALIZE:
          ctx.env.append_value(
             'LIB_DEPS_EMBED_FAT',
@@ -122,6 +137,7 @@ def build(bld):
         ],
         use=[
             "freertos_core_headers", "freertos_bsp_headers", "freertos_tcpip_headers", "freertos_cli_headers",
-            "freertos_libdl_headers", "freertos_fat_headers", "virtio_headers", "cheri_headers", "modbus"
+            "freertos_libdl_headers", "freertos_fat_headers", "virtio_headers", "cheri_headers", "modbus",
+            "modbus_object_caps", "modbus_network_caps"
         ],
         target=name)

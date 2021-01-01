@@ -652,6 +652,10 @@ def options(ctx):
                    default=False,
                    help='Expermintal CHERI-based SW compartmentalization')
 
+    ctx.add_option('--modbus_benchmark',
+                   action='store_true',
+                   default=False,
+                   help='Compile FreeRTOS Modbus server for benchmarking')
     # Run options
     ctx.add_option('--run',
                    action='store_true',
@@ -681,6 +685,7 @@ def configure(ctx):
     ctx.env.PROGRAM_PATH = ctx.options.program_path
     ctx.env.PROGRAM_ENTRY = ctx.env.PROG
     ctx.env.COMPARTMENTALIZE = ctx.options.compartmentalize
+    ctx.env.MODBUS_BENCHMARK = ctx.options.modbus_benchmark
 
     # Libs - Minimal libs required for any FreeRTOS Demo
     ctx.env.append_value('LIB', ['c'])

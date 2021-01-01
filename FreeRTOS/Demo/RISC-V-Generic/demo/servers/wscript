@@ -62,8 +62,13 @@ def configure(ctx):
         'configLIBDL_LIB_PATH               = "/lib/"',
         'configLIBDL_CONF_PATH              = "/etc/"',
         'configCOMPARTMENTS_NUM             = 1024',
-        'configMAXLEN_COMPNAME              = 255'
+        'configMAXLEN_COMPNAME              = 255',
     ])
+
+    if ctx.env.MODBUS_BENCHMARK:
+        ctx.env.append_value('DEFINES', [
+            'MICROBENCHMARK                 =1',
+            ])
 
     if ctx.env.COMPARTMENTALIZE:
          ctx.env.append_value(
@@ -106,6 +111,7 @@ def build(bld):
             'Common/FreeRTOS_Plus_CLI_Demos/UDPCommandConsole.c',
             'Common/FreeRTOS_Plus_CLI_Demos/File-related-CLI-commands.c',
             'Common/FreeRTOS_Modbus_Demos/ModbusServer.c',
+            'Common/FreeRTOS_Modbus_Demos/microbenchmark.c',
             'Common/Demo_IP_Protocols/FTP/FreeRTOS_FTP_server.c',
             'Common/Demo_IP_Protocols/FTP/FreeRTOS_FTP_commands.c',
             'Common/FreeRTOS_Plus_TCP_Demos/TFTPServer.c',

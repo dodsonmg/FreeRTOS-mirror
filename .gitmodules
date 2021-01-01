@@ -1,6 +1,3 @@
-[submodule "FreeRTOS/Demo/RISC-V-Generic/modbus_demo/modcap"]
-	path = FreeRTOS/Demo/RISC-V-Generic/modbus_demo/modcap
-	url = git@github.com:dodsonmg/modcap.git
 [submodule "FreeRTOS/Demo/RISC-V-Generic/demo/servers/Common/FreeRTOS_Modbus_Demos/modcap"]
 	path = FreeRTOS/Demo/RISC-V-Generic/demo/servers/Common/FreeRTOS_Modbus_Demos/modcap
 	url = git@github.com:dodsonmg/modcap.git

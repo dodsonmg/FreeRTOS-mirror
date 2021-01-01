@@ -47,6 +47,10 @@
 #include "virtio-blk.h"
 #include "helpers.h"
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#include <cheri/cheri-utility.h>
+#endif
+
 /* The size of each sector on the disk. */
 #define virtio_blkSECTOR_SIZE                512UL
 
@@ -229,6 +233,7 @@ FF_Disk_t *FF_VirtIODiskInit( char *pcName,
 FF_Error_t xError;
 FF_Disk_t *pxDisk = NULL;
 FF_CreationParameters_t xParameters;
+void *virtio_mmio_base = (void *) VIRTIO_BLK_MMIO_ADDRESS;
 uint64_t ulCapacity = 0;
 uint32_t ulSectorSize = 0;
 struct virtio_device* blk_dev = NULL;
@@ -237,7 +242,16 @@ struct virtio_device* blk_dev = NULL;
     configASSERT( ( xIOManagerCacheSize % virtio_blkSECTOR_SIZE ) == 0 );
     configASSERT( ( xIOManagerCacheSize >= ( 2 * virtio_blkSECTOR_SIZE ) ) );
 
-    blk_dev = virtio_setup_vd( (void *) VIRTIO_BLK_MMIO_ADDRESS);
+#ifdef __CHERI_PURE_CAPABILITY__
+    virtio_mmio_base = cheri_build_data_cap((ptraddr_t) virtio_mmio_base,
+                                            VIRTIO_BLK_MMIO_SIZE,
+                                            __CHERI_CAP_PERMISSION_GLOBAL__ |
+                                            __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
+                                            __CHERI_CAP_PERMISSION_PERMIT_STORE__);
+    cheri_print_cap(virtio_mmio_base);
+#endif
+
+    blk_dev = virtio_setup_vd(virtio_mmio_base);
     if ( blk_dev == NULL )
     {
         FF_PRINTF("Failed to initialize virtio-blk device\n");

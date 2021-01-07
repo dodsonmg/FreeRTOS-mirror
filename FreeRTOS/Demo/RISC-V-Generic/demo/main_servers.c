@@ -246,8 +246,8 @@ Windows TCP library (Winsocks).  This creates a communication between the
 FreeRTOS+TCP TCP/IP stack and the Windows TCP/IP stack.
 See http://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/TCP_Echo_Server.html
 */
-#define mainCREATE_UDP_CLI_TASKS					1
-#define mainCREATE_TCP_CLI_TASKS					1
+#define mainCREATE_UDP_CLI_TASKS					0
+#define mainCREATE_TCP_CLI_TASKS					0
 #define mainCREATE_MODBUS_SERVER_TASKS              1
 #define mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS	0
 #define mainCREATE_SELECT_UDP_SERVER_TASKS			0 /* _RB_ Requires retest. */
@@ -255,9 +255,9 @@ See http://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/TCP_Echo_Server.html
 #define mainCREATE_TCP_ECHO_TASKS_SINGLE			0
 #define mainCREATE_TCP_ECHO_TASKS_SEPARATE			0
 #define mainCREATE_SIMPLE_TCP_ECHO_SERVER			0
-#define mainCREATE_FTP_SERVER						1
-#define mainCREATE_HTTP_SERVER 						1
-#define mainCREATE_TFTP_SERVER						1
+#define mainCREATE_FTP_SERVER						0
+#define mainCREATE_HTTP_SERVER 						0
+#define mainCREATE_TFTP_SERVER						0
 
 /* Set the following constant to pdTRUE to log using the method indicated by the
 name of the constant, or pdFALSE to not log using the method indicated by the

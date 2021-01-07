@@ -72,14 +72,6 @@
 
 OUTPUT_ARCH( "riscv" )
 
-PHDRS
-{
-  text PT_LOAD FILEHDR PHDRS ;
-  captable PT_LOAD ;
-  symtab PT_LOAD ;
-  strtab PT_LOAD ;
-}
-
 /*
 _STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 0x4000;
 _HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x4000;

@@ -795,7 +795,11 @@ def configure(ctx):
     # CFLAGS - Shared required CFLAGS
     ctx.env.append_value(
         'CFLAGS',
-        ['-g', '-O0', '-march=' + ctx.env.MARCH, '-mabi=' + ctx.env.MABI])
+        ['-march=' + ctx.env.MARCH, '-mabi=' + ctx.env.MABI])
+    if ctx.env.MODBUS_BENCHMARK:
+        ctx.env.append_value('CFLAGS', ['-O2'])
+    else:
+        ctx.env.append_value('CFLAGS', ['-g', '-O0'])
 
     # PROG - For legacy compatibility
     if not any('configPROG_ENTRY' in define for define in ctx.env.DEFINES):

@@ -107,18 +107,6 @@ mission critical applications that require provable dependability.
 #include "modbus_network_caps.h"
 #endif
 
-/* Dimensions the buffer into which input characters are placed. */
-#define cmdMAX_INPUT_SIZE	1024
-
-/* Dimensions the buffer into which string outputs can be placed. */
-#define cmdMAX_OUTPUT_SIZE	1024
-
-/* Dimensions the buffer passed to the recv() call. */
-#define cmdSOCKET_INPUT_BUFFER_SIZE 60
-
-/* DEL acts as a backspace. */
-#define cmdASCII_DEL		( 0x7F )
-
 /* The maximum time to wait for a closing socket to close. */
 #define cmdSHUTDOWN_DELAY	( pdMS_TO_TICKS( 5000 ) )
 
@@ -140,14 +128,10 @@ static void prvModbusServerInitialization( uint16_t usPort );
 static Socket_t prvOpenTCPServerSocket( uint16_t usPort );
 
 /*
- * Called by the server connetion task.  Queues data for critical section task
+ * Processes a Modbus request.
  */
-static int prvCriticalSectionWrapper(const uint8_t *req, const int req_length,
+static uint32_t prvProcessModbusRequest(const uint8_t *req, const int req_length,
         uint8_t *rsp, int *rsp_length);
-/*
- * Task processing and responding to client requests
- */
-static void prvModbusCrticalSectionTask(void *pvParameters);
 
 /*
  * A connected socket is being closed.  Ensure the socket is closed at both ends
@@ -164,28 +148,11 @@ typedef struct _queue_msg_t
     uint8_t *msg;
 } queue_msg_t;
 
-/*
- * Various buffers used by the command lin interpreter.
- */
-static char cOutputString[ cmdMAX_OUTPUT_SIZE ], cLocalBuffer[ cmdSOCKET_INPUT_BUFFER_SIZE ];
-static char cInputString[ cmdMAX_INPUT_SIZE ], cLastInputString[ cmdMAX_INPUT_SIZE ];
-
-/* Const messages output by the command console. */
-static const char * const pcWelcomeMessage = "FreeRTOS command server.\r\nType help to view a list of registered commands.\r\nType quit to end a session.\r\n\r\n>";
-static const char * const pcEndOfOutputMessage = "\r\n[Press ENTER to execute the previous command again]\r\n>";
-static const char * const pcNewLine = "\r\n";
-
 /* The structure holding Modbus state information. */
 static modbus_mapping_t *mb_mapping = NULL;
 
 /* The structure holding Modbus context. */
 static modbus_t *ctx = NULL;
-
-/* The queue used to send requests to prvModbusCrticalSectionTask */
-QueueHandle_t xQueueRequest;
-
-/* The queue used to send responses from prvModbusCrticalSectionTask */
-QueueHandle_t xQueueResponse;
 
 /*-----------------------------------------------------------*/
 
@@ -198,9 +165,11 @@ void vStartModbusServerTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t 
 void prvModbusServerTask( void *pvParameters )
 {
     BaseType_t xReturned;
+    uint32_t ulTimeDiff;
     char *pcModbusFunctionName;
     uint32_t ulNumIterations;
     Socket_t xListeningSocket, xConnectedSocket;
+
     /* The strange casting is to remove compiler warnings on 32-bit machines. */
     uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
 
@@ -212,6 +181,7 @@ void prvModbusServerTask( void *pvParameters )
 
 #if defined(MICROBENCHMARK)
     BaseType_t xIsWriteString;
+    BaseType_t xIsReadString;
     BaseType_t xBenchmarkedWriteString;
 #endif
 
@@ -222,20 +192,12 @@ void prvModbusServerTask( void *pvParameters )
        parameter. */
     xListeningSocket = prvOpenTCPServerSocket( usPort );
 
-    /* Create the task prvModbusCrticalSectionTask with the same priority
-     * as the Modbus server task. */
-    xTaskCreate( prvModbusCrticalSectionTask,
-            "MbCritSect",
-            configMINIMAL_STACK_SIZE * 2U,
-            NULL,
-            uxTaskPriorityGet( NULL ),
-            NULL );
-
     for( ;; )
     {
         /* Nothing for this task to do if the socket cannot be created. */
         if( xListeningSocket == FREERTOS_INVALID_SOCKET )
         {
+            /* TODO: Dealocate resources here. */
             vTaskDelete( NULL );
         }
 
@@ -255,31 +217,22 @@ void prvModbusServerTask( void *pvParameters )
 
             /* Process the request. */
 #if defined(MICROBENCHMARK)
-            /* Identify if this is a WRITE_STRING request, because we only
-             * want to benchmark it once. */
+            /* Identify if this is a READ_STRING or WRITE_STRING request. We
+             * don't want to benchmark these. */
             xIsWriteString = strncmp( pcModbusFunctionName,
                     "MODBUS_FC_WRITE_STRING",
+                    MODBUS_MAX_FUNCTION_NAME_LEN ) == 0;
+            xIsReadString = strncmp( pcModbusFunctionName,
+                    "MODBUS_FC_READ_STRING",
                     MODBUS_MAX_FUNCTION_NAME_LEN ) == 0;
 
             /* Determine the total number of benchmarking iterations to perform.
              * We will discard a set number to ensure quiescence, then begin
-             * recording actual benchmarking runs.
-             *
-             * We only want to benchmark WRITE_STRING once, so if we've already
-             * benchmarked it, and this is a WRITE_STRING request, we'll
-             * set the number of iterations to 1. */
-            if ( !xIsWriteString || ( xIsWriteString && !xBenchmarkedWriteString ) ) {
-                /* This isn't a WRITE_STRING request, or it's the first one. */
-                ulNumIterations = MICROBENCHMARK_DISCARD + MICROBENCHMARK_ITERATIONS;
-
-                /* If this is a WRITE_STRING request, mark it as having
-                 * been benchmarked. */
-                if ( xIsWriteString ) {
-                    xBenchmarkedWriteString = pdTRUE;
-                }
-            } else {
-                /* We have already benchmarked the WRITE_STRING request. */
+             * recording actual benchmarking runs. */
+            if ( xIsWriteString || xIsReadString ) {
                 ulNumIterations = 1;
+            } else {
+                ulNumIterations = MICROBENCHMARK_DISCARD + MICROBENCHMARK_ITERATIONS;
             }
 #else
             /* If we're not benchmarking, only process the request once. */
@@ -287,17 +240,20 @@ void prvModbusServerTask( void *pvParameters )
 #endif
 
             while( ulNumIterations > 0 ) {
-                FreeRTOS_debug_printf( ( ". " ) );
-                xReturned = prvCriticalSectionWrapper( req, req_length, rsp, &rsp_length );
+                ulTimeDiff = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
                 configASSERT( xReturned != -1 );
 
 #if defined(MICROBENCHMARK)
-                /* Perform a benchmarking sample.  If we've burned through the
-                 * discard iterations, then record the result. */
-                if ( ulNumIterations <= MICROBENCHMARK_ITERATIONS ) {
-                    xMicrobenchmarkSample( pcModbusFunctionName, pdTRUE );
-                } else {
-                    xMicrobenchmarkSample( pcModbusFunctionName, pdFALSE );
+                if ( !xIsWriteString && !xIsReadString ) {
+                    FreeRTOS_debug_printf( ( ". " ) );
+
+                    /* Perform a benchmarking sample.  If we've burned through the
+                     * discard iterations, then record the result. */
+                    if ( ulNumIterations <= MICROBENCHMARK_ITERATIONS ) {
+                        xMicrobenchmarkSample( pcModbusFunctionName, ulTimeDiff, pdTRUE );
+                    } else {
+                        xMicrobenchmarkSample( pcModbusFunctionName, ulTimeDiff, pdFALSE );
+                    }
                 }
 #endif
                 ulNumIterations -= 1;
@@ -419,107 +375,62 @@ static void prvModbusServerInitialization( uint16_t port )
         _exit( 0 );
     }
 #endif
-
-    /* Initialise queues for comms with prvModbusCrticalSectionTask */
-    xQueueRequest = xQueueCreate(modbusQUEUE_LENGTH, sizeof(queue_msg_t *));
-    configASSERT(xQueueRequest != NULL);
-
-    xQueueResponse = xQueueCreate(modbusQUEUE_LENGTH, sizeof(queue_msg_t *));
-    configASSERT(xQueueResponse != NULL);
 }
 
 /*-----------------------------------------------------------*/
 
-static int prvCriticalSectionWrapper(const uint8_t *req, const int req_length,
+/**
+ * Process a Modbus request from a client to a server.
+ *
+ * Returns the time to process the request based on portGET_RUN_TIME_COUNTER_VALUE().
+ */
+static uint32_t prvProcessModbusRequest(const uint8_t *req, const int req_length,
         uint8_t *rsp, int *rsp_length)
 {
     BaseType_t xReturned;
-    queue_msg_t *pxQueueReq = (queue_msg_t *)pvPortMalloc(sizeof(queue_msg_t));
-    queue_msg_t *pxQueueRsp;
+    uint32_t ulRuntimeCounterStart;
+    uint32_t ulRuntimeCounterEnd;
 
-    /* queue the request
-     *
-     * prvModbusCrticalSectionTask will preemt and process the request
-     * since it has a higher priority */
-    pxQueueReq->msg = req;
-    pxQueueReq->msg_length = req_length;
-    xReturned = xQueueSend(xQueueRequest, &pxQueueReq, 0U);
-    configASSERT(xReturned == pdPASS);
+    /* Ensure access to mb_mapping and ctx cannot be interrupted while processing
+     * a request from the client */
+    taskENTER_CRITICAL();
 
-    /* dequeue the response and extract req and req_length */
-    xQueueReceive(xQueueResponse, &pxQueueRsp, portMAX_DELAY);
-    *rsp_length = pxQueueRsp->msg_length;
-    memcpy(rsp, pxQueueRsp->msg, *rsp_length);
+    ulRuntimeCounterStart = portGET_RUN_TIME_COUNTER_VALUE();
 
-
-    return 0;
-}
-
-/*-----------------------------------------------------------*/
-
-static void prvModbusCrticalSectionTask(void *pvParameters)
-{
-    int rc;
-    BaseType_t xReturned;
-
-    queue_msg_t *pxQueueReq;
-    uint8_t *req;
-    int req_length = 0;
-
-    queue_msg_t *pxQueueRsp = (queue_msg_t *)pvPortMalloc(sizeof(queue_msg_t));
-    uint8_t *rsp = (uint8_t *)pvPortMalloc(MODBUS_MAX_STRING_LENGTH * sizeof(uint8_t));
-    int rsp_length = 0;
-
-    for (;;)
-    {
-        /* dequeue a request */
-        xQueueReceive(xQueueRequest, &pxQueueReq, portMAX_DELAY);
-        req = pxQueueReq->msg;
-        req_length = pxQueueReq->msg_length;
-
-        /* Ensure access to mb_mapping and ctx cannot be interrupted while processing
-         * a request from the client */
-        taskENTER_CRITICAL();
-
-        /**
-         * Perform preprocessing for object or network capabilities
-         * then perform the normal processing
-         * NB order matters here:
-         * - First reduce permissions on state
-         * - Then verify the network capability, if appropriate
-         * - Then perform the normal processing
-         * NB A configuration without object or network capabilities can still
-         * be compiled for a CHERI system, it just wont restrict the state before
-         * processing the request.
-         * */
+    /**
+     * Perform preprocessing for object or network capabilities
+     * then perform the normal processing
+     * NB order matters here:
+     * - First reduce permissions on state
+     * - Then verify the network capability, if appropriate
+     * - Then perform the normal processing
+     * NB A configuration without object or network capabilities can still
+     * be compiled for a CHERI system, it just wont restrict the state before
+     * processing the request.
+     * */
 #if defined(MODBUS_OBJECT_CAPS_STUB)
-        /* this is only used to evaluate the overhead of calling a function */
-        rc = modbus_preprocess_request_object_caps_stub(ctx, req, mb_mapping);
-        configASSERT(rc != -1);
+    /* this is only used to evaluate the overhead of calling a function */
+    xReturned = modbus_preprocess_request_object_caps_stub(ctx, req, mb_mapping);
+    configASSERT(xReturned != -1);
 #elif defined(MODBUS_OBJECT_CAPS)
-        rc = modbus_preprocess_request_object_caps(ctx, req, mb_mapping);
-        configASSERT(rc != -1);
+    xReturned = modbus_preprocess_request_object_caps(ctx, req, mb_mapping);
+    configASSERT(xReturned != -1);
 #endif
 
 #if defined(MODBUS_NETWORK_CAPS)
-        rc = modbus_preprocess_request_network_caps(ctx, req, mb_mapping);
-        configASSERT(rc != -1);
+    xReturned = modbus_preprocess_request_network_caps(ctx, req, mb_mapping);
+    configASSERT(xReturned != -1);
 #endif
 
-        rc = modbus_process_request(ctx, req, req_length,
-                rsp, &rsp_length, mb_mapping);
+    xReturned = modbus_process_request(ctx, req, req_length,
+            rsp, rsp_length, mb_mapping);
 
-        vPortFree(pxQueueReq);
+    ulRuntimeCounterEnd = portGET_RUN_TIME_COUNTER_VALUE();
 
-        /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
-        taskEXIT_CRITICAL();
+    /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
+    taskEXIT_CRITICAL();
 
-        /* queue the response to send back to vServerTask */
-        pxQueueRsp->msg = rsp;
-        pxQueueRsp->msg_length = rsp_length;
-        xReturned = xQueueSend(xQueueResponse, &pxQueueRsp, 0U);
-        configASSERT(xReturned == pdPASS);
-    }
+    return ulRuntimeCounterEnd - ulRuntimeCounterStart;
 }
 
 /*-----------------------------------------------------------*/

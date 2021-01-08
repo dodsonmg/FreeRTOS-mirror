@@ -49,104 +49,48 @@
 #include <modbus/modbus.h>
 #include <modbus/modbus-helpers.h>
 
-/* Demo includes */
-/* #include "ModbusServer.h" */
-
 /* Microbenchmark includes */
 #include "microbenchmark.h"
 
 /* type definitions */
 
-typedef struct _PrintTaskStatus_t {
+typedef struct _BenchmarkSample_t {
     char pcFunctionName[MODBUS_MAX_FUNCTION_NAME_LEN];
-    char pcTaskName[configMAX_TASK_NAME_LEN];
-    uint32_t ulRunTimeCounter;
-    uint16_t usStackHighWaterMark;
-    uint32_t ulTotalRunTime;
-} PrintTaskStatus_t;
-
-/* function declarations */
-
-static BaseType_t prvBuildPrintTaskStatusStruct(const char *pcFunctionName,
-        TaskStatus_t *pxTaskStatus,
-        PrintTaskStatus_t *pxPrintTaskStatus,
-        uint32_t *pulTotalRunTime);
+    uint32_t ulTimeDiff;
+} BenchmarkSample_t;
 
 /* static variable declarations */
 
 /* The buffer holding PrintTaskStatus_t structs */
-static PrintTaskStatus_t *pxPrintBuffer = NULL;
+static BenchmarkSample_t *pxPrintBuffer = NULL;
 static size_t xPrintBufferSize = 0;
 static size_t xPrintBufferCount = 0;
 
 /*-----------------------------------------------------------*/
 
-void xMicrobenchmarkSample(char *pcFunctionName, BaseType_t xToPrint)
+void xMicrobenchmarkSample( char *pcFunctionName, uint32_t ulTimeDiff, BaseType_t xToPrint )
 {
-    UBaseType_t uxArraySize = uxTaskGetNumberOfTasks();
-    TaskStatus_t *pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
-    UBaseType_t uxArraySizeReturned = 0;
-    uint32_t *pulTotalRunTime = (uint32_t *)pvPortMalloc(sizeof(uint32_t));
     BaseType_t xReturned;
+    size_t xFunctionNameLen = strnlen(pcFunctionName, MODBUS_MAX_FUNCTION_NAME_LEN);
 
     /* initialise the buffer, if necessary */
-    if (pxPrintBuffer == NULL)
+    if ( pxPrintBuffer == NULL )
     {
-        xPrintBufferSize = MAX_FUNCTIONS * MICROBENCHMARK_ITERATIONS * uxArraySize;
-        pxPrintBuffer = (PrintTaskStatus_t *)pvPortMalloc(
-                xPrintBufferSize * sizeof(PrintTaskStatus_t));
-        configASSERT(pxPrintBuffer != NULL);
+        xPrintBufferSize = MAX_FUNCTIONS * MICROBENCHMARK_ITERATIONS;
+        pxPrintBuffer = (BenchmarkSample_t *)pvPortMalloc(
+                xPrintBufferSize * sizeof(BenchmarkSample_t));
+        configASSERT( pxPrintBuffer != NULL );
     }
 
-    /* sample all task states */
-    uxArraySizeReturned = uxTaskGetSystemState(pxTaskStatusArray,
-            uxArraySize, pulTotalRunTime);
-    configASSERT(uxArraySizeReturned == uxArraySize);
-
-    if(xToPrint)
+    if ( xToPrint )
     {
-        /* build PrintTastStatusStruct and add to the print buffer */
-        for (UBaseType_t j = 0; j < uxArraySize; ++j)
-        {
-            xReturned = prvBuildPrintTaskStatusStruct(pcFunctionName, &pxTaskStatusArray[j],
-                    &pxPrintBuffer[xPrintBufferCount], pulTotalRunTime);
-            configASSERT(xReturned == pdPASS);
-            xPrintBufferCount += 1;
-        }
+        /* populate BenchmarkSample_t struct and add to the print buffer */
+        pxPrintBuffer[xPrintBufferCount].ulTimeDiff = ulTimeDiff;
+        strncpy ( pxPrintBuffer[xPrintBufferCount].pcFunctionName, pcFunctionName, xFunctionNameLen + 1 );
+        xPrintBufferCount += 1;
+
+        /* TODO: If xPrintBufferCount = xPrintBufferSize, then we need to resize. */
     }
-    vPortFree(pxTaskStatusArray);
-    vPortFree(pulTotalRunTime);
-}
-
-/*-----------------------------------------------------------*/
-
-static BaseType_t prvBuildPrintTaskStatusStruct(const char *pcFunctionName,
-        TaskStatus_t *pxTaskStatus,
-        PrintTaskStatus_t *pxPrintTaskStatus,
-        uint32_t *pulTotalRunTime)
-{
-    if(pcFunctionName == NULL ||
-            pxTaskStatus == NULL ||
-            pxPrintTaskStatus == NULL ||
-            pulTotalRunTime == NULL)
-    {
-        return pdFAIL;
-    }
-
-    /* assign the pcFunctionName */
-    size_t xFunctionNameLen = strnlen(pcFunctionName, MODBUS_MAX_FUNCTION_NAME_LEN);
-    strncpy(pxPrintTaskStatus->pcFunctionName, pcFunctionName, xFunctionNameLen + 1);
-
-    /* assign the task name */
-    size_t xTaskNameLen = strnlen(pxTaskStatus->pcTaskName, configMAX_TASK_NAME_LEN);
-    strncpy(pxPrintTaskStatus->pcTaskName, pxTaskStatus->pcTaskName, xTaskNameLen + 1);
-
-    /* assign remaining elements of the PrintTaskStatus_t struct */
-    pxPrintTaskStatus->ulRunTimeCounter = pxTaskStatus->ulRunTimeCounter;
-    pxPrintTaskStatus->usStackHighWaterMark = pxTaskStatus->usStackHighWaterMark;
-    pxPrintTaskStatus->ulTotalRunTime = *pulTotalRunTime;
-
-    return pdPASS;
 }
 
 /*-----------------------------------------------------------*/
@@ -154,15 +98,12 @@ static BaseType_t prvBuildPrintTaskStatusStruct(const char *pcFunctionName,
 void vPrintMicrobenchmarkSamples(void)
 {
 	/* Print out column headings for the run-time stats table. */
-    printf("modbus_function_name, task_name, task_runtime_counter, stack_highwater_mark, total_runtime\n");
+    printf("modbus_function_name, time_diff\n");
     for(int i = 0; i < xPrintBufferCount; ++i)
     {
-        printf("%s, %s, %u, %u, %u\n",
+        printf("%s, %u\n",
                 pxPrintBuffer[i].pcFunctionName,
-                pxPrintBuffer[i].pcTaskName,
-                pxPrintBuffer[i].ulRunTimeCounter,
-                pxPrintBuffer[i].usStackHighWaterMark,
-                pxPrintBuffer[i].ulTotalRunTime);
+                pxPrintBuffer[i].ulTimeDiff);
     }
 }
 

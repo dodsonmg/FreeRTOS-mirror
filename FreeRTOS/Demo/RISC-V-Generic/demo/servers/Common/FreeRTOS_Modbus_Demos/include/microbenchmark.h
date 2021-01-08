@@ -41,7 +41,8 @@
 
 /*-----------------------------------------------------------*/
 
-void xMicrobenchmarkSample(char *pcFunctionName, BaseType_t ToPrint);
+void xMicrobenchmarkSample( char *pcFunctionName, uint32_t ulTimeDiff,
+        BaseType_t xToPrint );
 
 void vPrintMicrobenchmarkSamples(void);
 

@@ -81,6 +81,7 @@ void xMicrobenchmarkSample( BenchmarkType_t xBenchmark, char *pcFunctionName,
         /* Set the initial buffer size, assuming we will iterate
          * through each function 10 times. */
         xPrintBufferSize = MAX_FUNCTIONS * 10;
+        xPrintBufferCount = 0;
         pxPrintBuffer = ( BenchmarkSample_t * )pvPortMalloc(
                 xPrintBufferSize * sizeof( BenchmarkSample_t ) );
         configASSERT( pxPrintBuffer != NULL );
@@ -146,6 +147,10 @@ void vPrintMicrobenchmarkSamples( void )
                 pxPrintBuffer[ i ].pcFunctionName,
                 pxPrintBuffer[ i ].ulTimeDiff );
     }
+
+    /* Reset the buffer. */
+    vPortFree(pxPrintBuffer);
+    pxPrintBuffer = NULL;
 }
 
 /*-----------------------------------------------------------*/

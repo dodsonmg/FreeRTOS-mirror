@@ -254,7 +254,6 @@ void prvModbusServerTask( void *pvParameters )
 #if defined( MICROBENCHMARK )
         /* Print microbenchmark samples to stdout and do not reopen the port */
         vPrintMicrobenchmarkSamples();
-        _exit(0);
 #endif
     }
 }

@@ -78,7 +78,9 @@ void xMicrobenchmarkSample( BenchmarkType_t xBenchmark, char *pcFunctionName,
     /* initialise the buffer, if necessary */
     if( pxPrintBuffer == NULL )
     {
-        xPrintBufferSize = MAX_FUNCTIONS * MICROBENCHMARK_ITERATIONS;
+        /* Set the initial buffer size, assuming we will iterate
+         * through each function 10 times. */
+        xPrintBufferSize = MAX_FUNCTIONS * 10;
         pxPrintBuffer = ( BenchmarkSample_t * )pvPortMalloc(
                 xPrintBufferSize * sizeof( BenchmarkSample_t ) );
         configASSERT( pxPrintBuffer != NULL );
@@ -86,7 +88,29 @@ void xMicrobenchmarkSample( BenchmarkType_t xBenchmark, char *pcFunctionName,
 
     if( xToPrint )
     {
-        /* TODO: Consider resizing the array instead of trapping. */
+        /* Check if there is room in the print buffer.  If not, double it's allocation.
+         * There's no FreeRTOS_realloc(), so we basically need to create a new buffer, copy
+         * everything in from the previous allocation, and then deallocate the original. */
+        if( xPrintBufferCount == xPrintBufferSize)
+        {
+            /* Create the new allocation. */
+            BenchmarkSample_t *pxPrintBufferNew = ( BenchmarkSample_t * )pvPortMalloc(
+                ( xPrintBufferSize * 2 ) * sizeof( BenchmarkSample_t ) );
+
+            /* Copy in structures from the original allocation. */
+            for( int i = 0; i < xPrintBufferCount; ++i )
+            {
+                pxPrintBufferNew[ i ] = pxPrintBuffer[ i ];
+            }
+
+            /* Free the original allocation. */
+            vPortFree( pxPrintBuffer );
+
+            /* Reassign the pointer. */
+            pxPrintBuffer = pxPrintBufferNew;
+
+            xPrintBufferSize = xPrintBufferSize * 2;
+        }
         configASSERT ( xPrintBufferCount < xPrintBufferSize);
 
         /* populate BenchmarkSample_t struct and add to the print buffer */

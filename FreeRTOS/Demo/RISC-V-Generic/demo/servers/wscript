@@ -66,9 +66,8 @@ def configure(ctx):
 
     if ctx.env.MODBUS_BENCHMARK:
         ctx.env.append_value('DEFINES', [
-            'REQUEST_PROCESSING_MICROBENCHMARK = 1',
-            'SPARE_PROCESSING_MICROBENCHMARK   = 1',
-            'NDEBUG                            = 1',
+            'MICROBENCHMARK                 = 1',
+            'NDEBUG                         = 1',
             ])
 
     if ctx.env.MODBUS_OBJECT_CAPS:

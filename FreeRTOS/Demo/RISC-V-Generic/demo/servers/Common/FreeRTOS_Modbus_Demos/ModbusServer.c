@@ -93,7 +93,7 @@ mission critical applications that require provable dependability.
 #include <modbus/modbus-helpers.h>
 
 /* Microbenchmark includes */
-#if defined( REQUEST_PROCESSING_MICROBENCHMARK ) || defined( SPARE_PROCESSING_MICROBENCHMARK )
+#if defined( MICROBENCHMARK )
 #include "microbenchmark.h"
 #endif
 
@@ -107,8 +107,10 @@ mission critical applications that require provable dependability.
 #include "modbus_network_caps.h"
 #endif
 
-/* The maximum time to wait for a closing socket to close. */
-#define cmdSHUTDOWN_DELAY	( pdMS_TO_TICKS( 5000 ) )
+/*-----------------------------------------------------------*/
+
+/* The execution cycle time for the Modbus server task */
+#define prvMODBUS_SERVER_PERIODICITY pdMS_TO_TICKS( 100 )
 
 /*-----------------------------------------------------------*/
 
@@ -154,7 +156,7 @@ static modbus_mapping_t *mb_mapping = NULL;
 /* The structure holding Modbus context. */
 static modbus_t *ctx = NULL;
 
-#if defined( SPARE_PROCESSING_MICROBENCHMARK )
+#if defined( MICROBENCHMARK )
 /* The variable that will be incremented by the Idle hook function, and used as a comparison
  * of idle time between different configurations. */
 extern uint32_t ulIdleCycleCount;
@@ -184,16 +186,10 @@ void prvModbusServerTask( void *pvParameters )
     uint8_t *rsp = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
     int rsp_length = 0;
 
-#if defined( REQUEST_PROCESSING_MICROBENCHMARK )
-    uint32_t ulNumIterations;
-    BaseType_t xIsWriteString;
-    BaseType_t xIsReadString;
-#endif
-
-#if defined( SPARE_PROCESSING_MICROBENCHMARK )
+#if defined( MICROBENCHMARK )
     TickType_t xPreviousWakeTime = xTaskGetTickCount();
     TickType_t xInitialTickCount = xPreviousWakeTime;
-    TickType_t xTimeIncrement = pdMS_TO_TICKS( 100 );
+    TickType_t xTimeIncrement = prvMODBUS_SERVER_PERIODICITY;
 #endif
 
     /* Initialise the Modbus server state and context */
@@ -208,7 +204,6 @@ void prvModbusServerTask( void *pvParameters )
         /* Nothing for this task to do if the socket cannot be created. */
         if( xListeningSocket == FREERTOS_INVALID_SOCKET )
         {
-            /* TODO: Dealocate resources here. */
             vTaskDelete( NULL );
         }
 
@@ -226,55 +221,20 @@ void prvModbusServerTask( void *pvParameters )
             /* get the modbus function name from the request */
             pcModbusFunctionName = modbus_get_function_name( ctx, req );
 
-#if defined( REQUEST_PROCESSING_MICROBENCHMARK )
-            /* Identify if this is a READ_STRING or WRITE_STRING request. We
-             * don't want to benchmark these. */
-            xIsWriteString = strncmp( pcModbusFunctionName,
-                    "MODBUS_FC_WRITE_STRING",
-                    MODBUS_MAX_FUNCTION_NAME_LEN ) == 0;
-            xIsReadString = strncmp( pcModbusFunctionName,
-                    "MODBUS_FC_READ_STRING",
-                    MODBUS_MAX_FUNCTION_NAME_LEN ) == 0;
-
-            /* Determine the total number of benchmarking iterations to perform.
-             * We will discard a set number to ensure quiescence, then begin
-             * recording actual benchmarking runs. */
-            if ( xIsWriteString || xIsReadString ) {
-                ulNumIterations = 1;
-            } else {
-                ulNumIterations = MICROBENCHMARK_DISCARD + MICROBENCHMARK_ITERATIONS;
-            }
-
-            while( ulNumIterations > 0 ) {
-                /* Process the request. */
-                ulTimeDiff = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
-                configASSERT( xReturned != -1 );
-
-                if ( !xIsWriteString && !xIsReadString ) {
-                    FreeRTOS_debug_printf( ( ". " ) );
-
-                    /* Perform a benchmarking sample.  If we've burned through the
-                     * discard iterations, then record the result. */
-                    if ( ulNumIterations <= MICROBENCHMARK_ITERATIONS ) {
-                        xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName, ulTimeDiff, pdTRUE );
-                    } else {
-                        xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName, ulTimeDiff, pdFALSE );
-                    }
-                }
-                ulNumIterations -= 1;
-            }
-#else
             /* Process the request. */
             ulTimeDiff = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
             configASSERT( xReturned != -1 );
-#endif
-            FreeRTOS_debug_printf( ( "\r\n" ) );
 
+#if defined( MICROBENCHMARK )
+            /* Take a microbenchmark sample on the time required to process the request */
+            xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName, ulTimeDiff, pdTRUE );
+#endif
+
+            /* Reply to the Modbus client. */
             xReturned = modbus_reply( ctx, rsp, rsp_length );
             configASSERT( xReturned != -1 );
 
-
-#if defined( SPARE_PROCESSING_MICROBENCHMARK )
+#if defined( MICROBENCHMARK )
             /* Block until the next, fixed execution period */
             vTaskDelayUntil( &xPreviousWakeTime, xTimeIncrement );
 
@@ -283,14 +243,15 @@ void prvModbusServerTask( void *pvParameters )
             xMicrobenchmarkSample( SPARE_PROCESSING, pcModbusFunctionName,
                     ulIdleCycleCount - ( uint32_t ) xInitialTickCount, pdTRUE );
 #endif
-            /* Receive a request from the Modbus client. */
+
+            /* Receive the next request from the Modbus client. */
             req_length = modbus_receive( ctx, req );
         }
 
         /* Close the socket correctly. */
         prvGracefulShutdown();
 
-#if defined( REQUEST_PROCESSING_MICROBENCHMARK ) || defined( SPARE_PROCESSING_MICROBENCHMARK )
+#if defined( MICROBENCHMARK )
         /* Print microbenchmark samples to stdout and do not reopen the port */
         vPrintMicrobenchmarkSamples();
         _exit(0);

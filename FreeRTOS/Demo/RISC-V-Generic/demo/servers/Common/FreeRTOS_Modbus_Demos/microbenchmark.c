@@ -55,7 +55,8 @@
 /* type definitions */
 
 typedef struct _BenchmarkSample_t {
-    char pcFunctionName[MODBUS_MAX_FUNCTION_NAME_LEN];
+    BenchmarkType_t xBenchmark;
+    char pcFunctionName[ MODBUS_MAX_FUNCTION_NAME_LEN ];
     uint32_t ulTimeDiff;
 } BenchmarkSample_t;
 
@@ -68,42 +69,58 @@ static size_t xPrintBufferCount = 0;
 
 /*-----------------------------------------------------------*/
 
-void xMicrobenchmarkSample( char *pcFunctionName, uint32_t ulTimeDiff, BaseType_t xToPrint )
+void xMicrobenchmarkSample( BenchmarkType_t xBenchmark, char *pcFunctionName,
+        uint64_t ulTimeDiff, BaseType_t xToPrint )
 {
     BaseType_t xReturned;
     size_t xFunctionNameLen = strnlen(pcFunctionName, MODBUS_MAX_FUNCTION_NAME_LEN);
 
     /* initialise the buffer, if necessary */
-    if ( pxPrintBuffer == NULL )
+    if( pxPrintBuffer == NULL )
     {
         xPrintBufferSize = MAX_FUNCTIONS * MICROBENCHMARK_ITERATIONS;
-        pxPrintBuffer = (BenchmarkSample_t *)pvPortMalloc(
-                xPrintBufferSize * sizeof(BenchmarkSample_t));
+        pxPrintBuffer = ( BenchmarkSample_t * )pvPortMalloc(
+                xPrintBufferSize * sizeof( BenchmarkSample_t ) );
         configASSERT( pxPrintBuffer != NULL );
     }
 
-    if ( xToPrint )
+    if( xToPrint )
     {
-        /* populate BenchmarkSample_t struct and add to the print buffer */
-        pxPrintBuffer[xPrintBufferCount].ulTimeDiff = ulTimeDiff;
-        strncpy ( pxPrintBuffer[xPrintBufferCount].pcFunctionName, pcFunctionName, xFunctionNameLen + 1 );
-        xPrintBufferCount += 1;
+        /* TODO: Consider resizing the array instead of trapping. */
+        configASSERT ( xPrintBufferCount < xPrintBufferSize);
 
-        /* TODO: If xPrintBufferCount = xPrintBufferSize, then we need to resize. */
+        /* populate BenchmarkSample_t struct and add to the print buffer */
+        pxPrintBuffer[ xPrintBufferCount ].xBenchmark = xBenchmark;
+        pxPrintBuffer[ xPrintBufferCount ].ulTimeDiff = ulTimeDiff;
+        strncpy ( pxPrintBuffer[ xPrintBufferCount ].pcFunctionName, pcFunctionName, xFunctionNameLen + 1 );
+        xPrintBufferCount += 1;
     }
 }
 
 /*-----------------------------------------------------------*/
-
-void vPrintMicrobenchmarkSamples(void)
+void vPrintMicrobenchmarkSamples( void )
 {
-	/* Print out column headings for the run-time stats table. */
-    printf("modbus_function_name, time_diff\n");
-    for(int i = 0; i < xPrintBufferCount; ++i)
+    char *spare_string = "SPARE_PROCESSING_MICROBENCHMARK";
+    char *request_string = "REQUEST_PROCESSING_MICROBENCHMARK";
+    char *print_string;
+
+    /* Print out column headings for the run-time stats table. */
+    printf( "benchmark_type, modbus_function_name, time_diff\n" );
+    for( int i = 0; i < xPrintBufferCount; ++i)
     {
-        printf("%s, %u\n",
-                pxPrintBuffer[i].pcFunctionName,
-                pxPrintBuffer[i].ulTimeDiff);
+        if( pxPrintBuffer[ i ].xBenchmark == SPARE_PROCESSING )
+        {
+            print_string = spare_string;
+        }
+        else
+        {
+            print_string = request_string;
+        }
+
+        printf( "%s, %s, %u\n",
+                print_string,
+                pxPrintBuffer[ i ].pcFunctionName,
+                pxPrintBuffer[ i ].ulTimeDiff );
     }
 }
 

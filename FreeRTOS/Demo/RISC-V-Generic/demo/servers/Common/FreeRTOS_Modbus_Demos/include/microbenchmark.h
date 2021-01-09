@@ -41,8 +41,15 @@
 
 /*-----------------------------------------------------------*/
 
-void xMicrobenchmarkSample( char *pcFunctionName, uint32_t ulTimeDiff,
-        BaseType_t xToPrint );
+typedef enum _BenchmarkType_t {
+    SPARE_PROCESSING,
+    REQUEST_PROCESSING
+} BenchmarkType_t;
+
+/*-----------------------------------------------------------*/
+
+void xMicrobenchmarkSample( BenchmarkType_t xBenchmark, char *pcFunctionName,
+        uint64_t ulTimeDiff, BaseType_t xToPrint );
 
 void vPrintMicrobenchmarkSamples(void);
 

@@ -303,6 +303,8 @@ void vApplicationMallocFailedHook(void) {
 }
 /*-----------------------------------------------------------*/
 
+volatile uint32_t ulIdleCycleCount = 0UL;
+
 void vApplicationIdleHook(void) {
   /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
   to 1 in FreeRTOSConfig.h.  It will be called on each iteration of the idle
@@ -313,6 +315,7 @@ void vApplicationIdleHook(void) {
   important that vApplicationIdleHook() is permitted to return to its calling
   function, because it is the responsibility of the idle task to clean up
   memory allocated by the kernel to any task that has since been deleted. */
+    ulIdleCycleCount++;
 }
 /*-----------------------------------------------------------*/
 

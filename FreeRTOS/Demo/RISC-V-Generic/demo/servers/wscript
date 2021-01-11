@@ -64,9 +64,14 @@ def configure(ctx):
         'configMAXLEN_COMPNAME              = 255',
     ])
 
-    if ctx.env.MODBUS_BENCHMARK:
+    if ctx.env.MODBUS_MICROBENCHMARK:
         ctx.env.append_value('DEFINES', [
             'MICROBENCHMARK                 = 1',
+            'NDEBUG                         = 1',
+            ])
+
+    if ctx.env.MODBUS_MACROBENCHMARK:
+        ctx.env.append_value('DEFINES', [
             'NDEBUG                         = 1',
             ])
 
@@ -126,7 +131,6 @@ def build(bld):
             'Common/FreeRTOS_Plus_CLI_Demos/UDPCommandConsole.c',
             'Common/FreeRTOS_Plus_CLI_Demos/File-related-CLI-commands.c',
             'Common/FreeRTOS_Modbus_Demos/ModbusServer.c',
-            'Common/FreeRTOS_Modbus_Demos/microbenchmark.c',
             'Common/Demo_IP_Protocols/FTP/FreeRTOS_FTP_server.c',
             'Common/Demo_IP_Protocols/FTP/FreeRTOS_FTP_commands.c',
             'Common/FreeRTOS_Plus_TCP_Demos/TFTPServer.c',
@@ -138,6 +142,6 @@ def build(bld):
         use=[
             "freertos_core_headers", "freertos_bsp_headers", "freertos_tcpip_headers", "freertos_cli_headers",
             "freertos_libdl_headers", "freertos_fat_headers", "virtio_headers", "cheri_headers", "modbus",
-            "modbus_object_caps", "modbus_network_caps"
+            "modbus_object_caps", "modbus_network_caps", "modbus_benchmarks"
         ],
         target=name)

@@ -187,8 +187,9 @@ void prvModbusServerTask( void *pvParameters )
     int rsp_length = 0;
 
 #if defined( MICROBENCHMARK )
+    TickType_t xTaskTickCountStart;
+    TickType_t xTaskTickCountEnd;
     TickType_t xPreviousWakeTime = xTaskGetTickCount();
-    TickType_t xInitialTickCount = xPreviousWakeTime;
     TickType_t xTimeIncrement = prvMODBUS_SERVER_PERIODICITY;
 #endif
 
@@ -235,13 +236,21 @@ void prvModbusServerTask( void *pvParameters )
             configASSERT( xReturned != -1 );
 
 #if defined( MICROBENCHMARK )
+            /* Save the current cycle count, and then save the count after
+             * calling vTaskDelayUntil().  The difference is a proxy for the
+             * spare processing time available in this task. */
+            xTaskTickCountStart = xTaskGetTickCount();
+
             /* Block until the next, fixed execution period */
             vTaskDelayUntil( &xPreviousWakeTime, xTimeIncrement );
 
-            /* Take a benchmark sample of the idle cycle count.
+            /* Save the current cycle coutn again.
              * Subtract the initial count to support comparison against runs. */
+            xTaskTickCountEnd = xTaskGetTickCount();
+
+            /* Save the difference in cycle count as a benchmarking sample. */
             xMicrobenchmarkSample( SPARE_PROCESSING, pcModbusFunctionName,
-                    ulIdleCycleCount - ( uint32_t ) xInitialTickCount, pdTRUE );
+                    xTaskTickCountEnd - xTaskTickCountStart, pdTRUE );
 #endif
 
             /* Receive the next request from the Modbus client. */

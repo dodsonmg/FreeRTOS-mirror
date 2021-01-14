@@ -802,6 +802,7 @@ def configure(ctx):
     ctx.env.append_value(
         'CFLAGS',
         ['-march=' + ctx.env.MARCH, '-mabi=' + ctx.env.MABI])
+
     if ctx.env.MODBUS_MICROBENCHMARK or ctx.env.MODBUS_MACROBENCHMARK:
         ctx.env.append_value('CFLAGS', ['-O2'])
     else:

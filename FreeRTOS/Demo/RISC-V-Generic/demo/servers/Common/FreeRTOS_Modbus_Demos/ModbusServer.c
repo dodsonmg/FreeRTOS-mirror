@@ -110,7 +110,7 @@ mission critical applications that require provable dependability.
 /*-----------------------------------------------------------*/
 
 /* The execution cycle time for the Modbus server task */
-#define prvMODBUS_SERVER_PERIODICITY pdMS_TO_TICKS( 100 )
+#define prvMODBUS_SERVER_PERIODICITY pdMS_TO_TICKS( 10 )
 
 /*-----------------------------------------------------------*/
 
@@ -132,7 +132,7 @@ static Socket_t prvOpenTCPServerSocket( uint16_t usPort );
 /*
  * Processes a Modbus request.
  */
-static uint64_t prvProcessModbusRequest(const uint8_t *req, const int req_length,
+static BaseType_t prvProcessModbusRequest(const uint8_t *req, const int req_length,
         uint8_t *rsp, int *rsp_length);
 
 /*
@@ -156,12 +156,6 @@ static modbus_mapping_t *mb_mapping = NULL;
 /* The structure holding Modbus context. */
 static modbus_t *ctx = NULL;
 
-#if defined( MICROBENCHMARK )
-/* The variable that will be incremented by the Idle hook function, and used as a comparison
- * of idle time between different configurations. */
-extern uint32_t ulIdleCycleCount;
-#endif
-
 /*-----------------------------------------------------------*/
 
 void vStartModbusServerTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t uxPriority )
@@ -173,9 +167,9 @@ void vStartModbusServerTask( uint16_t usStackSize, uint32_t ulPort, UBaseType_t 
 void prvModbusServerTask( void *pvParameters )
 {
     BaseType_t xReturned;
-    uint64_t ulTimeDiff;
     char *pcModbusFunctionName;
     Socket_t xListeningSocket, xConnectedSocket;
+    uint64_t ulCycleCountStart, ulCycleCountEnd;
 
     /* The strange casting is to remove compiler warnings on 32-bit machines. */
     uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
@@ -187,8 +181,6 @@ void prvModbusServerTask( void *pvParameters )
     int rsp_length = 0;
 
 #if defined( MICROBENCHMARK )
-    TickType_t xTaskTickCountStart;
-    TickType_t xTaskTickCountEnd;
     TickType_t xPreviousWakeTime = xTaskGetTickCount();
     TickType_t xTimeIncrement = prvMODBUS_SERVER_PERIODICITY;
 #endif
@@ -222,13 +214,36 @@ void prvModbusServerTask( void *pvParameters )
             /* get the modbus function name from the request */
             pcModbusFunctionName = modbus_get_function_name( ctx, req );
 
+            /* Ensure access to mb_mapping and ctx cannot be interrupted while processing
+             * a request from the client */
+            taskENTER_CRITICAL();
+
+#if defined( MICROBENCHMARK )
+            /* One of the microbenchmarks is to measure the time to process each
+             * Modbus function, which we do by measuring cycle counts across
+             * the call to prvProcessModbusRequest(), which includes a call
+             * to modbus_process_request(). */
+
+            /* get the cycle count before processing the request. */
+            ulCycleCountStart = get_cycle_count();
+#endif
+
             /* Process the request. */
-            ulTimeDiff = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
+            xReturned  = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
             configASSERT( xReturned != -1 );
 
 #if defined( MICROBENCHMARK )
-            /* Take a microbenchmark sample on the time required to process the request */
-            xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName, ulTimeDiff, pdTRUE );
+            /* get the cycle count after processing the request. */
+            ulCycleCountEnd = get_cycle_count();
+#endif
+
+            /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
+            taskEXIT_CRITICAL();
+
+#if defined( MICROBENCHMARK )
+            /* Record the cycle count difference. */
+            xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName,
+                    ulCycleCountEnd - ulCycleCountStart, pdTRUE );
 #endif
 
             /* Reply to the Modbus client. */
@@ -236,21 +251,28 @@ void prvModbusServerTask( void *pvParameters )
             configASSERT( xReturned != -1 );
 
 #if defined( MICROBENCHMARK )
-            /* Save the current cycle count, and then save the count after
-             * calling vTaskDelayUntil().  The difference is a proxy for the
-             * spare processing time available in this task. */
-            xTaskTickCountStart = xTaskGetTickCount();
+            /* One of the microbenchmarks is to measure idle or spare
+             * processing time, which we'll do by measuring cycle counts
+             * across a call to vTaskDelayUntil(). */
+
+            /* get the cycle count before blocking. */
+            /* xTaskTickCountStart = xTaskGetTickCount(); */
+            ulCycleCountStart = get_cycle_count();
 
             /* Block until the next, fixed execution period */
             vTaskDelayUntil( &xPreviousWakeTime, xTimeIncrement );
 
-            /* Save the current cycle coutn again.
-             * Subtract the initial count to support comparison against runs. */
-            xTaskTickCountEnd = xTaskGetTickCount();
+            /* get the cycle count after blocking. */
+            /* xTaskTickCountEnd = xTaskGetTickCount(); */
+            ulCycleCountEnd = get_cycle_count();
+
+            /* The difference in cycle count across the call to
+             * vTaskDelayUntil() is a proxy for spare processing or idle time
+             * available in this taks. */
 
             /* Save the difference in cycle count as a benchmarking sample. */
             xMicrobenchmarkSample( SPARE_PROCESSING, pcModbusFunctionName,
-                    xTaskTickCountEnd - xTaskTickCountStart, pdTRUE );
+                    ulCycleCountEnd - ulCycleCountStart, pdTRUE );
 #endif
 
             /* Receive the next request from the Modbus client. */
@@ -373,18 +395,10 @@ static void prvModbusServerInitialization( uint16_t port )
  *
  * Returns the cycle count to process the request.
  */
-static uint64_t prvProcessModbusRequest(const uint8_t *req, const int req_length,
+static BaseType_t prvProcessModbusRequest(const uint8_t *req, const int req_length,
         uint8_t *rsp, int *rsp_length)
 {
     BaseType_t xReturned;
-    uint64_t ulRuntimeCounterStart;
-    uint64_t ulRuntimeCounterEnd;
-
-    /* Ensure access to mb_mapping and ctx cannot be interrupted while processing
-     * a request from the client */
-    taskENTER_CRITICAL();
-
-    ulRuntimeCounterStart = get_cycle_count();
 
     /**
      * Perform preprocessing for object or network capabilities
@@ -414,12 +428,7 @@ static uint64_t prvProcessModbusRequest(const uint8_t *req, const int req_length
     xReturned = modbus_process_request(ctx, req, req_length,
             rsp, rsp_length, mb_mapping);
 
-    ulRuntimeCounterEnd = get_cycle_count();
-
-    /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
-    taskEXIT_CRITICAL();
-
-    return ulRuntimeCounterEnd - ulRuntimeCounterStart;
+    return xReturned;
 }
 
 /*-----------------------------------------------------------*/

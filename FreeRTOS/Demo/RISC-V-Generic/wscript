@@ -656,12 +656,22 @@ def options(ctx):
     ctx.add_option('--modbus_microbenchmark',
                    action='store_true',
                    default=False,
-                   help='Compile FreeRTOS Modbus server for microbenchmarking')
+                   help='Compile FreeRTOS Modbus server for microbenchmarking and set execution period (default = 0)')
 
     ctx.add_option('--modbus_macrobenchmark',
                    action='store_true',
                    default=False,
-                   help='Compile FreeRTOS Modbus server for macrobenchmarking')
+                   help='Compile FreeRTOS Modbus server for macrobenchmarking and set simulated network delay (default = 0)')
+
+    ctx.add_option('--modbus_exec_period',
+                   action='store',
+                   default=0,
+                   help='The execution period for the Modbus server in milliseconds (default = 0)')
+
+    ctx.add_option('--modbus_network_delay',
+                   action='store',
+                   default=0,
+                   help='The simulated network delay for the Modbus server in milliseconds (default = 0)')
 
     ctx.add_option('--modbus_object_caps',
                    action='store_true',
@@ -709,6 +719,8 @@ def configure(ctx):
     ctx.env.COMPARTMENTALIZE = ctx.options.compartmentalize
     ctx.env.MODBUS_MICROBENCHMARK = ctx.options.modbus_microbenchmark
     ctx.env.MODBUS_MACROBENCHMARK = ctx.options.modbus_macrobenchmark
+    ctx.env.MODBUS_EXEC_PERIOD = ctx.options.modbus_exec_period
+    ctx.env.MODBUS_NETWORK_DELAY = ctx.options.modbus_network_delay
     ctx.env.MODBUS_OBJECT_CAPS = ctx.options.modbus_object_caps
     ctx.env.MODBUS_OBJECT_CAPS_STUBS = ctx.options.modbus_object_caps_stubs
     ctx.env.MODBUS_NETWORK_CAPS = ctx.options.modbus_network_caps

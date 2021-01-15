@@ -93,7 +93,7 @@ mission critical applications that require provable dependability.
 #include <modbus/modbus-helpers.h>
 
 /* Microbenchmark includes */
-#if defined( MICROBENCHMARK )
+#if defined( MODBUS_MICROBENCHMARK )
 #include "microbenchmark.h"
 #endif
 
@@ -106,11 +106,6 @@ mission critical applications that require provable dependability.
 #if defined(MODBUS_NETWORK_CAPS)
 #include "modbus_network_caps.h"
 #endif
-
-/*-----------------------------------------------------------*/
-
-/* The execution cycle time for the Modbus server task */
-#define prvMODBUS_SERVER_PERIODICITY pdMS_TO_TICKS( 10 )
 
 /*-----------------------------------------------------------*/
 
@@ -180,9 +175,9 @@ void prvModbusServerTask( void *pvParameters )
     uint8_t *rsp = ( uint8_t * )pvPortMalloc( MODBUS_MAX_STRING_LENGTH * sizeof( uint8_t ) );
     int rsp_length = 0;
 
-#if defined( MICROBENCHMARK )
+#if defined( modbusEXEC_PERIOD_MS )
     TickType_t xPreviousWakeTime = xTaskGetTickCount();
-    TickType_t xTimeIncrement = prvMODBUS_SERVER_PERIODICITY;
+    TickType_t xTimeIncrement = pdMS_TO_TICKS( modbusEXEC_PERIOD_MS );
 #endif
 
     /* Initialise the Modbus server state and context */
@@ -208,6 +203,12 @@ void prvModbusServerTask( void *pvParameters )
         /* Receive a request from the Modbus client. */
         req_length = modbus_receive( ctx, req );
 
+#if defined( modbusNETWORK_DELAY_MS )
+        /* For the macrobenchmark, we simulate network delay by blocking
+         * after receiving a request and before sending a reply. */
+        vTaskDelay( pdMS_TO_TICKS( modbusNETWORK_DELAY_MS ) );
+#endif
+
         /* Process the socket as long as it remains connected. */
         while( req_length >= 0 )
         {
@@ -218,7 +219,7 @@ void prvModbusServerTask( void *pvParameters )
              * a request from the client */
             taskENTER_CRITICAL();
 
-#if defined( MICROBENCHMARK )
+#if defined( MODBUS_MICROBENCHMARK )
             /* One of the microbenchmarks is to measure the time to process each
              * Modbus function, which we do by measuring cycle counts across
              * the call to prvProcessModbusRequest(), which includes a call
@@ -232,7 +233,7 @@ void prvModbusServerTask( void *pvParameters )
             xReturned  = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
             configASSERT( xReturned != -1 );
 
-#if defined( MICROBENCHMARK )
+#if defined( MODBUS_MICROBENCHMARK )
             /* get the cycle count after processing the request. */
             ulCycleCountEnd = get_cycle_count();
 #endif
@@ -240,30 +241,36 @@ void prvModbusServerTask( void *pvParameters )
             /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
             taskEXIT_CRITICAL();
 
-#if defined( MICROBENCHMARK )
+#if defined( MODBUS_MICROBENCHMARK )
             /* Record the cycle count difference. */
             xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName,
                     ulCycleCountEnd - ulCycleCountStart, pdTRUE );
+#endif
+
+#if defined( modbusNETWORK_DELAY_MS )
+            /* For the macrobenchmark, we simulate network delay by blocking
+             * after receiving a request and before sending a reply. */
+            vTaskDelay( pdMS_TO_TICKS( modbusNETWORK_DELAY_MS ) );
 #endif
 
             /* Reply to the Modbus client. */
             xReturned = modbus_reply( ctx, rsp, rsp_length );
             configASSERT( xReturned != -1 );
 
-#if defined( MICROBENCHMARK )
+#if defined( MODBUS_MICROBENCHMARK )
             /* One of the microbenchmarks is to measure idle or spare
              * processing time, which we'll do by measuring cycle counts
              * across a call to vTaskDelayUntil(). */
 
             /* get the cycle count before blocking. */
-            /* xTaskTickCountStart = xTaskGetTickCount(); */
             ulCycleCountStart = get_cycle_count();
 
+#if defined( modbusEXEC_PERIOD_MS )
             /* Block until the next, fixed execution period */
             vTaskDelayUntil( &xPreviousWakeTime, xTimeIncrement );
+#endif /* defined( modbusEXEC_PERIOD_MS ) */
 
             /* get the cycle count after blocking. */
-            /* xTaskTickCountEnd = xTaskGetTickCount(); */
             ulCycleCountEnd = get_cycle_count();
 
             /* The difference in cycle count across the call to
@@ -273,16 +280,22 @@ void prvModbusServerTask( void *pvParameters )
             /* Save the difference in cycle count as a benchmarking sample. */
             xMicrobenchmarkSample( SPARE_PROCESSING, pcModbusFunctionName,
                     ulCycleCountEnd - ulCycleCountStart, pdTRUE );
-#endif
+#endif /* defined( MODBUS_MICROBENCHMARK ) */
 
             /* Receive the next request from the Modbus client. */
             req_length = modbus_receive( ctx, req );
+
+#if defined( modbusNETWORK_DELAY_MS )
+            /* For the macrobenchmark, we simulate network delay by blocking
+             * after receiving a request and before sending a reply. */
+            vTaskDelay( pdMS_TO_TICKS( modbusNETWORK_DELAY_MS ) );
+#endif
         }
 
         /* Close the socket correctly. */
         prvGracefulShutdown();
 
-#if defined( MICROBENCHMARK )
+#if defined( MODBUS_MICROBENCHMARK )
         /* Print microbenchmark samples to stdout and do not reopen the port */
         vPrintMicrobenchmarkSamples();
 #endif

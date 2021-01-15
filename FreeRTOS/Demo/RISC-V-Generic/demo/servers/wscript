@@ -66,13 +66,24 @@ def configure(ctx):
 
     if ctx.env.MODBUS_MICROBENCHMARK:
         ctx.env.append_value('DEFINES', [
-            'MICROBENCHMARK                 = 1',
+            'MODBUS_MICROBENCHMARK          = 1',
             'NDEBUG                         = 1',
             ])
 
     if ctx.env.MODBUS_MACROBENCHMARK:
         ctx.env.append_value('DEFINES', [
+            'MODBUS_MACROBENCHMARK          = 1',
             'NDEBUG                         = 1',
+            ])
+
+    if ctx.env.MODBUS_EXEC_PERIOD:
+        ctx.env.append_value('DEFINES', [
+            'modbusEXEC_PERIOD_MS           = ' + ctx.env.MODBUS_EXEC_PERIOD,
+            ])
+
+    if ctx.env.MODBUS_NETWORK_DELAY:
+        ctx.env.append_value('DEFINES', [
+            'modbusNETWORK_DELAY_MS         = ' + ctx.env.MODBUS_NETWORK_DELAY,
             ])
 
     if ctx.env.MODBUS_OBJECT_CAPS:

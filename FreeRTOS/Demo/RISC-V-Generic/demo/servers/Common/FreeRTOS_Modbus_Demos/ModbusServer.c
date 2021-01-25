@@ -164,7 +164,7 @@ void prvModbusServerTask( void *pvParameters )
     BaseType_t xReturned;
     char *pcModbusFunctionName;
     Socket_t xListeningSocket, xConnectedSocket;
-    uint64_t ulCycleCountStart, ulCycleCountEnd;
+    uint64_t ulCycleCountStart, ulCycleCountEnd, ulCycleCountDiff;
 
     /* The strange casting is to remove compiler warnings on 32-bit machines. */
     uint16_t usPort = ( uint16_t ) ( ( uint32_t ) pvParameters ) & 0xffffUL;
@@ -176,6 +176,7 @@ void prvModbusServerTask( void *pvParameters )
     int rsp_length = 0;
 
 #if defined( modbusEXEC_PERIOD_MS )
+    uint32_t ulOverrunCount = 0;
     TickType_t xPreviousWakeTime = xTaskGetTickCount();
     TickType_t xTimeIncrement = pdMS_TO_TICKS( modbusEXEC_PERIOD_MS );
 #endif
@@ -219,7 +220,6 @@ void prvModbusServerTask( void *pvParameters )
              * a request from the client */
             taskENTER_CRITICAL();
 
-#if defined( MODBUS_MICROBENCHMARK )
             /* One of the microbenchmarks is to measure the time to process each
              * Modbus function, which we do by measuring cycle counts across
              * the call to prvProcessModbusRequest(), which includes a call
@@ -227,24 +227,24 @@ void prvModbusServerTask( void *pvParameters )
 
             /* get the cycle count before processing the request. */
             ulCycleCountStart = get_cycle_count();
-#endif
 
             /* Process the request. */
             xReturned  = prvProcessModbusRequest( req, req_length, rsp, &rsp_length );
             configASSERT( xReturned != -1 );
 
-#if defined( MODBUS_MICROBENCHMARK )
             /* get the cycle count after processing the request. */
             ulCycleCountEnd = get_cycle_count();
-#endif
 
             /* critical access to mb_mapping and ctx is finished, so it's safe to exit */
             taskEXIT_CRITICAL();
 
+            /* calculate the cycle count difference */
+            ulCycleCountDiff = ulCycleCountEnd - ulCycleCountStart;
+
 #if defined( MODBUS_MICROBENCHMARK )
             /* Record the cycle count difference. */
             xMicrobenchmarkSample( REQUEST_PROCESSING, pcModbusFunctionName,
-                    ulCycleCountEnd - ulCycleCountStart, pdTRUE );
+                    ulCycleCountDiff, pdTRUE );
 #endif
 
 #if defined( modbusNETWORK_DELAY_MS )
@@ -257,30 +257,54 @@ void prvModbusServerTask( void *pvParameters )
             xReturned = modbus_reply( ctx, rsp, rsp_length );
             configASSERT( xReturned != -1 );
 
-#if defined( MODBUS_MICROBENCHMARK )
-            /* One of the microbenchmarks is to measure idle or spare
-             * processing time, which we'll do by measuring cycle counts
-             * across a call to vTaskDelayUntil(). */
-
-            /* get the cycle count before blocking. */
-            ulCycleCountStart = get_cycle_count();
-
 #if defined( modbusEXEC_PERIOD_MS )
-            /* Block until the next, fixed execution period */
-            vTaskDelayUntil( &xPreviousWakeTime, xTimeIncrement );
-#endif /* defined( modbusEXEC_PERIOD_MS ) */
+            /* Check if we've overrun the execution period.  This might happen
+             * when we first connect, or when running network capabilities
+             * with a small execution period.
+             *
+             * If we overrun, we'll reset xPreviousWakeTime to set up the
+             * next loop and then skip vTaskDelayUntil().  We will also set
+             * ulCycleCountDiff to 0, which will be recorded as a
+             * SPARE_PROCESSING SAMPLE, which can be easily filtered out
+             * during data analysis. */
+            if( xTaskGetTickCount() > xPreviousWakeTime + xTimeIncrement )
+            {
+                FreeRTOS_debug_printf( ( "Overrun execution period. Resetting. Overrun count: %d...\r\n", ulOverrunCount + 1 ) );
+                FreeRTOS_debug_printf( ( "Modbus function: %s\r\n", pcModbusFunctionName ) );
+                FreeRTOS_debug_printf( ( "xTaskGetTickCount() = %d\r\n", xTaskGetTickCount() ) );
+                FreeRTOS_debug_printf( ( "xPreviousWakeTime = %d\r\n", xPreviousWakeTime ) );
+                FreeRTOS_debug_printf( ( "xTimeIncrement = %d\r\n", xTimeIncrement ) );
+                xPreviousWakeTime = xTaskGetTickCount();
+                ulOverrunCount += 1;
 
-            /* get the cycle count after blocking. */
-            ulCycleCountEnd = get_cycle_count();
+                ulCycleCountDiff = 0;
+            }
+            else
+            {
+                /* One of the microbenchmarks is to measure idle or spare
+                 * processing time, which we'll do by measuring cycle counts
+                 * across a call to vTaskDelayUntil(). */
 
-            /* The difference in cycle count across the call to
-             * vTaskDelayUntil() is a proxy for spare processing or idle time
-             * available in this taks. */
+                /* get the cycle count before blocking. */
+                ulCycleCountStart = get_cycle_count();
 
+                /* Block until the next, fixed execution period */
+                vTaskDelayUntil( &xPreviousWakeTime, xTimeIncrement );
+
+                /* get the cycle count after blocking. */
+                ulCycleCountEnd = get_cycle_count();
+
+                /* calculate the cycle count difference */
+                ulCycleCountDiff = ulCycleCountEnd - ulCycleCountStart;
+            }
+
+#if defined( MODBUS_MICROBENCHMARK )
             /* Save the difference in cycle count as a benchmarking sample. */
             xMicrobenchmarkSample( SPARE_PROCESSING, pcModbusFunctionName,
-                    ulCycleCountEnd - ulCycleCountStart, pdTRUE );
+                    ulCycleCountDiff, pdTRUE );
 #endif /* defined( MODBUS_MICROBENCHMARK ) */
+
+#endif /* defined( modbusEXEC_PERIOD_MS ) */
 
             /* Receive the next request from the Modbus client. */
             req_length = modbus_receive( ctx, req );
